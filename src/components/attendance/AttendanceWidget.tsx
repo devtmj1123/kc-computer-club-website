@@ -151,7 +151,6 @@ export default function AttendanceWidget({
         // 如果是「已完成点名」的提示，作为信息提示而非错误
         if (data.error && (data.error.includes('您已在') || data.error.includes('已完成点名'))) {
           setMessage(data.error);
-          setHasCheckedIn(true);
           setVerificationCode('');
           // 提取已完成的时段时间，防止重复提交
           const sessionMatch = (data.error as string).match(/(\d{1,2}:\d{2})/);
@@ -160,7 +159,6 @@ export default function AttendanceWidget({
           }
           setTimeout(() => {
             setMessage('');
-            setHasCheckedIn(false);
           }, 5000);
           setIsLoading(false);
           return;
@@ -173,15 +171,12 @@ export default function AttendanceWidget({
       const sessionTime: string = data.record?.sessionTime || '';
       setMessage(`点名成功！时段: ${sessionTime}`);
       if (sessionTime) setCompletedSessions(prev => [...new Set([...prev, sessionTime])]);
-      setHasCheckedIn(true);
       setVerificationCode(''); // 清除验证码
-      onCheckInSuccess?.();
 
-      // 5秒后清除成功消息并重置点名状态（允许第二时段继续点名）
+      // 3秒后清除成功消息（允许用户立即进行新的点名或看到下一个时段）
       setTimeout(() => {
         setMessage('');
-        setHasCheckedIn(false);
-      }, 5000);
+      }, 3000);
     } catch (err) {
       const error = err as Error & { message?: string };
       setError('点名失败：' + (error.message || '未知错误'));
@@ -264,7 +259,7 @@ export default function AttendanceWidget({
               )}
 
               {/* 验证码输入框 */}
-              {requireCode && !hasCheckedIn && (
+              {requireCode && !isLoading && (
                 <div className="bg-[var(--surface-hover)] border border-amber-500/30 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="material-symbols-outlined text-amber-400">pin</span>
@@ -276,7 +271,8 @@ export default function AttendanceWidget({
                     onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     placeholder="输入4位验证码"
                     maxLength={4}
-                    className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-[var(--foreground)] text-center text-2xl font-mono tracking-widest placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-amber-500/50"
+                    disabled={isLoading}
+                    className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-[var(--foreground)] text-center text-2xl font-mono tracking-widest placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-amber-500/50 disabled:opacity-60"
                   />
                   <p className="text-[var(--text-secondary)] text-xs mt-2 text-center">
                     时段1 和 时段2 各有不同验证码，请向在场老师获取
@@ -287,11 +283,9 @@ export default function AttendanceWidget({
               {/* 点名按钮 */}
               <button
                 onClick={handleCheckIn}
-                disabled={isLoading || hasCheckedIn || (requireCode && verificationCode.length !== 4)}
+                disabled={isLoading || (requireCode && verificationCode.length !== 4)}
                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${
-                  hasCheckedIn
-                    ? 'bg-primary text-[var(--surface)] cursor-default'
-                    : isLoading
+                  isLoading
                     ? 'bg-primary/50 text-[var(--surface)] cursor-wait'
                     : (requireCode && verificationCode.length !== 4)
                     ? 'bg-[var(--border)] text-[var(--text-secondary)] cursor-not-allowed'
@@ -302,11 +296,6 @@ export default function AttendanceWidget({
                   <>
                     <span className="material-symbols-outlined animate-spin">hourglass_bottom</span>
                     点名中...
-                  </>
-                ) : hasCheckedIn ? (
-                  <>
-                    <span className="material-symbols-outlined">check_circle</span>
-                    已点名
                   </>
                 ) : (
                   <>

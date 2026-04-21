@@ -539,11 +539,30 @@ export default function AttendanceRecords() {
           }),
         });
 
-        if (!response.ok) {
+        if (response.ok) {
+          // 立即更新本地状态，不需要重新fetch
+          if (summary) {
+            setSummary(prev => {
+              const newSummary = JSON.parse(JSON.stringify(prev));
+              // 找出sessionTime
+              const sessionTime = record.sessionTime;
+              const session = sessionTime === getSessionTimeString(1) ? newSummary.session1 : newSummary.session2;
+
+              // 找到待点名记录并更新
+              const idx = session.students.findIndex((s: AttendanceRecord) => s.uniqueKey === recordId);
+              if (idx !== -1) {
+                session.students[idx].status = newStatus;
+                // 更新统计数据
+                session.pending = (session.pending || 0) - 1;
+                session[newStatus] = (session[newStatus] || 0) + 1;
+              }
+              return newSummary;
+            });
+          }
+        } else {
           const data = await response.json();
           alert('创建失败：' + (data.error || '未知错误'));
         }
-        // 不立即刷新，让自动刷新间隔处理
       } else {
         // 对于已有记录，执行更新操作
         const response = await fetch('/api/attendance/record', {
@@ -556,11 +575,33 @@ export default function AttendanceRecords() {
           }),
         });
 
-        if (!response.ok) {
+        if (response.ok) {
+          // 立即更新本地状态，不需要重新fetch
+          if (summary && record) {
+            setSummary(prev => {
+              const newSummary = JSON.parse(JSON.stringify(prev));
+              const sessionTime = record.sessionTime;
+              const session = sessionTime === getSessionTimeString(1) ? newSummary.session1 : newSummary.session2;
+
+              // 找到记录并更新
+              const idx = session.students.findIndex((s: AttendanceRecord) => (s.uniqueKey || s.$id) === recordId);
+              if (idx !== -1) {
+                const oldStatus = session.students[idx].status;
+                session.students[idx].status = newStatus;
+
+                // 更新统计数据
+                if (oldStatus !== 'pending') {
+                  session[oldStatus] = Math.max(0, (session[oldStatus] || 0) - 1);
+                }
+                session[newStatus] = (session[newStatus] || 0) + 1;
+              }
+              return newSummary;
+            });
+          }
+        } else {
           const data = await response.json();
           alert('修改失败：' + (data.error || '未知错误'));
         }
-        // 不立即刷新，让自动刷新间隔处理
       }
     } catch (err) {
       const error = err as Error & { message?: string };
