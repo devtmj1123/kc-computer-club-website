@@ -167,11 +167,11 @@ export async function PATCH(request: NextRequest) {
             { status: 400 }
           );
         }
-        
+
         const studentId = parts[0];
         const sessionNumber = parseInt(parts[1]);  // 1 或 2
         const weekNumber = parseInt(parts[2]);
-        
+
         if (!studentName || !studentEmail) {
           return NextResponse.json(
             { error: '创建新记录需要提供 studentName 和 studentEmail' },
@@ -180,15 +180,41 @@ export async function PATCH(request: NextRequest) {
         }
 
         const now = new Date().toISOString();
+
+        // 获取考勤配置以确定正确的 sessionTime
+        const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
+        const CLUB_SETTINGS_COLLECTION_ID = 'clubSettings';
+        const ATTENDANCE_CONFIG_DOC_ID = 'attendance_config';
+
+        let sessionTimeStr = sessionNumber === 1 ? '15:20' : '16:35';  // 默认值
+
+        try {
+          const settingsDoc = await serverDatabases.getDocument(
+            databaseId,
+            CLUB_SETTINGS_COLLECTION_ID,
+            ATTENDANCE_CONFIG_DOC_ID
+          );
+
+          if (sessionNumber === 1 && settingsDoc.attendanceSession1Start) {
+            const s1 = JSON.parse(String(settingsDoc.attendanceSession1Start));
+            sessionTimeStr = `${s1.hour}:${String(s1.minute).padStart(2, '0')}`;
+          } else if (sessionNumber === 2 && settingsDoc.attendanceSession2Start) {
+            const s2 = JSON.parse(String(settingsDoc.attendanceSession2Start));
+            sessionTimeStr = `${s2.hour}:${String(s2.minute).padStart(2, '0')}`;
+          }
+        } catch (configErr) {
+          console.warn(`[CREATE-FROM-PENDING] 无法获取时段配置，使用默认值: ${sessionTimeStr}`, configErr);
+        }
+
         const newRecord = await serverDatabases.createDocument(
-          APPWRITE_DATABASE_ID,
-          ATTENDANCE_COLLECTION_ID,
+          databaseId,
+          'attendance',
           recordId,  // 使用 uniqueKey 作为文档ID
           {
             studentId,
             studentName,
             studentEmail,
-            sessionTime: `session${sessionNumber}`,  // 标记时段
+            sessionTime: sessionTimeStr,  // 使用正确的时间字符串，而不是 session${sessionNumber}
             weekNumber,
             status,
             notes: notes || '',
@@ -198,7 +224,7 @@ export async function PATCH(request: NextRequest) {
           }
         );
 
-        console.log(`[CREATE-FROM-PENDING] 为学生 ${studentName} 创建点名记录，状态: ${status}, 时段: ${sessionNumber}`);
+        console.log(`[CREATE-FROM-PENDING] 为学生 ${studentName} 创建点名记录，状态: ${status}, 时段: session${sessionNumber}, 时间: ${sessionTimeStr}`);
 
         return NextResponse.json({
           success: true,

@@ -518,12 +518,12 @@ export default function AttendanceRecords() {
     record?: AttendanceRecord
   ) => {
     setUpdatingId(recordId);
-    
+
     try {
       // 检查是否是 pending 记录（需要创建而非更新）
       // 新格式: $id = studentId_sessionTime_weekNumber (如: 12345_15:20_3)
       const isPendingRecord = record?.isPending || record?.status === 'pending';
-      
+
       if (isPendingRecord && record) {
         // 对于 pending 记录，使用 PATCH 创建新的点名记录
         // recordId 格式: studentId_sessionTime_weekNumber
@@ -539,12 +539,11 @@ export default function AttendanceRecords() {
           }),
         });
 
-        if (response.ok) {
-          fetchRecords(weekNumber);
-        } else {
+        if (!response.ok) {
           const data = await response.json();
           alert('创建失败：' + (data.error || '未知错误'));
         }
+        // 不立即刷新，让自动刷新间隔处理
       } else {
         // 对于已有记录，执行更新操作
         const response = await fetch('/api/attendance/record', {
@@ -557,12 +556,11 @@ export default function AttendanceRecords() {
           }),
         });
 
-        if (response.ok) {
-          fetchRecords(weekNumber);
-        } else {
+        if (!response.ok) {
           const data = await response.json();
           alert('修改失败：' + (data.error || '未知错误'));
         }
+        // 不立即刷新，让自动刷新间隔处理
       }
     } catch (err) {
       const error = err as Error & { message?: string };
@@ -999,7 +997,7 @@ export default function AttendanceRecords() {
                     )}
                   </div>
                   <div className={styles.col5}>
-                    {updatingId === record.$id ? (
+                    {updatingId === (record.uniqueKey || record.$id) ? (
                       <span className="material-symbols-outlined" style={{ fontSize: '20px', animation: 'spin 1s linear infinite', color: '#6e7681' }}>
                         sync
                       </span>
@@ -1033,27 +1031,27 @@ export default function AttendanceRecords() {
                         {/* 操作按钮（缩小版） */}
                         <div className={styles.statusButtonGroup} style={{gap: '4px'}}>
                           <button
-                            onClick={() => handleChangeStatus(record.$id, 'present', record)}
+                            onClick={() => handleChangeStatus(record.uniqueKey || record.$id, 'present', record)}
                             className={`${styles.statusBtn} ${styles.statusBtnPresent} ${record.status === 'present' ? styles.active : ''}`}
-                            disabled={updatingId === record.$id}
+                            disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为出席"
                             style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
                           >
                             出席
                           </button>
                           <button
-                            onClick={() => handleChangeStatus(record.$id, 'late', record)}
+                            onClick={() => handleChangeStatus(record.uniqueKey || record.$id, 'late', record)}
                             className={`${styles.statusBtn} ${styles.statusBtnLate} ${record.status === 'late' ? styles.active : ''}`}
-                            disabled={updatingId === record.$id}
+                            disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为迟到"
                             style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
                           >
                             迟到
                           </button>
                           <button
-                            onClick={() => handleChangeStatus(record.$id, 'absent', record)}
+                            onClick={() => handleChangeStatus(record.uniqueKey || record.$id, 'absent', record)}
                             className={`${styles.statusBtn} ${styles.statusBtnAbsent} ${record.status === 'absent' ? styles.active : ''}`}
-                            disabled={updatingId === record.$id}
+                            disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为缺席"
                             style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
                           >
@@ -1155,7 +1153,7 @@ export default function AttendanceRecords() {
                     )}
                   </div>
                   <div className={styles.col5}>
-                    {updatingId === record.$id ? (
+                    {updatingId === (record.uniqueKey || record.$id) ? (
                       <span className="material-symbols-outlined" style={{ fontSize: '20px', animation: 'spin 1s linear infinite', color: '#6e7681' }}>
                         sync
                       </span>
@@ -1189,27 +1187,27 @@ export default function AttendanceRecords() {
                         {/* 操作按钮（缩小版） */}
                         <div className={styles.statusButtonGroup} style={{gap: '4px'}}>
                           <button
-                            onClick={() => handleChangeStatus(record.$id, 'present', record)}
+                            onClick={() => handleChangeStatus(record.uniqueKey || record.$id, 'present', record)}
                             className={`${styles.statusBtn} ${styles.statusBtnPresent} ${record.status === 'present' ? styles.active : ''}`}
-                            disabled={updatingId === record.$id}
+                            disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为出席"
                             style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
                           >
                             出席
                           </button>
                           <button
-                            onClick={() => handleChangeStatus(record.$id, 'late', record)}
+                            onClick={() => handleChangeStatus(record.uniqueKey || record.$id, 'late', record)}
                             className={`${styles.statusBtn} ${styles.statusBtnLate} ${record.status === 'late' ? styles.active : ''}`}
-                            disabled={updatingId === record.$id}
+                            disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为迟到"
                             style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
                           >
                             迟到
                           </button>
                           <button
-                            onClick={() => handleChangeStatus(record.$id, 'absent', record)}
+                            onClick={() => handleChangeStatus(record.uniqueKey || record.$id, 'absent', record)}
                             className={`${styles.statusBtn} ${styles.statusBtnAbsent} ${record.status === 'absent' ? styles.active : ''}`}
-                            disabled={updatingId === record.$id}
+                            disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为缺席"
                             style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
                           >
