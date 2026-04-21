@@ -47,6 +47,7 @@
   /* ===== 输入框 ===== */
   --input-bg: #ffffff;
   --input-border: #d1d9d5;
+  --input-text: #111814;
   --input-focus: var(--primary);
   --input-placeholder: #94a8a1;
   
@@ -90,6 +91,7 @@
   /* ===== 输入框 ===== */
   --input-bg: #102219;
   --input-border: #283930;
+  --input-text: #ffffff;
   --input-focus: var(--primary);
   --input-placeholder: #7a9084;
   
@@ -337,6 +339,7 @@ body {
 .light select {
   background-color: var(--input-bg);
   border-color: var(--input-border);
+  color: var(--input-text);
 }
 
 .light input:focus,
@@ -651,7 +654,7 @@ body {
 .student-layout select {
   background-color: var(--input-bg);
   border-color: var(--input-border);
-  color: var(--foreground);
+  color: var(--input-text);
 }
 
 .student-layout input::placeholder,
