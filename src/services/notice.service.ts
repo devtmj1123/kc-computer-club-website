@@ -1,14 +1,8 @@
-/* eslint-disable prettier/prettier */
 import { databases } from '@/services/appwrite';
 import { ID, Query } from 'appwrite';
 
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const NOTICES_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_NOTICES_COLLECTION || '';
-
-/**
- * 公告服务
- * 管理所有公告的数据库操作
- */
 
 export interface Notice {
   $id: string;
@@ -55,31 +49,24 @@ export interface UpdateNoticeInput {
   pinned?: boolean;
 }
 
-/**
- * 获取所有公告（可选过滤已发布和可见范围）
- * @param onlyPublished - 仅获取已发布公告
- * @param visibility - 可见范围过滤：'public' 仅公开，'all' 包含内部（需登录）
- */
 export async function getAllNotices(onlyPublished = false, visibility: 'public' | 'all' = 'all'): Promise<Notice[]> {
   try {
     const queries: ReturnType<typeof Query.equal>[] = [];
-    
+
     if (onlyPublished) {
       queries.push(Query.equal('status', 'published'));
     }
-    
-    // 如果只要公开公告，过滤掉内部公告
+
     if (visibility === 'public') {
       queries.push(Query.equal('visibility', 'public'));
     }
-    
+
     const response = await databases.listDocuments(
       APPWRITE_DATABASE_ID,
       NOTICES_COLLECTION_ID,
       queries
     );
     const notices = response.documents.map(parseNotice) as unknown as Notice[];
-    // 置顶公告优先，再按 createdAt 降序
     return notices.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -92,9 +79,6 @@ export async function getAllNotices(onlyPublished = false, visibility: 'public' 
   }
 }
 
-/**
- * 按 ID 获取单个公告
- */
 export async function getNoticeById(id: string): Promise<Notice> {
   try {
     const notice = await databases.getDocument(
@@ -110,11 +94,7 @@ export async function getNoticeById(id: string): Promise<Notice> {
   }
 }
 
-/**
- * 解析公告数据，将 JSON 字符串转换为数组
- */
 function parseNotice(doc: Record<string, unknown>): Notice {
-  // 解析 coverImage 字段中的图片数组
   let images: string[] = [];
   if (doc.coverImage) {
     const coverImageStr = (doc.coverImage as string).trim();
@@ -122,7 +102,6 @@ function parseNotice(doc: Record<string, unknown>): Notice {
       try {
         const parsed = JSON.parse(coverImageStr);
         if (Array.isArray(parsed)) {
-          // 过滤掉空字符串和无效 URL
           images = parsed.filter((img: unknown) => {
             return typeof img === 'string' && img.trim().length > 0;
           });
@@ -130,7 +109,6 @@ function parseNotice(doc: Record<string, unknown>): Notice {
           images = [parsed.trim()];
         }
       } catch {
-        // 如果不是 JSON 数组，当作单个图片 URL
         if (typeof doc.coverImage === 'string' && coverImageStr.length > 0) {
           images = [coverImageStr];
         }
@@ -138,7 +116,6 @@ function parseNotice(doc: Record<string, unknown>): Notice {
     }
   }
 
-  // 解析 tags 字段
   let tags: string[] = [];
   if (doc.tags) {
     const tagsStr = (doc.tags as string).trim();
@@ -162,9 +139,6 @@ function parseNotice(doc: Record<string, unknown>): Notice {
   } as unknown as Notice;
 }
 
-/**
- * 创建新公告
- */
 export async function createNotice(input: CreateNoticeInput): Promise<Notice> {
   try {
     const now = new Date().toISOString();
@@ -182,7 +156,6 @@ export async function createNotice(input: CreateNoticeInput): Promise<Notice> {
       publishedAt: input.status === 'published' ? now : null,
     };
 
-    // 使用 coverImage 字段存储所有图片的 JSON 数组
     if (input.images && input.images.length > 0) {
       noticeData.coverImage = JSON.stringify(input.images);
     } else {
@@ -203,9 +176,6 @@ export async function createNotice(input: CreateNoticeInput): Promise<Notice> {
   }
 }
 
-/**
- * 更新公告
- */
 export async function updateNotice(
   id: string,
   input: UpdateNoticeInput
@@ -225,11 +195,9 @@ export async function updateNotice(
       }
     }
 
-    // 记录最后编辑者信息
     if (input.lastEditorId) updateData.lastEditorId = input.lastEditorId;
     if (input.lastEditorName) updateData.lastEditorName = input.lastEditorName;
-    
-    // 处理图片：使用 coverImage 字段存储所有图片的 JSON 数组
+
     if (input.images !== undefined) {
       if (input.images && input.images.length > 0) {
         updateData.coverImage = JSON.stringify(input.images);
@@ -237,7 +205,7 @@ export async function updateNotice(
         updateData.coverImage = '[]';
       }
     }
-    
+
     if (input.tags) updateData.tags = JSON.stringify(input.tags);
     if (input.pinned !== undefined) updateData.pinned = input.pinned;
 
@@ -255,9 +223,6 @@ export async function updateNotice(
   }
 }
 
-/**
- * 删除公告
- */
 export async function deleteNotice(id: string): Promise<void> {
   try {
     await databases.deleteDocument(
@@ -272,9 +237,6 @@ export async function deleteNotice(id: string): Promise<void> {
   }
 }
 
-/**
- * 按分类获取公告
- */
 export async function getNoticesByCategory(category: string): Promise<Notice[]> {
   try {
     const response = await databases.listDocuments(
@@ -283,7 +245,6 @@ export async function getNoticesByCategory(category: string): Promise<Notice[]> 
       [Query.equal('category', category)]
     );
     const notices = response.documents.map(parseNotice) as unknown as Notice[];
-    // 按createdAt降序排列，最新的在最前面
     return notices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
@@ -292,9 +253,6 @@ export async function getNoticesByCategory(category: string): Promise<Notice[]> 
   }
 }
 
-/**
- * 搜索公告（按标题和内容）
- */
 export async function searchNotices(query: string): Promise<Notice[]> {
   try {
     const response = await databases.listDocuments(
@@ -303,7 +261,6 @@ export async function searchNotices(query: string): Promise<Notice[]> {
       [Query.search('title', query)]
     );
     const notices = response.documents.map(parseNotice) as unknown as Notice[];
-    // 按createdAt降序排列，最新的在最前面
     return notices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error: unknown) {
     const err = error as Error & { message?: string };

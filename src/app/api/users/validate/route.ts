@@ -1,31 +1,18 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import { databases } from '@/services/appwrite';
 import { Query } from 'appwrite';
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
-
-/**
- * 验证用户是否存在于数据库中
- * POST /api/users/validate
- * Body: { email: string } 或 { emails: string[] }
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
-    // 支持单个邮箱或多个邮箱
     if (body.email) {
-      // 单个邮箱验证
       const email = body.email.toLowerCase().trim();
-      
       const response = await databases.listDocuments(
         APPWRITE_DATABASE_ID,
         USERS_COLLECTION_ID,
         [Query.equal('email', email), Query.limit(1)]
       );
-      
       if (response.documents.length > 0) {
         const user = response.documents[0];
         return NextResponse.json({
@@ -43,17 +30,14 @@ export async function POST(request: NextRequest) {
         });
       }
     } else if (body.emails && Array.isArray(body.emails)) {
-      // 多个邮箱批量验证
       const emails = body.emails.map((e: string) => e.toLowerCase().trim());
       const results: Record<string, { exists: boolean; user?: { id: string; name: string; email: string }; message?: string }> = {};
-      
       for (const email of emails) {
         const response = await databases.listDocuments(
           APPWRITE_DATABASE_ID,
           USERS_COLLECTION_ID,
           [Query.equal('email', email), Query.limit(1)]
         );
-        
         if (response.documents.length > 0) {
           const user = response.documents[0];
           results[email] = {
@@ -71,13 +55,10 @@ export async function POST(request: NextRequest) {
           };
         }
       }
-      
-      // 检查是否全部存在
       const allExist = Object.values(results).every(r => r.exists);
       const missingEmails = Object.entries(results)
         .filter(([, r]) => !r.exists)
         .map(([email]) => email);
-      
       return NextResponse.json({
         allValid: allExist,
         results,

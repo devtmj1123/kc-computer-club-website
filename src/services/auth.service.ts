@@ -1,33 +1,19 @@
-/* eslint-disable prettier/prettier */
 import { databases } from './appwrite';
 import { Query } from 'appwrite';
 import { StudentUser, AdminUser } from '@/contexts/AuthContext';
 import bcrypt from 'bcryptjs';
 import CryptoJS from 'crypto-js';
 
-/**
- * 认证服务
- * 使用 Appwrite Database 存储用户凭证（不使用 Appwrite Account）
- * 支持学生和管理员认证
- */
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
 
-// 加密密钥（用于加密敏感数据）
 const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || 'kc-computer-club-2024';
 
-/**
- * 加密敏感数据
- */
 export function encryptData(data: string): string {
   if (!data) return '';
   return CryptoJS.AES.encrypt(data, ENCRYPTION_KEY).toString();
 }
 
-/**
- * 解密敏感数据
- */
 export function decryptData(encryptedData: string): string {
   if (!encryptedData) return '';
   try {
@@ -38,37 +24,16 @@ export function decryptData(encryptedData: string): string {
   }
 }
 
-/**
- * 默认学生密码
- */
 export const DEFAULT_STUDENT_PASSWORD = '11111111';
 
-/**
- * 哈希密码
- */
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-/**
- * 验证密码
- */
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
-/**
- * ========================================
- * 学生认证
- * ========================================
- */
-
-/**
- * 学生登录
- * @param email 学号邮箱 (格式: xxxxx@kuencheng.edu.my)
- * @param password 密码
- * @returns 学生用户信息和是否需要修改密码
- */
 export async function studentLogin(
   email: string,
   password: string
@@ -87,7 +52,6 @@ export async function studentLogin(
 
   const studentUser = data as StudentUser & { requirePasswordChange: boolean };
 
-  // Store session in localStorage
   if (typeof window !== 'undefined') {
     localStorage.setItem('studentSession', JSON.stringify(studentUser));
   }
@@ -95,12 +59,6 @@ export async function studentLogin(
   return studentUser;
 }
 
-/**
- * 学生修改密码
- * @param studentId 学生文档ID
- * @param currentPassword 当前密码
- * @param newPassword 新密码
- */
 export async function changeStudentPassword(
   studentId: string,
   currentPassword: string,
@@ -118,7 +76,6 @@ export async function changeStudentPassword(
     throw new Error(data.error || '修改密码失败');
   }
 
-  // Update localStorage session
   if (typeof window !== 'undefined') {
     const sessionStr = localStorage.getItem('studentSession');
     if (sessionStr) {
@@ -127,15 +84,11 @@ export async function changeStudentPassword(
         session.requirePasswordChange = false;
         localStorage.setItem('studentSession', JSON.stringify(session));
       } catch {
-        // ignore
       }
     }
   }
 }
 
-/**
- * 学生登出
- */
 export async function studentLogout(): Promise<void> {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('studentSession');
@@ -143,9 +96,6 @@ export async function studentLogout(): Promise<void> {
   return Promise.resolve();
 }
 
-/**
- * 获取当前学生会话
- */
 export async function getCurrentStudent(): Promise<(StudentUser & { requirePasswordChange: boolean }) | null> {
   try {
     if (typeof window === 'undefined') {
@@ -158,21 +108,19 @@ export async function getCurrentStudent(): Promise<(StudentUser & { requirePassw
     }
 
     const session = JSON.parse(sessionStr) as StudentUser & { requirePasswordChange: boolean };
-    
-    // 验证会话是否仍然有效（可选：从数据库验证）
+
     try {
       const studentRecord = await databases.getDocument(
         APPWRITE_DATABASE_ID,
         USERS_COLLECTION_ID,
         session.id
       );
-      
+
       if (!studentRecord || studentRecord.role !== 'student') {
         localStorage.removeItem('studentSession');
         return null;
       }
-      
-      // 更新会话数据（如果数据库有变更）
+
       return {
         id: studentRecord.$id,
         email: studentRecord.email,
@@ -187,7 +135,6 @@ export async function getCurrentStudent(): Promise<(StudentUser & { requirePassw
         requirePasswordChange: studentRecord.requirePasswordChange === true,
       };
     } catch {
-      // 如果数据库验证失败，仍返回缓存的会话
       return session;
     }
   } catch {
@@ -195,17 +142,6 @@ export async function getCurrentStudent(): Promise<(StudentUser & { requirePassw
   }
 }
 
-/**
- * ========================================
- * 管理员认证
- * ========================================
- */
-
-/**
- * 管理员登录
- * @param adminUsername 管理员用户名
- * @param password 密码
- */
 export async function adminLogin(
   adminUsername: string,
   password: string
@@ -225,7 +161,6 @@ export async function adminLogin(
 
     const adminUser: AdminUser = data.admin;
 
-    // 存储管理员会话到 localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem('adminSession', JSON.stringify(adminUser));
     }
@@ -237,9 +172,6 @@ export async function adminLogin(
   }
 }
 
-/**
- * 管理员修改密码
- */
 export async function changeAdminPassword(
   identifier: string,
   currentPassword: string,
@@ -263,9 +195,6 @@ export async function changeAdminPassword(
   }
 }
 
-/**
- * 管理员登出
- */
 export async function adminLogout(): Promise<void> {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('adminSession');
@@ -273,9 +202,6 @@ export async function adminLogout(): Promise<void> {
   return Promise.resolve();
 }
 
-/**
- * 获取当前管理员会话
- */
 export async function getCurrentAdmin(): Promise<AdminUser | null> {
   try {
     if (typeof window === 'undefined') {
@@ -293,9 +219,6 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
   }
 }
 
-/**
- * 获取管理员的活跃会话列表
- */
 export async function getAdminSessions(): Promise<
   Array<{
     id: string;
@@ -323,23 +246,10 @@ export async function getAdminSessions(): Promise<
   ];
 }
 
-/**
- * 登出其他设备的会话
- */
 export async function logoutOtherSession(sessionId: string): Promise<void> {
   console.log(`已登出会话: ${sessionId}`);
 }
 
-/**
- * ========================================
- * 会话检查
- * ========================================
- */
-
-/**
- * 检查当前会话
- * @param preferredType 优先恢复的会话类型
- */
 export async function checkSession(preferredType?: 'student' | 'admin'): Promise<{
   type: 'student' | 'admin' | null;
   user: (StudentUser & { requirePasswordChange?: boolean }) | AdminUser | null;
@@ -352,7 +262,6 @@ export async function checkSession(preferredType?: 'student' | 'admin'): Promise
     const checkAdminFirst = preferredType === 'admin';
 
     if (checkAdminFirst) {
-      // 在 admin 页面，只检查 admin session
       try {
         const adminSession = localStorage.getItem('adminSession');
         if (adminSession) {
@@ -367,7 +276,6 @@ export async function checkSession(preferredType?: 'student' | 'admin'): Promise
         localStorage.removeItem('adminSession');
       }
     } else {
-      // 在非 admin 页面，只检查 student session
       try {
         const studentSession = localStorage.getItem('studentSession');
         if (studentSession) {
@@ -390,17 +298,6 @@ export async function checkSession(preferredType?: 'student' | 'admin'): Promise
   }
 }
 
-/**
- * ========================================
- * 密码重置（使用重置令牌）
- * ========================================
- */
-
-/**
- * 验证重置密码令牌
- * @param token 重置令牌
- * @returns 令牌中的用户信息
- */
 export function verifyResetToken(token: string): { userId: string; email: string; timestamp: number } | null {
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf-8');
@@ -412,7 +309,6 @@ export function verifyResetToken(token: string): { userId: string; email: string
       return null;
     }
 
-    // 检查令牌是否过期（24小时）
     const RESET_TOKEN_EXPIRY = 24 * 60 * 60 * 1000;
     const currentTime = Date.now();
     const tokenAge = currentTime - timestamp;
@@ -428,12 +324,6 @@ export function verifyResetToken(token: string): { userId: string; email: string
   }
 }
 
-/**
- * 生成重置密码令牌
- * @param userId 用户ID
- * @param email 用户邮箱
- * @returns 重置令牌
- */
 export function generateResetToken(userId: string, email: string): string {
   const tokenData = {
     userId,
@@ -444,12 +334,6 @@ export function generateResetToken(userId: string, email: string): string {
   return Buffer.from(JSON.stringify(tokenData)).toString('base64');
 }
 
-/**
- * 使用重置令牌重置密码（客户端调用 API）
- * @param token 重置令牌
- * @param newPassword 新密码
- * @returns 重置结果
- */
 export async function resetPasswordWithToken(
   token: string,
   newPassword: string

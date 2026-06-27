@@ -1,20 +1,16 @@
-/* eslint-disable prettier/prettier */
 import { Client, Databases } from 'node-appwrite';
 import { NextResponse } from 'next/server';
-
 interface AppwriteError {
   code?: number;
   type?: string;
   message?: string;
 }
-
 export async function GET() {
   try {
     const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
     const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
     const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
     const apiKey = process.env.APPWRITE_API_KEY;
-
     if (!endpoint || !projectId || !databaseId || !apiKey) {
       return NextResponse.json(
         {
@@ -24,16 +20,12 @@ export async function GET() {
         { status: 500 }
       );
     }
-
     const client = new Client()
       .setEndpoint(endpoint)
       .setProject(projectId)
       .setKey(apiKey);
-
     const databases = new Databases(client);
     const collectionId = 'attendance';
-
-    // 尝试创建 attendance collection
     let collectionCreated = false;
     try {
       await databases.createCollection(
@@ -54,25 +46,20 @@ export async function GET() {
         throw error;
       }
     }
-
     if (!collectionCreated) {
       throw new Error('Failed to create or verify attendance collection');
     }
-
-    // 创建属性
     const attributes = [
       { name: 'studentId', type: 'string', size: 255 },
       { name: 'studentName', type: 'string', size: 255 },
       { name: 'studentEmail', type: 'email', size: 255 },
       { name: 'checkInTime', type: 'datetime' },
-      { name: 'sessionTime', type: 'string', size: 50 }, // '3:15pm' or '4:30pm'
+      { name: 'sessionTime', type: 'string', size: 50 }, 
       { name: 'weekNumber', type: 'integer' },
-      { name: 'status', type: 'string', size: 50 }, // present, absent, late
+      { name: 'status', type: 'string', size: 50 }, 
       { name: 'notes', type: 'string', size: 500 },
     ];
-
     const results: Array<{ name: string; status: 'created' | 'exists' | 'error'; error?: string }> = [];
-
     for (const attr of attributes) {
       try {
         if (attr.type === 'integer') {
@@ -126,9 +113,7 @@ export async function GET() {
         }
       }
     }
-
     console.log('✓ Attendance 集合初始化完成');
-
     return NextResponse.json({
       success: true,
       message: 'Attendance collection initialization completed',

@@ -1,13 +1,7 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { forwardRef, SelectHTMLAttributes, useId, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-
-// ========================================
-// Select 组件
-// 参考设计：activity_sign-up_page/code.html
-// ========================================
 
 export interface SelectOption {
   value: string;
@@ -16,19 +10,12 @@ export interface SelectOption {
 }
 
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  /** 选择框标签 */
   label?: string;
-  /** 选项列表 */
   options: SelectOption[];
-  /** 占位符 */
   placeholder?: string;
-  /** 错误信息 */
   error?: string;
-  /** 提示信息 */
   hint?: string;
-  /** 是否必填 */
   required?: boolean;
-  /** 容器类名 */
   containerClassName?: string;
 }
 
@@ -58,7 +45,6 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
     return (
       <div className={cn('flex flex-col gap-1.5', containerClassName)}>
-        {/* 标签 */}
         {label && (
           <label
             htmlFor={selectId || undefined}
@@ -69,24 +55,17 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </label>
         )}
 
-        {/* 选择框容器 */}
         <div className="relative">
           <select
             ref={ref}
             id={selectId || undefined}
             className={cn(
-              // 基础样式 - 支持亮/暗主题
-              'w-full',
-              'bg-white dark:bg-[#102219]',
-              'border border-gray-300 dark:border-[#2a4e3d]',
-              'rounded-lg px-4 py-3 pr-10 text-base',
-              'text-gray-900 dark:text-white',
-              'appearance-none cursor-pointer',
-              // Focus 样式
-              'focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary',
-              'transition-all duration-200',
-              // 错误样式
-              error && 'border-red-500 focus:ring-red-500/50 focus:border-red-500',
+              'w-full cursor-pointer rounded-2xl px-4 py-3 pr-10 text-base outline-none transition-all duration-200',
+              'bg-[var(--nm-bg)] text-[var(--foreground)] shadow-[var(--nm-inset)]',
+              'focus:shadow-[var(--nm-inset),0_0_0_2px_var(--primary-light),inset_0_0_0_1.5px_var(--primary)]',
+              'hover:shadow-[var(--nm-inset),0_0_0_1px_var(--primary-light)]',
+              'disabled:cursor-not-allowed disabled:opacity-60',
+              error && 'shadow-[var(--nm-inset),0_0_0_2px_rgba(239,68,68,0.18)]',
               className
             )}
             {...props}
@@ -107,13 +86,11 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ))}
           </select>
 
-          {/* 下拉箭头图标 */}
-          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#9dabb9] pointer-events-none">
+          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none">
             expand_more
           </span>
         </div>
 
-        {/* 错误信息 */}
         {error && (
           <p className="text-xs text-red-500 flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">error</span>
@@ -121,7 +98,6 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </p>
         )}
 
-        {/* 提示信息 */}
         {hint && !error && (
           <p className="text-xs text-gray-500 dark:text-gray-400">{hint}</p>
         )}

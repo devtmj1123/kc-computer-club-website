@@ -1,13 +1,10 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Notice } from '@/services/notice.service';
-
 export default function AdminNoticesPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -18,28 +15,22 @@ export default function AdminNoticesPage() {
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'draft' | 'published'>('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // 权限检查
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
-
-  // 加载公告列表
   useEffect(() => {
     if (user && 'role' in user && user.role === 'admin') {
       loadNotices();
     }
   }, [user]);
-
   const loadNotices = async () => {
     try {
       setIsLoadingNotices(true);
       setError('');
       const response = await fetch('/api/notices');
       const data = await response.json();
-
       if (data.success) {
         setNotices(data.notices);
       } else {
@@ -51,7 +42,6 @@ export default function AdminNoticesPage() {
       setIsLoadingNotices(false);
     }
   };
-
   const handleDelete = async (noticeId: string) => {
     setIsDeleting(true);
     try {
@@ -59,7 +49,6 @@ export default function AdminNoticesPage() {
         method: 'DELETE',
       });
       const data = await response.json();
-
       if (data.success) {
         setNotices(notices.filter(n => n.$id !== noticeId));
         setDeleteId(null);
@@ -72,8 +61,6 @@ export default function AdminNoticesPage() {
       setIsDeleting(false);
     }
   };
-
-  // 过滤公告
   const filteredNotices = notices
     .filter((notice) => {
       const matchSearch = notice.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -86,7 +73,6 @@ export default function AdminNoticesPage() {
       if (!a.pinned && b.pinned) return 1;
       return 0;
     });
-
   if (isLoading || !user) {
     return (
       <AdminLayout adminName={user?.name || '管理员'}>
@@ -103,11 +89,9 @@ export default function AdminNoticesPage() {
       </AdminLayout>
     );
   }
-
   return (
     <AdminLayout adminName={user?.name || '管理员'}>
       <div className="w-full">
-        {/* 页面头部 */}
         <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">公告管理</h1>
@@ -121,8 +105,6 @@ export default function AdminNoticesPage() {
             新建公告
           </Link>
         </div>
-
-        {/* 统计卡片 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6">
             <p className="text-gray-400 text-sm mb-1">总公告数</p>
@@ -141,8 +123,6 @@ export default function AdminNoticesPage() {
             </p>
           </div>
         </div>
-
-        {/* 搜索和过滤 */}
         <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-4 sm:p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <input
@@ -163,15 +143,11 @@ export default function AdminNoticesPage() {
             </select>
           </div>
         </div>
-
-        {/* 错误提示 */}
         {error && (
           <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
             {error}
           </div>
         )}
-
-        {/* 公告列表表格 */}
         <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] overflow-hidden shadow-sm">
           {isLoadingNotices ? (
             <div className="p-8 text-center">
@@ -273,8 +249,6 @@ export default function AdminNoticesPage() {
             </div>
           )}
         </div>
-
-        {/* 删除确认对话框 */}
         {deleteId && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6 max-w-sm">
@@ -286,11 +260,9 @@ export default function AdminNoticesPage() {
                 </div>
                 <h3 className="text-lg font-bold text-white text-center">确认删除</h3>
               </div>
-
               <p className="text-gray-400 text-sm mb-6 text-center">
                 确定要删除这个公告吗？此操作无法撤销。
               </p>
-
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteId(null)}
@@ -313,5 +285,3 @@ export default function AdminNoticesPage() {
     </AdminLayout>
   );
 }
-
-

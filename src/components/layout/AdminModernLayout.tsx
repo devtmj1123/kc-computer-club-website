@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import React, { useState } from 'react';
@@ -24,12 +23,9 @@ export function AdminModernLayout({
 
   return (
     <div className="flex h-screen w-full bg-background-dark text-white">
-      {/* Sidebar */}
       <AdminModernSidebar sidebarOpen={sidebarOpen} onToggle={setSidebarOpen} />
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Top Bar */}
         <header className="shrink-0 px-8 py-6 border-b border-white/5 bg-background-dark">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
@@ -56,7 +52,6 @@ export function AdminModernLayout({
           </div>
         </header>
 
-        {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="px-8 py-6 flex flex-col gap-6">{children}</div>
         </div>

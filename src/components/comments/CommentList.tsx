@@ -1,13 +1,8 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { useState } from 'react';
 import { Comment } from '@/services/comment.service';
 import { useAuth } from '@/contexts/AuthContext';
-/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-import { Button } from '@/components/ui/Button';
-/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-import { Input } from '@/components/ui/Input';
 
 interface CommentListProps {
   comments: Comment[];
@@ -19,8 +14,6 @@ interface CommentListProps {
 
 export function CommentList({
   comments,
-  /* contentType, */
-  /* contentId, */
   onCommentDeleted,
   onReplySubmitted,
 }: CommentListProps) {
@@ -57,10 +50,8 @@ function CommentItem({ comment, isAdmin, onCommentDeleted, onReplySubmitted }: C
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState('');
 
-  // 检查是否是评论作者
   const isAuthor = user?.email === comment.email;
 
-  // 计算评论是否在 5 分钟内
   const commentTime = new Date(comment.createdAt).getTime();
   const now = new Date().getTime();
   const minutesElapsed = (now - commentTime) / (1000 * 60);
@@ -124,7 +115,6 @@ function CommentItem({ comment, isAdmin, onCommentDeleted, onReplySubmitted }: C
 
   return (
     <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'var(--surface)', color: 'var(--foreground)' }}>
-      {/* 评论头部：作者信息和操作按钮 */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <p className="font-semibold text-sm truncate" style={{ color: 'var(--foreground)' }}>{comment.nickname}</p>
@@ -134,17 +124,15 @@ function CommentItem({ comment, isAdmin, onCommentDeleted, onReplySubmitted }: C
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          {/* 时间显示 */}
           <p className="text-xs whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
-            {new Date(comment.createdAt).toLocaleString('zh-CN', { 
-              month: '2-digit', 
-              day: '2-digit', 
-              hour: '2-digit', 
-              minute: '2-digit' 
+            {new Date(comment.createdAt).toLocaleString('zh-CN', {
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
             })}
           </p>
 
-          {/* 编辑和删除按钮（仅作者在 5 分钟内可见，只显示 icon） */}
           {isAuthor && canEditDelete && (
             <>
               <button
@@ -165,7 +153,6 @@ function CommentItem({ comment, isAdmin, onCommentDeleted, onReplySubmitted }: C
             </>
           )}
 
-          {/* 管理员删除按钮 */}
           {isAdmin && !isAuthor && (
             <button
               onClick={handleDelete}
@@ -179,7 +166,6 @@ function CommentItem({ comment, isAdmin, onCommentDeleted, onReplySubmitted }: C
         </div>
       </div>
 
-      {/* 评论内容 */}
       <div className="rounded-lg p-2">
         {showEditForm ? (
           <div className="space-y-2">
@@ -226,7 +212,6 @@ function CommentItem({ comment, isAdmin, onCommentDeleted, onReplySubmitted }: C
         )}
       </div>
 
-      {/* 老师回复 */}
       {comment.reply && (
         <div className="rounded-lg p-2 space-y-1 ml-3" style={{ backgroundColor: 'var(--primary) / 0.1', borderLeftColor: 'var(--primary)', borderLeftWidth: '2px' }}>
           <div className="flex items-center justify-between gap-2">
@@ -238,11 +223,11 @@ function CommentItem({ comment, isAdmin, onCommentDeleted, onReplySubmitted }: C
             </div>
             {comment.replyAt && (
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                {new Date(comment.replyAt).toLocaleString('zh-CN', { 
-                  month: '2-digit', 
-                  day: '2-digit', 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
+                {new Date(comment.replyAt).toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit'
                 })}
               </p>
             )}
@@ -251,7 +236,6 @@ function CommentItem({ comment, isAdmin, onCommentDeleted, onReplySubmitted }: C
         </div>
       )}
 
-      {/* 回复按钮（仅管理员可见） */}
       {isAdmin && !comment.reply && (
         <div className="pt-0">
           <button
@@ -264,7 +248,6 @@ function CommentItem({ comment, isAdmin, onCommentDeleted, onReplySubmitted }: C
         </div>
       )}
 
-      {/* 回复表单 */}
       {showReplyForm && isAdmin && (
         <AdminReplyForm
           commentId={comment.$id}

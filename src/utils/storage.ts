@@ -1,8 +1,4 @@
-/* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Cookies from 'js-cookie';
-
-// Local Storage Utilities
 
 export const setLocalStorage = (key: string, value: any): void => {
   try {
@@ -38,8 +34,6 @@ export const clearLocalStorage = (): void => {
   }
 };
 
-// Session Storage Utilities
-
 export const setSessionStorage = (key: string, value: any): void => {
   try {
     sessionStorage.setItem(key, JSON.stringify(value));
@@ -73,8 +67,6 @@ export const clearSessionStorage = (): void => {
     console.error('Failed to clear sessionStorage', error);
   }
 };
-
-// Cookie Utilities
 
 export const setCookie = (
   key: string,
@@ -110,8 +102,6 @@ export const removeCookie = (key: string): void => {
   }
 };
 
-// Token Management
-
 export const setAuthToken = (token: string): void => {
   setCookie('auth_token', token, { expires: 7 });
 };
@@ -125,21 +115,16 @@ export const removeAuthToken = (): void => {
   removeCookie('auth_token');
 };
 
-// Session ID Management
-
 export const getOrCreateSessionId = (): string => {
   let sessionId = getSessionStorage('session_id');
 
   if (!sessionId) {
-    // 生成新的 Session ID
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     setSessionStorage('session_id', sessionId);
   }
 
   return sessionId;
 };
-
-// Chat History Management
 
 export const saveChatHistory = (history: any[]): void => {
   setLocalStorage('chat_history', history);
@@ -152,8 +137,6 @@ export const getChatHistory = (): any[] => {
 export const clearChatHistory = (): void => {
   removeLocalStorage('chat_history');
 };
-
-// User Info Management
 
 export const saveUserInfo = (userInfo: any): void => {
   setLocalStorage('user_info', userInfo);

@@ -12,7 +12,6 @@ export function ClubLogo({ className = '', size = 32 }: ClubLogoProps) {
   const { clubInfo } = useClub();
   const [imageError, setImageError] = useState(false);
 
-  // If no logo URL or image failed to load, show fallback
   if (!clubInfo.logoUrl || imageError) {
     return (
       <div
@@ -24,7 +23,6 @@ export function ClubLogo({ className = '', size = 32 }: ClubLogoProps) {
     );
   }
 
-  // Display club logo image
   return (
     <div
       className={`flex items-center justify-center rounded-lg overflow-hidden flex-shrink-0 bg-white dark:bg-[#1c3328] ${className}`}

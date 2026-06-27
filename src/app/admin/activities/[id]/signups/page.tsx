@@ -1,12 +1,9 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-
 interface Signup {
   $id?: string;
   id: string;
@@ -16,15 +13,11 @@ interface Signup {
   signedUpAt: string;
   status: 'attended' | 'registered' | 'cancelled' | 'pending' | 'confirmed';
 }
-
 interface Activity {
   $id: string;
   title: string;
   description?: string;
 }
-
-// No mock data - fetch from database
-
 const statusLabels: Record<string, string> = {
   attended: '已参加',
   registered: '已注册',
@@ -32,7 +25,6 @@ const statusLabels: Record<string, string> = {
   pending: '待确认',
   confirmed: '已确认',
 };
-
 const statusBgColors: Record<string, string> = {
   attended: 'bg-green-500/10 text-green-400',
   registered: 'bg-blue-500/10 text-blue-400',
@@ -40,40 +32,30 @@ const statusBgColors: Record<string, string> = {
   pending: 'bg-amber-500/10 text-amber-400',
   confirmed: 'bg-blue-500/10 text-blue-400',
 };
-
 export default function ActivitySignups() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
-  
   const activityId = params.id as string;
   const [activity, setActivity] = useState<Activity | null>(null);
   const [signups, setSignups] = useState<Signup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSignups, setSelectedSignups] = useState<Set<string>>(new Set());
-
-  // 权限检查
   useEffect(() => {
     if (!authLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, authLoading, router]);
-
-  // 加载活动和报名数据
   useEffect(() => {
     if (user && 'role' in user && user.role === 'admin' && activityId) {
       loadActivityAndSignups();
     }
   }, [user, activityId]);
-
   const loadActivityAndSignups = async () => {
     try {
       setIsLoading(true);
-
-      // 获取活动信息
       const activityRes = await fetch(`/api/activities/${activityId}`);
       const activityData = await activityRes.json();
-
       if (activityData.success && activityData.activity) {
         setActivity({
           $id: activityData.activity.$id,
@@ -81,11 +63,8 @@ export default function ActivitySignups() {
           description: activityData.activity.description,
         });
       }
-
-      // 获取该活动的报名信息
       const signupsRes = await fetch(`/api/signups?activityId=${activityId}`);
       const signupsData = await signupsRes.json();
-
       if (signupsData.success && signupsData.signups) {
         const formatted = (signupsData.signups as unknown[]).map((s: unknown) => {
           const signup = s as Record<string, unknown>;
@@ -110,7 +89,6 @@ export default function ActivitySignups() {
       setIsLoading(false);
     }
   };
-
   const toggleSelectSignup = (id: string) => {
     const newSelected = new Set(selectedSignups);
     if (newSelected.has(id)) {
@@ -120,7 +98,6 @@ export default function ActivitySignups() {
     }
     setSelectedSignups(newSelected);
   };
-
   const toggleSelectAll = () => {
     if (selectedSignups.size === signups.length) {
       setSelectedSignups(new Set());
@@ -128,18 +105,15 @@ export default function ActivitySignups() {
       setSelectedSignups(new Set(signups.map((s) => s.id)));
     }
   };
-
   const handleDelete = async (id: string) => {
     if (!confirm('确定要删除此报名吗？')) {
       return;
     }
-
     try {
       const response = await fetch(`/api/signups/${id}`, {
         method: 'DELETE',
       });
       const data = await response.json();
-
       if (data.success) {
         setSignups(signups.filter((s) => s.$id !== id));
       } else {
@@ -150,10 +124,8 @@ export default function ActivitySignups() {
       alert(err instanceof Error ? err.message : '删除失败');
     }
   };
-
   return (
     <AdminLayout adminName="管理员">
-      {/* 页面头部 */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-white mb-2">
@@ -167,8 +139,6 @@ export default function ActivitySignups() {
           </button>
         </Link>
       </div>
-
-      {/* 统计信息 */}
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-[#1a2632] border border-[#283946] rounded-xl p-4">
           <p className="text-gray-400 text-sm mb-1">总报名人数</p>
@@ -193,8 +163,6 @@ export default function ActivitySignups() {
           </p>
         </div>
       </div>
-
-      {/* 操作栏 */}
       <div className="mb-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
         <button className="flex items-center justify-center gap-2 px-4 py-2 bg-[#1a2632] hover:bg-[#1f2d39] text-gray-400 rounded-lg border border-[#283946] transition-colors">
           <span className="material-symbols-outlined">download</span>
@@ -209,8 +177,6 @@ export default function ActivitySignups() {
           批量删除
         </button>
       </div>
-
-      {/* 报名列表 */}
       <div className="bg-[#1a2632] border border-[#283946] rounded-2xl overflow-hidden">
         {isLoading ? (
           <div className="px-6 py-12 text-center">
@@ -221,7 +187,6 @@ export default function ActivitySignups() {
           </div>
         ) : signups.length > 0 ? (
           <>
-            {/* 表头 */}
             <div className="px-6 py-4 border-b border-[#283946] flex items-center justify-between bg-[#1f2d39]">
               <div className="flex items-center gap-4">
                 <input
@@ -235,8 +200,6 @@ export default function ActivitySignups() {
                 </span>
               </div>
             </div>
-
-            {/* 表格数据 */}
             <div className="divide-y divide-[#283946]">
               {signups.map((signup) => (
                 <div
@@ -276,8 +239,6 @@ export default function ActivitySignups() {
                       </div>
                     </div>
                   </div>
-
-                  {/* 状态和操作 */}
                   <div className="flex items-center gap-4 shrink-0">
                     <span
                       className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium ${

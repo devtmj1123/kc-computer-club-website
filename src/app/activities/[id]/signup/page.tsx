@@ -1,16 +1,13 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { StudentLayout } from '@/components/layout/StudentLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import { Loading } from '@/components/ui/Loading';
 import { useAuth } from '@/contexts/AuthContext';
-
 interface SignupFormData {
   fullName: string;
   email: string;
@@ -19,7 +16,6 @@ interface SignupFormData {
   phone: string;
   additionalInfo: string;
 }
-
 interface Activity {
   id?: string;
   $id?: string;
@@ -38,7 +34,6 @@ interface Activity {
   allowedGrades?: string;
   visibility?: 'public' | 'internal';
 }
-
 const GRADE_OPTIONS = [
   { value: '', label: '选择年级' },
   { value: 'junior_1', label: '初一' },
@@ -55,12 +50,10 @@ const GRADE_OPTIONS = [
   { value: 'senior_3_arts', label: '高三文' },
   { value: 'other', label: '其他（校外人员）' },
 ];
-
 export default function ActivitySignupPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
-
   const [activity, setActivity] = useState<Activity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,15 +67,12 @@ export default function ActivitySignupPage() {
     phone: '',
     additionalInfo: '',
   });
-
-  // 加载活动数据
   useEffect(() => {
     const loadActivity = async () => {
       try {
         setIsLoading(true);
         const response = await fetch(`/api/activities/${params.id}`);
         const data = await response.json();
-        
         if (data.success && data.activity) {
           setActivity(data.activity);
         } else {
@@ -95,13 +85,10 @@ export default function ActivitySignupPage() {
         setIsLoading(false);
       }
     };
-
     if (params.id) {
       loadActivity();
     }
   }, [params.id]);
-
-  // 如果用户已登录，预填邮箱
   useEffect(() => {
     if (user?.email) {
       setFormData(prev => ({
@@ -110,27 +97,20 @@ export default function ActivitySignupPage() {
       }));
     }
   }, [user]);
-
-  // 检查活动是否需要登录（内部活动）
   useEffect(() => {
     if (!authLoading && activity) {
-      // 如果是内部活动且用户未登录，重定向到登录页
       if (activity.visibility === 'internal' && !user) {
         router.push('/auth/login?redirect=' + encodeURIComponent(`/activities/${params.id}/signup`));
       }
     }
   }, [activity, user, authLoading, router, params.id]);
-
   const handleInputChange = (field: keyof SignupFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setError(''); // 清除错误
+    setError(''); 
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    // 验证
     if (!formData.fullName.trim()) {
       setError('请输入您的全名');
       return;
@@ -147,7 +127,6 @@ export default function ActivitySignupPage() {
       setError('请输入电话号码');
       return;
     }
-
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/activities/signup', {
@@ -163,12 +142,10 @@ export default function ActivitySignupPage() {
           grade: formData.grade,
           phone: formData.phone,
           additionalInfo: formData.additionalInfo,
-          userId: user?.id || null, // 可以为空（访客报名）
+          userId: user?.id || null, 
         }),
       });
-
       const result = await response.json();
-
       if (result.success) {
         setSuccess(true);
         setTimeout(() => {
@@ -184,7 +161,6 @@ export default function ActivitySignupPage() {
       setIsSubmitting(false);
     }
   };
-
   if (authLoading || isLoading) {
     return (
       <StudentLayout>
@@ -194,8 +170,6 @@ export default function ActivitySignupPage() {
       </StudentLayout>
     );
   }
-
-  // 活动未找到
   if (!activity || error === '活动未找到') {
     return (
       <StudentLayout>
@@ -211,8 +185,6 @@ export default function ActivitySignupPage() {
       </StudentLayout>
     );
   }
-
-  // 内部活动但用户未登录
   if (activity.visibility === 'internal' && !user) {
     return (
       <StudentLayout>
@@ -229,11 +201,8 @@ export default function ActivitySignupPage() {
       </StudentLayout>
     );
   }
-
   const isFull = activity.maxParticipants > 0 && activity.currentParticipants >= activity.maxParticipants;
   const isDeadlinePassed = new Date(activity.signupDeadline) < new Date();
-
-  // 报名成功
   if (success) {
     return (
       <StudentLayout>
@@ -247,11 +216,9 @@ export default function ActivitySignupPage() {
       </StudentLayout>
     );
   }
-
   return (
     <StudentLayout>
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
-        {/* 面包屑导航 */}
         <nav className="flex items-center text-sm mb-8 font-medium" style={{ color: 'var(--text-secondary)' }}>
           <Link href="/activities" className="transition-colors" style={{ color: 'var(--text-secondary)' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
             活动
@@ -263,8 +230,6 @@ export default function ActivitySignupPage() {
           <span className="mx-2">/</span>
           <span style={{ color: 'var(--foreground)' }}>报名</span>
         </nav>
-
-        {/* 页面头部 */}
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2" style={{ color: 'var(--foreground)' }}>
             活动报名
@@ -279,16 +244,11 @@ export default function ActivitySignupPage() {
             </p>
           )}
         </div>
-
-        {/* 活动摘要卡片 */}
         <div className="mb-8 rounded-xl border p-6" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
           <div className="flex gap-6 items-start">
-            {/* 活动图片 */}
             <div className="w-32 h-32 rounded-lg flex-shrink-0 overflow-hidden">
               <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${activity.coverImage || 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800&h=450&fit=crop'})` }} />
             </div>
-
-            {/* 活动信息 */}
             <div className="flex-1">
               <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>
                 {activity.title}
@@ -310,8 +270,6 @@ export default function ActivitySignupPage() {
             </div>
           </div>
         </div>
-
-        {/* 错误提示 */}
         {error && (
           <div className="mb-8 rounded-lg border-l-4 p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgb(239, 68, 68)', color: 'rgb(239, 68, 68)' }}>
             <div className="flex items-start gap-3">
@@ -320,8 +278,6 @@ export default function ActivitySignupPage() {
             </div>
           </div>
         )}
-
-        {/* 报名状态提示 */}
         {isFull && (
           <div className="mb-8 rounded-lg border-l-4 p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgb(239, 68, 68)', color: 'rgb(239, 68, 68)' }}>
             <div className="flex items-start gap-3">
@@ -333,7 +289,6 @@ export default function ActivitySignupPage() {
             </div>
           </div>
         )}
-
         {isDeadlinePassed && !isFull && (
           <div className="mb-8 rounded-lg border-l-4 p-4" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgb(245, 158, 11)', color: 'rgb(245, 158, 11)' }}>
             <div className="flex items-start gap-3">
@@ -345,11 +300,8 @@ export default function ActivitySignupPage() {
             </div>
           </div>
         )}
-
-        {/* 报名表格 */}
         <div className="rounded-xl border p-8" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--card-border)' }}>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 全名 */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
                 全名 <span style={{ color: 'var(--primary)' }}>*</span>
@@ -363,8 +315,6 @@ export default function ActivitySignupPage() {
                 required
               />
             </div>
-
-            {/* 邮箱 */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
                 邮箱地址 <span style={{ color: 'var(--primary)' }}>*</span>
@@ -383,8 +333,6 @@ export default function ActivitySignupPage() {
                 </p>
               )}
             </div>
-
-            {/* 学号 */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
                 学号
@@ -397,21 +345,17 @@ export default function ActivitySignupPage() {
                 disabled={isSubmitting}
               />
             </div>
-
-            {/* 年级 */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
                 年级 <span style={{ color: 'var(--primary)' }}>*</span>
               </label>
-              <Select
+              <NeumorphicSelect
                 options={GRADE_OPTIONS}
                 value={formData.grade}
-                onChange={(e) => handleInputChange('grade', e.target.value)}
+                onChange={(value) => handleInputChange('grade', value)}
                 disabled={isSubmitting}
               />
             </div>
-
-            {/* 电话 */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
                 电话号码 <span style={{ color: 'var(--primary)' }}>*</span>
@@ -425,8 +369,6 @@ export default function ActivitySignupPage() {
                 required
               />
             </div>
-
-            {/* 附加信息 */}
             <div>
               <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
                 附加信息
@@ -449,8 +391,6 @@ export default function ActivitySignupPage() {
                 您可以在此说明任何相关的信息，例如特殊需求或备注
               </p>
             </div>
-
-            {/* 行动按钮 */}
             <div className="flex gap-4 pt-6">
               <Button
                 variant="primary"

@@ -1,14 +1,8 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { SecureCache } from '@/lib/cache';
-
-// ========================================
-// 活跃项目部分
-// 显示正在进行中的项目，支持缓存
-// ========================================
 
 interface Project {
   projectId: string;
@@ -36,9 +30,8 @@ export function ActiveProjectsSection() {
       setIsLoading(true);
       setError(null);
 
-      // 先从缓存读取
       const cachedProjects = SecureCache.get<Project[]>('active_projects', {
-        ttl: 5 * 60 * 1000, // 5 分钟缓存
+        ttl: 5 * 60 * 1000,
         storage: 'localStorage',
       });
 
@@ -47,20 +40,17 @@ export function ActiveProjectsSection() {
         return;
       }
 
-      // 从 API 获取所有项目（不过滤状态，显示所有项目）
       const response = await fetch('/api/projects');
-      
+
       if (!response.ok) {
         throw new Error(`API 返回状态码 ${response.status}`);
       }
-      
+
       const data = await response.json();
 
       if (data.success && Array.isArray(data.projects)) {
-        // 显示前 6 个项目（不过滤状态，显示所有项目）
         const activeProjects = data.projects
           .filter((p: Record<string, unknown>) => {
-            // 过滤出有效的项目（必须有 projectId）
             const projectId = p.projectId as string;
             return projectId && projectId !== 'undefined';
           })
@@ -79,7 +69,6 @@ export function ActiveProjectsSection() {
 
         setProjects(activeProjects);
 
-        // 缓存结果
         SecureCache.set('active_projects', activeProjects, {
           ttl: 5 * 60 * 1000,
           storage: 'localStorage',
@@ -129,7 +118,6 @@ export function ActiveProjectsSection() {
 
   return (
     <section className="mb-12">
-      {/* 标题 */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-black text-[var(--foreground)] mb-1">
@@ -141,14 +129,13 @@ export function ActiveProjectsSection() {
         </div>
         <Link
           href="/projects"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
+          className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary/10 text-primary shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)] transition-all font-medium"
         >
           <span>查看全部</span>
           <span className="material-symbols-outlined text-lg">arrow_forward</span>
         </Link>
       </div>
 
-      {/* 加载状态 */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
@@ -162,9 +149,8 @@ export function ActiveProjectsSection() {
         </div>
       )}
 
-      {/* 错误状态 */}
       {error && !isLoading && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-red-400 text-center mb-4">
+        <div className="rounded-2xl bg-red-500/10 p-4 text-red-400 text-center mb-4 shadow-[var(--nm-inset-sm)]">
           {error}
           <button
             onClick={loadActiveProjects}
@@ -175,9 +161,8 @@ export function ActiveProjectsSection() {
         </div>
       )}
 
-      {/* 空状态 */}
       {!isLoading && !error && projects.length === 0 && (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
+        <div className="rounded-[28px] bg-[var(--nm-bg)] p-12 text-center shadow-[var(--nm-raised)]">
           <span className="material-symbols-outlined text-4xl text-[var(--text-secondary)] mb-4 block">
             folder_open
           </span>
@@ -186,7 +171,7 @@ export function ActiveProjectsSection() {
           </p>
           <Link
             href="/projects/submit"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-black hover:bg-primary/90 transition-colors font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary text-black shadow-[0_10px_28px_var(--primary-glow),var(--nm-raised-sm)] hover:bg-primary-hover transition-all font-medium"
           >
             <span className="material-symbols-outlined text-lg">add</span>
             提交新项目
@@ -194,7 +179,6 @@ export function ActiveProjectsSection() {
         </div>
       )}
 
-      {/* 项目网格 */}
       {!isLoading && !error && projects.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((project) => (
@@ -203,8 +187,7 @@ export function ActiveProjectsSection() {
               href={`/projects/${project.projectId}`}
               className="group"
             >
-              <div className="h-full rounded-lg border border-[var(--border)] bg-[var(--surface)] overflow-hidden hover:border-primary/50 hover:shadow-lg transition-all duration-300">
-                {/* 图片区域 */}
+              <div className="h-full rounded-[28px] bg-[var(--nm-bg)] overflow-hidden shadow-[var(--nm-raised)] hover:shadow-[var(--nm-raised-lg)] transition-all duration-300">
                 {project.image ? (
                   <div className="h-40 bg-cover bg-center overflow-hidden">
                     <img
@@ -214,16 +197,14 @@ export function ActiveProjectsSection() {
                     />
                   </div>
                 ) : (
-                  <div className="h-40 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                  <div className="h-40 bg-gradient-to-br from-primary/22 to-primary/8 flex items-center justify-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
                     <span className="material-symbols-outlined text-6xl text-primary/40">
                       folder
                     </span>
                   </div>
                 )}
 
-                {/* 内容区域 */}
                 <div className="p-4">
-                  {/* 标题和状态 */}
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="text-lg font-bold text-[var(--foreground)] group-hover:text-primary transition-colors line-clamp-2">
                       {project.title}
@@ -237,12 +218,10 @@ export function ActiveProjectsSection() {
                     </span>
                   </div>
 
-                  {/* 描述 */}
                   <p className="text-sm text-[var(--text-secondary)] line-clamp-2 mb-3">
                     {project.description}
                   </p>
 
-                  {/* 底部信息 */}
                   <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
                     <span>{project.leadName}</span>
                     {project.members && (

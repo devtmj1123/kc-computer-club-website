@@ -1,9 +1,6 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-
 interface InitResult {
   success: boolean;
   message: string;
@@ -14,21 +11,17 @@ interface InitResult {
     error?: string;
   }>;
 }
-
 export default function InitPage() {
   const [isInitializing, setIsInitializing] = useState(false);
   const [result, setResult] = useState<InitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   const handleInitialize = async () => {
     setIsInitializing(true);
     setError(null);
     setResult(null);
-
     try {
       const response = await fetch('/api/init');
       const data = await response.json();
-
       if (response.ok) {
         setResult(data);
       } else {
@@ -41,7 +34,6 @@ export default function InitPage() {
       setIsInitializing(false);
     }
   };
-
   return (
     <div className="min-h-screen bg-[#102219] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -50,7 +42,6 @@ export default function InitPage() {
           <p className="text-[#8ba396] mb-6">
             初始化Appwrite数据库并创建必要的集合和属性。
           </p>
-
           {!result && !error && (
             <Button
               onClick={handleInitialize}
@@ -60,7 +51,6 @@ export default function InitPage() {
               {isInitializing ? '初始化中...' : '开始初始化'}
             </Button>
           )}
-
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
               <p className="text-red-400 font-medium mb-2">错误</p>
@@ -75,7 +65,6 @@ export default function InitPage() {
               </Button>
             </div>
           )}
-
           {result && (
             <div className="space-y-4">
               <div className="p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
@@ -84,7 +73,6 @@ export default function InitPage() {
                   {result.message}
                 </p>
               </div>
-
               <div className="bg-[#0a1816] p-4 rounded-lg">
                 <h3 className="text-white font-semibold mb-3">初始化结果</h3>
                 <div className="space-y-2">
@@ -101,7 +89,6 @@ export default function InitPage() {
                   ))}
                 </div>
               </div>
-
               <Button
                 onClick={() => window.location.href = '/admin/settings'}
                 className="w-full bg-[#13ec80]! hover:bg-[#0fd673]! text-[#102219]"
@@ -111,7 +98,6 @@ export default function InitPage() {
             </div>
           )}
         </div>
-
         <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm text-[#8ba396]">
           <p className="font-semibold text-white mb-2">需要的环境变量：</p>
           <ul className="space-y-1 text-xs">

@@ -1,14 +1,7 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import React from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import AttendanceRecords from '@/components/attendance/AttendanceRecords';
-
-/**
- * 管理员点名管理页面
- * /admin/attendance
- */
 export default function AdminAttendancePage() {
   return (
     <AdminLayout>

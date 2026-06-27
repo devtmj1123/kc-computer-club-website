@@ -1,39 +1,23 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 
-// ========================================
-// ActivityCard 组件
-// 参考设计：club_homepage_1/code.html - Upcoming Events 部分
-// ========================================
-
 interface ActivityCardProps {
-  /** 活动ID */
   id: string;
-  /** 活动标题 */
   title: string;
-  /** 活动描述 */
   description: string;
-  /** 封面图片URL */
   coverImage?: string;
-  /** 活动日期 */
   activityDate: string | Date;
-  /** 地点 */
   location: string;
-  /** 报名状态 */
   status: 'active' | 'ended' | 'cancelled' | 'draft';
-  /** 当前报名人数 */
   signupCount?: number;
-  /** 最大报名人数 */
   maxSignups?: number;
-  /** 是否显示报名按钮 */
   showSignupButton?: boolean;
-  /** 额外类名 */
   className?: string;
 }
 
@@ -50,11 +34,12 @@ export function ActivityCard({
   showSignupButton = true,
   className,
 }: ActivityCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
   const date = typeof activityDate === 'string' ? new Date(activityDate) : activityDate;
   const isFull = maxSignups !== undefined && signupCount >= maxSignups;
   const canSignup = status === 'active' && !isFull;
 
-  // 格式化日期
   const formattedDate = date.toLocaleDateString('zh-CN', {
     month: 'short',
     day: 'numeric',
@@ -66,17 +51,27 @@ export function ActivityCard({
 
   return (
     <article
-      className={cn(
-        'rounded-lg overflow-hidden',
-        'border border-[var(--border)] bg-[var(--surface)]',
-        'hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5',
-        'transition-all duration-300',
-        'group',
-        className
-      )}
+      className={cn('overflow-hidden group', className)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        background: 'var(--nm-bg)',
+        boxShadow: isHovered ? 'var(--nm-raised-lg)' : 'var(--nm-raised)',
+        borderRadius: 28,
+        border: 'none',
+        transition: 'box-shadow 0.28s ease, transform 0.22s ease',
+        transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
+      }}
     >
-      {/* 封面图片 */}
-      <div className="relative h-48 overflow-hidden bg-primary/10">
+      <div
+        style={{
+          position: 'relative',
+          height: 192,
+          overflow: 'hidden',
+          background: 'var(--nm-bg)',
+          boxShadow: 'var(--nm-inset)',
+        }}
+      >
         {coverImage ? (
           <Image
             src={coverImage}
@@ -86,47 +81,81 @@ export function ActivityCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="material-symbols-outlined text-4xl text-primary/50">
+            <span
+              className="material-symbols-outlined text-4xl"
+              style={{ color: 'var(--primary)', opacity: 0.5 }}
+            >
               event
             </span>
           </div>
         )}
-        
-        {/* 状态标签 */}
+
         <div className="absolute top-4 right-4">
-          <StatusBadge status={status === 'active' ? 'active' : status === 'ended' ? 'ended' : 'pending'} />
+          <StatusBadge
+            status={status === 'active' ? 'active' : status === 'ended' ? 'ended' : 'pending'}
+            size="sm"
+          />
         </div>
 
-        {/* 日期标签 */}
-        {/* eslint-disable-next-line tailwindcss/classnames-order */}
-        <div className="absolute bottom-4 left-4 bg-[#111814] rounded-lg px-3 py-2 text-center min-w-15">  
-          <div className="text-xs text-gray-400 uppercase">{formattedDate}</div>
-          <div className="text-sm font-bold text-white">{formattedTime}</div>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            left: 16,
+            background: 'var(--nm-bg)',
+            boxShadow: 'var(--nm-raised)',
+            borderRadius: 18,
+            padding: '0.4rem 0.75rem',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+            }}
+          >
+            {formattedDate}
+          </div>
+          <div style={{ color: 'var(--foreground)', fontSize: '0.85rem', fontWeight: 700 }}>
+            {formattedTime}
+          </div>
         </div>
       </div>
 
-      {/* 内容区域 */}
-      <div className="p-4">
+      <div className="p-5">
         <Link href={`/activities/${id}`}>
-          <h3 className="font-bold text-lg text-[var(--foreground)] group-hover:text-primary transition-colors line-clamp-1 mb-2">
+          <h3
+            className="font-bold text-lg line-clamp-1 mb-2"
+            style={{
+              color: isHovered ? 'var(--primary)' : 'var(--foreground)',
+              transition: 'color 0.2s ease',
+            }}
+          >
             {title}
           </h3>
         </Link>
 
-        <p className="text-sm text-[var(--text-secondary)] line-clamp-2 mb-4">
+        <p className="text-sm line-clamp-2 mb-4" style={{ color: 'var(--text-secondary)' }}>
           {description}
         </p>
 
-        {/* 信息区域 */}
-        <div className="space-y-2 text-sm text-[var(--text-secondary)] mb-4">
+        <div className="space-y-2 text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-base text-primary">
+            <span
+              className="material-symbols-outlined text-base"
+              style={{ color: 'var(--primary)' }}
+            >
               location_on
             </span>
             <span>{location}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-base text-primary">
+            <span
+              className="material-symbols-outlined text-base"
+              style={{ color: 'var(--primary)' }}
+            >
               group
             </span>
             <span>
@@ -136,7 +165,6 @@ export function ActivityCard({
           </div>
         </div>
 
-        {/* 报名按钮 */}
         {showSignupButton && (
           <Link href={`/activities/${id}/signup`}>
             <Button
@@ -147,10 +175,10 @@ export function ActivityCard({
               {status === 'ended'
                 ? '活动已结束'
                 : status === 'cancelled'
-                ? '活动已取消'
-                : isFull
-                ? '报名已满'
-                : '立即报名'}
+                  ? '活动已取消'
+                  : isFull
+                    ? '报名已满'
+                    : '立即报名'}
             </Button>
           </Link>
         )}
@@ -158,11 +186,6 @@ export function ActivityCard({
     </article>
   );
 }
-
-// ========================================
-// ActivityCardCompact 组件
-// 简洁版活动卡片（用于列表）
-// ========================================
 
 interface ActivityCardCompactProps {
   id: string;
@@ -185,55 +208,97 @@ export function ActivityCardCompact({
   maxSignups,
   className,
 }: ActivityCardCompactProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
   const date = typeof activityDate === 'string' ? new Date(activityDate) : activityDate;
 
   return (
     <Link href={`/activities/${id}`}>
       <div
-        className={cn(
-          'flex gap-4 p-4 rounded-xl',
-          'bg-[var(--surface)] border border-[var(--border)]',
-          'hover:border-primary/50 hover:shadow-lg',
-          'transition-all duration-300',
-          'cursor-pointer group',
-          className
-        )}
+        className={cn(className)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        style={{
+          background: 'var(--nm-bg)',
+          boxShadow: isHovered ? 'var(--nm-raised)' : 'var(--nm-raised-sm)',
+          borderRadius: 16,
+          border: 'none',
+          padding: '1rem',
+          display: 'flex',
+          gap: 16,
+          transition: 'box-shadow 0.25s ease, transform 0.2s ease',
+          cursor: 'pointer',
+          transform: isHovered ? 'translateX(3px)' : 'translateX(0)',
+        }}
       >
-        {/* 日期标签 */}
-        <div className="size-14 rounded-lg bg-primary/10 flex flex-col items-center justify-center shrink-0">
-          <span className="text-xs text-primary uppercase">
+        <div
+          style={{
+            background: 'var(--nm-bg)',
+            boxShadow: 'var(--nm-inset-sm)',
+            borderRadius: 12,
+            width: 56,
+            height: 56,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              color: 'var(--primary)',
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+            }}
+          >
             {date.toLocaleDateString('zh-CN', { month: 'short' })}
           </span>
-          <span className="text-lg font-bold text-primary">
+          <span style={{ color: 'var(--primary)', fontSize: '1.3rem', fontWeight: 800 }}>
             {date.getDate()}
           </span>
         </div>
 
-        {/* 内容 */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-medium text-[var(--foreground)] group-hover:text-primary transition-colors truncate">
+            <h4
+              className="truncate font-medium"
+              style={{
+                color: isHovered ? 'var(--primary)' : 'var(--foreground)',
+                transition: 'color 0.2s ease',
+              }}
+            >
               {title}
             </h4>
-            <StatusBadge 
-              status={status === 'active' ? 'active' : status === 'ended' ? 'ended' : 'pending'} 
+            <StatusBadge
+              status={status === 'active' ? 'active' : status === 'ended' ? 'ended' : 'pending'}
               size="sm"
             />
           </div>
-          <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
+          <div
+            className="flex items-center gap-3 text-xs"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             <span className="flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">location_on</span>
               {location}
             </span>
             <span className="flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">group</span>
-              {signupCount}{maxSignups && `/${maxSignups}`}
+              {signupCount}
+              {maxSignups && `/${maxSignups}`}
             </span>
           </div>
         </div>
 
-        {/* 箭头 */}
-        <span className="material-symbols-outlined text-[var(--text-secondary)] group-hover:text-primary transition-colors self-center">
+        <span
+          className="material-symbols-outlined self-center"
+          style={{
+            color: isHovered ? 'var(--primary)' : 'var(--text-tertiary)',
+            transition: 'color 0.2s ease',
+            flexShrink: 0,
+          }}
+        >
           chevron_right
         </span>
       </div>

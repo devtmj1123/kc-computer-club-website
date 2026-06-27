@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { useState } from 'react';
@@ -30,7 +29,6 @@ export const ImageCarousel = ({ images, title, showThumbnails = true }: ImageCar
 
   return (
     <div className="space-y-3">
-      {/* 主图显示 */}
       <div className="relative bg-gray-200 dark:bg-[#1a2632] rounded-xl overflow-hidden flex items-center justify-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -43,7 +41,6 @@ export const ImageCarousel = ({ images, title, showThumbnails = true }: ImageCar
           }}
         />
 
-        {/* 导航箭头 */}
         {images.length > 1 && (
           <>
             <button
@@ -61,7 +58,6 @@ export const ImageCarousel = ({ images, title, showThumbnails = true }: ImageCar
               <span className="material-symbols-outlined text-lg">chevron_right</span>
             </button>
 
-            {/* 计数器 */}
             <div className="absolute bottom-3 right-3 bg-black/50 text-white px-3 py-1 rounded-full text-xs">
               {currentIndex + 1} / {images.length}
             </div>
@@ -69,7 +65,6 @@ export const ImageCarousel = ({ images, title, showThumbnails = true }: ImageCar
         )}
       </div>
 
-      {/* 缩略图 */}
       {showThumbnails && images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-2">
           {images.map((image, index) => (

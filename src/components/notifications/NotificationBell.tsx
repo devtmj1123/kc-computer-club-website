@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -10,7 +9,6 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 处理点击外部关闭下拉菜单
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -67,15 +65,13 @@ export default function NotificationBell() {
 
   return (
     <div ref={dropdownRef} className="relative">
-      {/* 通知铃铛按钮 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-[var(--surface-hover)] transition-colors flex items-center justify-center"
+        className="relative p-2 rounded-2xl bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)] transition-all flex items-center justify-center"
         title="通知"
       >
         <span className="material-symbols-outlined text-primary">notifications</span>
 
-        {/* 未读数量徽章 */}
         {unreadCount > 0 && (
           <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-[#102219] transform translate-x-1 -translate-y-1 bg-primary rounded-full">
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -83,11 +79,9 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* 通知下拉菜单 */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 bg-[var(--surface)] rounded-lg border border-[var(--border)] shadow-2xl z-50">
-          {/* 头部 */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+        <div className="absolute right-0 mt-2 w-96 bg-[var(--nm-bg)] rounded-[28px] shadow-[var(--nm-raised-lg)] z-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
             <h3 className="font-semibold text-[var(--foreground)]">通知</h3>
             {unreadCount > 0 && (
               <button
@@ -102,7 +96,6 @@ export default function NotificationBell() {
             )}
           </div>
 
-          {/* 通知列表 */}
           <div className="max-h-96 overflow-y-auto">
             {recentNotifications.length > 0 ? (
               recentNotifications.map((notification) => (
@@ -110,15 +103,13 @@ export default function NotificationBell() {
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`px-4 py-3 border-l-4 ${getNotificationColor(notification.type)} ${
-                    !notification.read ? 'bg-[var(--surface-hover)]' : 'bg-[var(--surface)]'
-                  } hover:bg-[var(--surface-hover)] cursor-pointer transition-colors flex items-center gap-3 group`}
+                      !notification.read ? 'bg-[var(--surface-hover)]' : 'bg-[var(--nm-bg)]'
+                    } hover:bg-[var(--surface-hover)] cursor-pointer transition-colors flex items-center gap-3 group`}
                 >
-                  {/* 图标 */}
                   <div className="shrink-0 text-primary h-6 flex items-center justify-center">
                     {getNotificationIcon(notification.type)}
                   </div>
 
-                  {/* 内容 */}
                   <div className="grow min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="font-medium text-[var(--foreground)] text-sm truncate">
@@ -136,7 +127,6 @@ export default function NotificationBell() {
                     </p>
                   </div>
 
-                  {/* 删除按钮 */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -159,9 +149,8 @@ export default function NotificationBell() {
             )}
           </div>
 
-          {/* 查看全部链接 */}
           {notifications.length > 5 && (
-            <div className="border-t border-[var(--border)] px-4 py-2">
+            <div className="px-4 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <button className="w-full text-center text-xs text-primary hover:opacity-80 transition-colors py-2">
                 查看全部通知
               </button>
@@ -173,7 +162,6 @@ export default function NotificationBell() {
   );
 }
 
-// 格式化时间显示
 function formatTime(date: Date): string {
   const now = new Date();
   const diff = now.getTime() - date.getTime();

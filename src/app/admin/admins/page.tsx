@@ -1,12 +1,9 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-
 interface AdminRecord {
   $id: string;
   username: string;
@@ -14,7 +11,6 @@ interface AdminRecord {
   createdAt: string;
   lastLogin: string | null;
 }
-
 export default function AdminManagementPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -22,27 +18,21 @@ export default function AdminManagementPage() {
   const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-
-  // Check authentication
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
-
-  // Load admins
   useEffect(() => {
     if (user) {
       loadAdmins();
     }
   }, [user]);
-
   const loadAdmins = async () => {
     try {
       setLoadingAdmins(true);
       const response = await fetch('/api/admin/seed');
       const data = await response.json();
-      
       if (data.admins) {
         setAdmins(data.admins);
       }
@@ -54,24 +44,19 @@ export default function AdminManagementPage() {
       setLoadingAdmins(false);
     }
   };
-
   const handleDelete = async (adminId: string, username: string) => {
     if (username === 'admin' && admins.length === 1) {
       setError('不能删除最后一个管理员');
       return;
     }
-
     try {
       const response = await fetch(`/api/admin/${adminId}`, {
         method: 'DELETE',
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || '删除失败');
       }
-
       setError('');
       setDeleteConfirm(null);
       await loadAdmins();
@@ -79,7 +64,6 @@ export default function AdminManagementPage() {
       setError(err instanceof Error ? err.message : '删除失败');
     }
   };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0a1220] flex items-center justify-center">
@@ -94,11 +78,9 @@ export default function AdminManagementPage() {
       </div>
     );
   }
-
   if (!user) {
     return null;
   }
-
   return (
     <AdminLayout adminName={user.name || '管理员'}>
       <div className="mb-8">
@@ -115,15 +97,11 @@ export default function AdminManagementPage() {
           </Link>
         </div>
       </div>
-
-      {/* 错误提示 */}
       {error && (
         <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
           {error}
         </div>
       )}
-
-      {/* 管理员列表 */}
       <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] overflow-hidden">
         {loadingAdmins ? (
           <div className="p-8 text-center text-[#7a8fa5]">
@@ -216,8 +194,6 @@ export default function AdminManagementPage() {
                           </span>
                         </button>
                       </div>
-
-                      {/* 删除确认对话框 */}
                       {deleteConfirm === admin.$id && (
                         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                           <div className="bg-[#1a2838] border border-[#283a4f] rounded-2xl p-6 max-w-sm">

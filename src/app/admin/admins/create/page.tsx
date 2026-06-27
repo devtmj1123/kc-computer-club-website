@@ -1,12 +1,9 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-
 export default function CreateAdminPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -18,14 +15,11 @@ export default function CreateAdminPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Check authentication
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0a1220] flex items-center justify-center">
@@ -39,52 +33,40 @@ export default function CreateAdminPage() {
       </div>
     );
   }
-
   if (!user) {
     return null;
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-
-    // Validation
     if (!username || !password || !confirmPassword) {
       setError('请填写所有字段');
       return;
     }
-
     if (username.length < 3) {
       setError('用户名至少需要 3 个字符');
       return;
     }
-
     if (password.length < 8) {
       setError('密码至少需要 8 个字符');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('两次输入的密码不匹配');
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       const response = await fetch('/api/admin/seed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || '创建失败');
       }
-
       setSuccess('管理员创建成功！正在跳转...');
       setTimeout(() => {
         router.push('/admin/admins');
@@ -95,7 +77,6 @@ export default function CreateAdminPage() {
       setIsSubmitting(false);
     }
   };
-
   return (
     <AdminLayout adminName={user.name || '管理员'}>
       <div className="max-w-2xl">
@@ -107,29 +88,21 @@ export default function CreateAdminPage() {
             <span className="material-symbols-outlined">arrow_back</span>
             返回管理员列表
           </Link>
-
           <h1 className="text-3xl font-bold text-white">添加新管理员</h1>
           <p className="text-[#7a8fa5] mt-2">创建新的管理员账户</p>
         </div>
-
-        {/* 表单卡片 */}
         <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-8">
-          {/* 错误提示 */}
           {error && (
             <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
               {error}
             </div>
           )}
-
-          {/* 成功提示 */}
           {success && (
             <div className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400">
               ✓ {success}
             </div>
           )}
-
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 用户名 */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
                 管理员用户名
@@ -152,8 +125,6 @@ export default function CreateAdminPage() {
                 用户名将用于登录管理后台
               </p>
             </div>
-
-            {/* 密码 */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
                 密码
@@ -185,8 +156,6 @@ export default function CreateAdminPage() {
                 建议使用大小写字母、数字和特殊字符的组合
               </p>
             </div>
-
-            {/* 确认密码 */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
                 确认密码
@@ -215,8 +184,6 @@ export default function CreateAdminPage() {
                 </button>
               </div>
             </div>
-
-            {/* 提交按钮 */}
             <div className="flex gap-4 pt-6">
               <button
                 type="submit"
@@ -237,7 +204,6 @@ export default function CreateAdminPage() {
                   </>
                 )}
               </button>
-
               <Link href="/admin/admins" className="flex-1">
                 <button
                   type="button"
@@ -248,8 +214,6 @@ export default function CreateAdminPage() {
               </Link>
             </div>
           </form>
-
-          {/* 说明 */}
           <div className="mt-8 pt-6 border-t border-[#283a4f]">
             <p className="text-[#7a8fa5] text-sm">
               💡 <strong>提示：</strong> 创建的管理员可以使用用户名和密码登录管理后台。请妥善保管初始密码，管理员可以登录后自行修改密码。

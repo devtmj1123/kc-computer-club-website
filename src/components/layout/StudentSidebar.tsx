@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import Link from 'next/link';
@@ -8,11 +7,6 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useClub } from '@/contexts/ClubContext';
-
-// ========================================
-// Student Sidebar 组件
-// 学生侧边栏导航，可折叠
-// ========================================
 
 interface NavItem {
   label: string;
@@ -33,9 +27,9 @@ const navItems: NavItem[] = [
   { label: '公告', href: '/notices', icon: 'campaign' },
   { label: '活动', href: '/activities', icon: 'event' },
   { label: '签到', href: '/attendance', icon: 'event_available' },
-  { label: '功课', href: '/homework', icon: 'assignment' },
   { label: '项目', href: '/projects', icon: 'folder' },
   { label: '项目提交', href: '/projects/submit', icon: 'lightbulb' },
+  { label: '教程', href: '/tutorial', icon: 'school' },
   { label: '关于', href: '/about', icon: 'info' },
 ];
 
@@ -58,7 +52,6 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
 
   return (
     <>
-      {/* 移动端遮罩 */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
@@ -66,20 +59,19 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
         />
       )}
 
-      {/* 侧边栏 */}
       <aside
         className={cn(
           'fixed left-0 top-0 h-screen z-40',
-          'bg-[var(--surface)] border-r border-[var(--border)]',
+          'bg-[var(--nm-bg)] shadow-[var(--nm-raised-lg)]',
           'flex flex-col transition-all duration-300',
           sidebarCollapsed ? 'w-20' : 'w-64',
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         )}
       >
-        {/* Logo 区域 */}
         <div
           className={cn(
-            'h-16 px-4 flex items-center justify-between border-b border-[var(--border)]',
+            'h-16 px-4 flex items-center justify-between',
+            'shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]',
             'flex-shrink-0'
           )}
         >
@@ -90,7 +82,7 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
               sidebarCollapsed && 'justify-center'
             )}
           >
-            <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className="size-10 rounded-2xl bg-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-[var(--nm-raised-sm)]">
               {clubInfo.logoUrl ? (
                 <img
                   src={clubInfo.logoUrl}
@@ -113,11 +105,10 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
             )}
           </Link>
 
-          {/* 关闭按钮（移动端）和收起按钮（桌面端）*/}
           <div className="flex items-center gap-1">
             <button
               onClick={() => handleCollapse(!sidebarCollapsed)}
-              className="hidden md:flex size-8 items-center justify-center rounded-lg hover:bg-[var(--border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--foreground)]"
+              className="hidden md:flex size-8 items-center justify-center rounded-xl shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)] transition-all text-[var(--text-secondary)] hover:text-[var(--foreground)]"
               title={sidebarCollapsed ? '展开' : '收起'}
             >
               <span className="material-symbols-outlined text-lg">
@@ -127,14 +118,13 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
 
             <button
               onClick={onClose}
-              className="md:hidden size-8 flex items-center justify-center rounded-lg hover:bg-[var(--border)] transition-colors text-[var(--text-secondary)] hover:text-[var(--foreground)]"
+              className="md:hidden size-8 flex items-center justify-center rounded-xl shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)] transition-all text-[var(--text-secondary)] hover:text-[var(--foreground)]"
             >
               <span className="material-symbols-outlined text-lg">close</span>
             </button>
           </div>
         </div>
 
-        {/* 导航菜单 */}
         <nav
           className={cn(
             'flex-1 overflow-y-auto',
@@ -153,12 +143,12 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
                 href={item.href}
                 onClick={onClose}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-2xl',
                   'text-sm font-medium transition-all duration-200',
                   'relative group',
                   isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--border)] hover:text-[var(--foreground)]'
+                    ? 'bg-primary/12 text-primary shadow-[var(--nm-inset-sm)]'
+                    : 'text-[var(--text-secondary)] hover:shadow-[var(--nm-inset-sm)] hover:text-[var(--foreground)]'
                 )}
                 title={sidebarCollapsed ? item.label : undefined}
               >
@@ -176,10 +166,9 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
                   </>
                 )}
 
-                {/* 悬停提示 - 收起时显示 */}
                 {sidebarCollapsed && (
                   <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-2 z-50">
-                    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-3 py-2 whitespace-nowrap text-[var(--foreground)] text-sm font-medium shadow-lg">
+                    <div className="bg-[var(--nm-bg)] rounded-2xl px-3 py-2 whitespace-nowrap text-[var(--foreground)] text-sm font-medium shadow-[var(--nm-raised)]">
                       {item.label}
                     </div>
                   </div>
@@ -189,26 +178,24 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
           })}
         </nav>
 
-        {/* 底部用户区域 */}
         <div
           className={cn(
-            'border-t border-[var(--border)] p-3 flex-shrink-0',
+            'p-3 flex-shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
             'space-y-2'
           )}
         >
-          {/* 用户信息 */}
           {user && (
             <Link
               href="/profile"
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg',
-                'bg-[var(--border)] hover:bg-[var(--border)]/80',
-                'transition-colors group',
+                'flex items-center gap-3 px-3 py-2.5 rounded-2xl',
+                'bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)]',
+                'transition-all group',
                 sidebarCollapsed && 'justify-center'
               )}
               title={sidebarCollapsed ? '个人资料' : undefined}
             >
-              <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 shadow-[var(--nm-raised-sm)]">
                 <span className="material-symbols-outlined text-primary text-lg">
                   person
                 </span>
@@ -234,14 +221,13 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
             </Link>
           )}
 
-          {/* 退出按钮 - 仅在用户登录时显示 */}
           {user && (
             <button
               onClick={handleLogout}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
-                'text-red-400 hover:bg-red-500/10 hover:text-red-300',
-                'transition-colors group',
+                'w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl',
+                'text-red-400 hover:bg-red-500/10 hover:text-red-300 shadow-[var(--nm-inset-sm)]',
+                'transition-all group',
                 sidebarCollapsed && 'justify-center'
               )}
               title={sidebarCollapsed ? '退出登录' : undefined}
@@ -261,7 +247,6 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
             </button>
           )}
 
-          {/* 登录按钮 - 未登录时显示 */}
           {!user && (
             <Link
               href="/auth/login"
@@ -288,7 +273,6 @@ export function StudentSidebar({ isOpen, onClose, onCollapsedChange }: StudentSi
             </Link>
           )}
 
-          {/* 管理员面板按钮 - 始终显示 */}
           <Link
             href="/admin"
             className={cn(

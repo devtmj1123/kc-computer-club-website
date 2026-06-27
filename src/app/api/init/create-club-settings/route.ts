@@ -1,20 +1,10 @@
-/* eslint-disable prettier/prettier */
-/**
- * POST /api/init/create-club-settings
- * 创建 clubSettings 集合
- * 仅在开发环境使用
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDatabases } from '@/services/appwrite-server';
 import { Permission, Role } from 'node-appwrite';
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const COLLECTION_ID = 'clubSettings';
-
 export async function POST(request: NextRequest) {
   try {
-    // 检查授权
     const authHeader = request.headers.get('authorization');
     if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${process.env.INIT_SECRET}`) {
       return NextResponse.json(
@@ -22,18 +12,12 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-
     console.log('开始创建 clubSettings 集合...');
-
-    // 先尝试删除现有集合
     try {
       await serverDatabases.deleteCollection(APPWRITE_DATABASE_ID, COLLECTION_ID);
       console.log('✓ 已删除现有集合');
     } catch {
-      // 集合不存在，继续
     }
-
-    // 创建集合
     await serverDatabases.createCollection(
       APPWRITE_DATABASE_ID,
       COLLECTION_ID,
@@ -45,8 +29,6 @@ export async function POST(request: NextRequest) {
       ]
     );
     console.log('✓ 集合已创建');
-
-    // 定义所有属性
     const stringAttrs = [
       { key: 'aboutTitle', size: 256 },
       { key: 'aboutDescription', size: 4096 },
@@ -64,10 +46,9 @@ export async function POST(request: NextRequest) {
       { key: 'attendanceSession1Start', size: 256 },
       { key: 'attendanceSession2Start', size: 256 },
       { key: 'attendanceWeekStartDate', size: 256 },
-      { key: 'attendanceCode1', size: 16 }, // 时段1验证码
-      { key: 'attendanceCode2', size: 16 }, // 时段2验证码
+      { key: 'attendanceCode1', size: 16 }, 
+      { key: 'attendanceCode2', size: 16 }, 
     ];
-
     const intAttrs = [
       'activeMembers',
       'yearlyActivities',
@@ -78,10 +59,7 @@ export async function POST(request: NextRequest) {
       'attendanceSession2Duration',
       'attendanceCodesWeek',
     ];
-
     console.log(`\n正在创建属性...`);
-
-    // 创建字符串属性
     for (const attr of stringAttrs) {
       try {
         await serverDatabases.createStringAttribute(
@@ -101,8 +79,6 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-
-    // 创建整数属性
     for (const key of intAttrs) {
       try {
         await (serverDatabases as unknown as {
@@ -123,8 +99,6 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-
-    // 创建布尔属性
     const boolAttrs = ['attendanceDebugMode', 'attendanceCodeEnabled'];
     for (const key of boolAttrs) {
       try {
@@ -146,7 +120,6 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-
     return NextResponse.json(
       { 
         success: true, 

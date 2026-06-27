@@ -1,43 +1,28 @@
-/* eslint-disable prettier/prettier */
 import { NextResponse } from 'next/server';
 import { serverDatabases, Query } from '@/services/appwrite-server';
-
-/**
- * GET /api/admin/diagnostic
- * 诊断工具：检查数据库中的学生数量和点名记录
- */
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
 const ATTENDANCE_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_ATTENDANCE_COLLECTION || '';
-
 export async function GET() {
   try {
-    // 获取所有学生
     const studentsResponse = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       USERS_COLLECTION_ID,
       [Query.equal('role', 'student'), Query.limit(500)]
     );
-
-    // 获取所有点名记录
     const attendanceResponse = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       ATTENDANCE_COLLECTION_ID,
       [Query.limit(500)]
     );
-
-    // 获取所有用户（包括管理员）
     const allUsersResponse = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       USERS_COLLECTION_ID,
       [Query.limit(500)]
     );
-
     const students = studentsResponse.documents;
     const attendanceRecords = attendanceResponse.documents;
     const allUsers = allUsersResponse.documents;
-
     return NextResponse.json({
       success: true,
       diagnostic: {

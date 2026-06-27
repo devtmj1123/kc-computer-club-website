@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
@@ -21,7 +20,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // 加载通知
   const loadNotifications = useCallback(async () => {
     if (!user?.id) return;
 
@@ -41,10 +39,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [user?.id]);
 
-  // 初始加载
   useEffect(() => {
     loadNotifications();
-    // 每 30 秒轮询一次新通知
     const interval = setInterval(loadNotifications, 30000);
     return () => clearInterval(interval);
   }, [loadNotifications]);
@@ -94,7 +90,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
       const data = await response.json();
       if (data.success) {
-        setNotifications(notifications.map((n) => 
+        setNotifications(notifications.map((n) =>
           n.id === notificationId ? { ...n, read: true } : n
         ));
         setUnreadCount(data.unreadCount);

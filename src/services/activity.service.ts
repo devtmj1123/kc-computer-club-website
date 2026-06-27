@@ -1,32 +1,29 @@
-/* eslint-disable prettier/prettier */
 import { Client, Databases, Query } from 'appwrite';
 
-// Initialize Appwrite client
 const client = new Client()
   .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
   .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
 
 const databases = new Databases(client);
 
-// Type definitions
 export interface Activity {
   $id: string;
   title: string;
   description: string;
   category: string;
-  startTime: string; // ISO datetime (YYYY-MM-DDTHH:mm:ss.sssZ)
-  endTime: string; // ISO datetime (YYYY-MM-DDTHH:mm:ss.sssZ)
+  startTime: string;
+  endTime: string;
   location: string;
   maxParticipants?: number;
   currentParticipants: number;
-  signupDeadline: string; // ISO datetime
-  signupFormFields: string; // JSON string of form fields
+  signupDeadline: string;
+  signupFormFields: string;
   organizer: string;
   organizerId: string;
   status: 'draft' | 'published' | 'ongoing' | 'completed' | 'cancelled';
   visibility: 'public' | 'internal';
   coverImage?: string;
-  allowedGrades?: string; // JSON string of allowed grades array
+  allowedGrades?: string;
   publishedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -36,19 +33,19 @@ export interface CreateActivityInput {
   title: string;
   description: string;
   category: string;
-  startTime: string; // ISO datetime
-  endTime: string; // ISO datetime
+  startTime: string;
+  endTime: string;
   location: string;
   maxParticipants?: number;
   currentParticipants?: number;
-  signupDeadline: string; // ISO datetime
+  signupDeadline: string;
   signupFormFields?: string;
   organizer: string;
   organizerId: string;
   status: 'draft' | 'published';
   visibility?: 'public' | 'internal';
   coverImage?: string | null;
-  allowedGrades?: string | null; // JSON string of allowed grades array
+  allowedGrades?: string | null;
 }
 
 export interface UpdateActivityInput {
@@ -70,37 +67,28 @@ export interface UpdateActivityInput {
   allowedGrades?: (string | null);
 }
 
-// Activity Service
 export const activityService = {
-  /**
-   * 获取所有活动（可选过滤已发布和可见范围）
-   * @param onlyPublished - 仅获取已发布活动
-   * @param visibility - 可见范围过滤：'public' 仅公开，'all' 包含内部（需登录）
-   */
   async getAllActivities(onlyPublished: boolean = false, visibility: 'public' | 'all' = 'all'): Promise<Activity[]> {
     try {
       const queries: ReturnType<typeof Query.equal>[] = [];
-      
+
       if (onlyPublished) {
         queries.push(Query.equal('status', 'published'));
       }
-      
+
       const response = await databases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'activities',
         queries
       );
       let activities = (response.documents as unknown as Activity[]) || [];
-      
-      // 如果只要公开活动，在客户端过滤掉内部活动
-      // 这样可以正确处理 visibility 为 null/undefined 的情况（视为公开）
+
       if (visibility === 'public') {
-        activities = activities.filter(activity => 
+        activities = activities.filter(activity =>
           activity.visibility !== 'internal'
         );
       }
-      
-      // 按createdAt降序排列，最新的在最前面
+
       return activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
       console.error('Failed to fetch activities:', error);
@@ -108,7 +96,6 @@ export const activityService = {
     }
   },
 
-  // Get a single activity by ID
   async getActivityById(id: string): Promise<Activity> {
     try {
       const response = await databases.getDocument(
@@ -123,7 +110,6 @@ export const activityService = {
     }
   },
 
-  // Create a new activity
   async createActivity(input: CreateActivityInput): Promise<Activity> {
     try {
       const now = new Date().toISOString();
@@ -159,7 +145,6 @@ export const activityService = {
     }
   },
 
-  // Update an existing activity
   async updateActivity(id: string, input: UpdateActivityInput): Promise<Activity> {
     try {
       const response = await databases.updateDocument(
@@ -177,7 +162,6 @@ export const activityService = {
     }
   },
 
-  // Delete an activity
   async deleteActivity(id: string): Promise<void> {
     try {
       await databases.deleteDocument(
@@ -191,7 +175,6 @@ export const activityService = {
     }
   },
 
-  // Search activities by title or location
   async searchActivities(query: string): Promise<Activity[]> {
     try {
       const allActivities = await this.getAllActivities();
@@ -206,7 +189,6 @@ export const activityService = {
     }
   },
 
-  // Get activities by category
   async getActivitiesByCategory(category: string): Promise<Activity[]> {
     try {
       const response = await databases.listDocuments(
@@ -215,7 +197,6 @@ export const activityService = {
         [Query.equal('category', category), Query.equal('status', 'published')]
       );
       const activities = (response.documents as unknown as Activity[]) || [];
-      // 按createdAt降序排列，最新的在最前面
       return activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
       console.error(`Failed to fetch activities for category ${category}:`, error);
@@ -223,7 +204,6 @@ export const activityService = {
     }
   },
 
-  // Get activities by status
   async getActivitiesByStatus(status: string): Promise<Activity[]> {
     try {
       const response = await databases.listDocuments(
@@ -232,7 +212,6 @@ export const activityService = {
         [Query.equal('status', status)]
       );
       const activities = (response.documents as unknown as Activity[]) || [];
-      // 按createdAt降序排列，最新的在最前面
       return activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
       console.error(`Failed to fetch activities with status ${status}:`, error);
@@ -240,7 +219,6 @@ export const activityService = {
     }
   },
 
-  // Get upcoming activities (future dates)
   async getUpcomingActivities(): Promise<Activity[]> {
     try {
       const now = new Date().toISOString();
@@ -252,7 +230,6 @@ export const activityService = {
     }
   },
 
-  // Increment participant count
   async incrementRegisteredCount(id: string): Promise<Activity> {
     try {
       const activity = await this.getActivityById(id);
@@ -265,7 +242,6 @@ export const activityService = {
     }
   },
 
-  // Decrement participant count
   async decrementRegisteredCount(id: string): Promise<Activity> {
     try {
       const activity = await this.getActivityById(id);

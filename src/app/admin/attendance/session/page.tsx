@@ -1,18 +1,10 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import React from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-
-/**
- * 管理员点名会话页面
- * /admin/attendance/session
- */
 export default function TakeAttendancePage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Statistics Cards */}
         <div className="bg-surface-dark border border-white/5 rounded-xl p-6">
           <p className="text-white/50 text-xs font-medium uppercase mb-2">Total Members</p>
           <p className="text-3xl font-bold text-white">45</p>
@@ -26,8 +18,6 @@ export default function TakeAttendancePage() {
           <p className="text-3xl font-bold text-white">13</p>
         </div>
       </div>
-
-      {/* Search and Filter */}
       <div className="flex gap-4 items-center">
         <div className="relative flex-1 max-w-md">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-lg">
@@ -51,17 +41,12 @@ export default function TakeAttendancePage() {
           </button>
         </div>
       </div>
-
-      {/* Attendance List Table */}
       <div className="bg-surface-dark border border-white/5 rounded-xl overflow-hidden">
-        {/* Table Header */}
         <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 text-xs font-medium text-white/40 uppercase tracking-wider bg-black/20">
           <div className="col-span-4">Member Details</div>
           <div className="col-span-3">Check-in Time</div>
           <div className="col-span-5 text-right">Status</div>
         </div>
-
-        {/* Table Rows */}
         <div className="divide-y divide-white/5">
           {[
             {
@@ -93,7 +78,6 @@ export default function TakeAttendancePage() {
               key={idx}
               className="group hover:bg-white/5 transition-colors grid grid-cols-12 gap-4 px-6 py-4 items-center"
             >
-              {/* Member Info */}
               <div className="col-span-4 flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold">
                   {member.name.charAt(0)}
@@ -103,8 +87,6 @@ export default function TakeAttendancePage() {
                   <p className="text-blue-400 text-xs">{member.id} • {member.role}</p>
                 </div>
               </div>
-
-              {/* Time */}
               <div className="col-span-3">
                 <div className="flex items-center gap-2 text-white/80 text-sm">
                   <span className="material-symbols-outlined text-base text-blue-400">
@@ -113,8 +95,6 @@ export default function TakeAttendancePage() {
                   {member.time}
                 </div>
               </div>
-
-              {/* Status Controls */}
               <div className="col-span-5 flex justify-end gap-2">
                 <button
                   className={`px-4 py-1.5 rounded-md text-sm font-bold shadow-sm transition-all ${
@@ -148,8 +128,6 @@ export default function TakeAttendancePage() {
           ))}
         </div>
       </div>
-
-      {/* Footer Actions */}
       <div className="fixed bottom-0 right-0 left-0 border-t border-white/5 bg-background-dark/80 backdrop-blur px-8 py-4 flex justify-between items-center">
         <p className="text-white/60 text-sm flex items-center gap-2">
           <span className="material-symbols-outlined text-lg text-blue-400">info</span>

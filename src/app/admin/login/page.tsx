@@ -1,16 +1,8 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-
-// ========================================
-// 管理员登录页面
-// 参考: admin_login/code.html
-// ========================================
-
 export default function AdminLoginPage() {
   const router = useRouter();
   const { adminLogin } = useAuth();
@@ -19,12 +11,10 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-
     try {
       await adminLogin(adminUsername, password);
       router.push('/admin');
@@ -34,22 +24,17 @@ export default function AdminLoginPage() {
       setIsLoading(false);
     }
   };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a1220] px-4 py-12 relative overflow-hidden">
-      {/* 装饰背景 */}
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-12 relative overflow-hidden">
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-20 right-20 w-72 h-72 bg-[#137fec] rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 left-20 w-72 h-72 bg-[#137fec] rounded-full blur-3xl"></div>
+        <div className="absolute top-20 right-20 size-72 rounded-full bg-[var(--admin-primary)] blur-3xl"></div>
+        <div className="absolute bottom-20 left-20 size-72 rounded-full bg-[var(--admin-primary)] blur-3xl"></div>
       </div>
-
       <div className="w-full max-w-md relative z-10">
-        {/* 卡片容器 */}
-        <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-8 shadow-2xl">
-          {/* 头部 */}
+        <div className="nm-panel p-8 sm:p-10">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-[#137fec]/10 mb-4">
-              <span className="material-symbols-outlined text-[#137fec] text-3xl">
+            <div className="inline-flex items-center justify-center size-16 rounded-2xl nm-raised-sm mb-4 text-[var(--admin-primary)]">
+              <span className="material-symbols-outlined text-3xl">
                 admin_panel_settings
               </span>
             </div>
@@ -58,17 +43,12 @@ export default function AdminLoginPage() {
               电脑学会官网管理后台
             </p>
           </div>
-
-          {/* 错误提示 */}
           {error && (
             <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
               {error}
             </div>
           )}
-
-          {/* 表单 */}
           <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-            {/* 管理员用户名 */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
                 管理员用户名
@@ -84,12 +64,10 @@ export default function AdminLoginPage() {
                   placeholder="请输入用户名"
                   required
                   disabled={isLoading}
-                  className="w-full pl-10 pr-4 py-3 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-[#5a6b7f] focus:outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-colors disabled:opacity-50"
+                  className="w-full pl-10 pr-4 py-3 nm-inset text-white placeholder-[#5a6b7f] focus:outline-none focus:shadow-[var(--nm-inset),0_0_0_1px_rgba(79,163,247,0.18)] transition-shadow disabled:opacity-50"
                 />
               </div>
             </div>
-
-            {/* 密码 */}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
                 密码
@@ -105,7 +83,7 @@ export default function AdminLoginPage() {
                   placeholder="••••••••"
                   required
                   disabled={isLoading}
-                  className="w-full pl-10 pr-10 py-3 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-[#5a6b7f] focus:outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-colors disabled:opacity-50"
+                  className="w-full pl-10 pr-10 py-3 nm-inset text-white placeholder-[#5a6b7f] focus:outline-none focus:shadow-[var(--nm-inset),0_0_0_1px_rgba(79,163,247,0.18)] transition-shadow disabled:opacity-50"
                 />
                 <button
                   type="button"
@@ -119,12 +97,10 @@ export default function AdminLoginPage() {
                 </button>
               </div>
             </div>
-
-            {/* 登录按钮 */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-[#137fec] text-white font-bold rounded-lg hover:bg-[#0f6ecf] disabled:opacity-50 transition-colors mt-6 flex items-center justify-center gap-2"
+              className="w-full mt-6 rounded-2xl bg-[var(--admin-primary)] text-[#111814] font-bold shadow-[var(--nm-raised-sm)] hover:shadow-[var(--nm-raised)] transition-all disabled:opacity-50 flex items-center justify-center gap-2 py-3"
             >
               {isLoading ? (
                 <>
@@ -141,39 +117,31 @@ export default function AdminLoginPage() {
               )}
             </button>
           </form>
-
-          {/* 分隔线 */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#283a4f]"></div>
+              <div className="w-full border-t border-[var(--border)]"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-3 bg-[#1a2838] text-[#7a8fa5]">或</span>
+              <span className="px-3 bg-[var(--surface)] text-[var(--text-secondary)]">或</span>
             </div>
           </div>
-
-          {/* 学生登录链接 */}
           <Link
             href="/auth/login"
-            className="block w-full py-3 bg-[#283a4f] text-white font-medium rounded-lg hover:bg-[#354860] transition-colors text-center border border-[#3a4f67] mb-6"
+            className="btn w-full mb-6 justify-center"
           >
             <span className="material-symbols-outlined inline mr-2 align-middle">
               school
             </span>
             学生登录
           </Link>
-
-          {/* 说明文本 */}
-          <p className="text-center text-[#7a8fa5] text-xs">
+          <p className="text-center text-[var(--text-secondary)] text-xs">
             非管理员用户请使用学生账号登录
           </p>
         </div>
-
-        {/* 返回主站链接 */}
         <div className="text-center mt-6">
           <Link
             href="/"
-            className="text-[#7a8fa5] hover:text-white transition-colors flex items-center justify-center gap-2"
+            className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined">arrow_back</span>
             返回主站

@@ -1,19 +1,12 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import { Client, Databases, Query, ID } from 'appwrite';
 import { activityService } from '@/services/activity.service';
-
-// Initialize Appwrite client
 const client = new Client()
   .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
   .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-
 const databases = new Databases(client);
-
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 const SIGNUPS_COLLECTION = 'signups';
-
-// POST /api/activities/signup - 创建活动报名
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -27,16 +20,12 @@ export async function POST(request: NextRequest) {
       additionalInfo,
       userId,
     } = body;
-
-    // 验证必填字段
     if (!activityId || !fullName || !email || !grade || !phone) {
       return NextResponse.json(
         { success: false, error: '请填写所有必填字段' },
         { status: 400 }
       );
     }
-
-    // 获取活动信息
     let activity;
     try {
       activity = await activityService.getActivityById(activityId);
@@ -46,32 +35,24 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-
-    // 检查活动是否可以报名
     if (activity.status !== 'published') {
       return NextResponse.json(
         { success: false, error: '此活动暂不开放报名' },
         { status: 400 }
       );
     }
-
-    // 检查活动是否需要登录（内部活动需要登录）
     if (activity.visibility === 'internal' && !userId) {
       return NextResponse.json(
         { success: false, error: '此活动仅限登录用户报名' },
         { status: 401 }
       );
     }
-
-    // 检查是否已满
     if (activity.maxParticipants && activity.maxParticipants > 0 && activity.currentParticipants >= activity.maxParticipants) {
       return NextResponse.json(
         { success: false, error: '此活动报名人数已满' },
         { status: 400 }
       );
     }
-
-    // 检查是否已经报名（同一邮箱同一活动）
     try {
       const existingSignups = await databases.listDocuments(
         DATABASE_ID,
@@ -81,7 +62,6 @@ export async function POST(request: NextRequest) {
           Query.equal('email', email),
         ]
       );
-
       if (existingSignups.documents.length > 0) {
         return NextResponse.json(
           { success: false, error: '您已经报名过此活动' },
@@ -90,10 +70,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (error) {
       console.error('Failed to check existing signups:', error);
-      // 继续报名流程，不阻止用户
     }
-
-    // 组装表单数据
     const formData = {
       fullName,
       studentId: studentId || '',
@@ -101,10 +78,7 @@ export async function POST(request: NextRequest) {
       additionalInfo: additionalInfo || '',
       userId: userId || null,
     };
-
     const now = new Date().toISOString();
-
-    // 创建报名记录
     const signup = await databases.createDocument(
       DATABASE_ID,
       SIGNUPS_COLLECTION,
@@ -120,15 +94,11 @@ export async function POST(request: NextRequest) {
         updatedAt: now,
       }
     );
-
-    // 更新活动参与人数
     try {
       await activityService.incrementRegisteredCount(activityId);
     } catch (error) {
       console.error('Failed to increment participant count:', error);
-      // 不阻止报名成功，只记录日志
     }
-
     return NextResponse.json({
       success: true,
       signup: {
@@ -147,27 +117,20 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// GET /api/activities/signup - 获取报名列表（管理员用）
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const activityId = searchParams.get('activityId');
-
     const queries: ReturnType<typeof Query.equal>[] = [];
-
     if (activityId) {
       queries.push(Query.equal('activityId', activityId));
     }
-
     queries.push(Query.orderDesc('createdAt'));
-
     const response = await databases.listDocuments(
       DATABASE_ID,
       SIGNUPS_COLLECTION,
       queries
     );
-
     const signups = response.documents.map((doc) => ({
       id: doc.$id,
       activityId: doc.activityId,
@@ -179,7 +142,6 @@ export async function GET(request: NextRequest) {
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     }));
-
     return NextResponse.json({
       success: true,
       signups,

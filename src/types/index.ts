@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-// User Types
 export interface User {
   userId: string;
   email: string;
@@ -10,7 +8,6 @@ export interface User {
   updatedAt: string;
 }
 
-// Admin Types
 export interface Admin {
   adminId: string;
   userId: string;
@@ -22,8 +19,6 @@ export interface Admin {
   createdAt: string;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// Notice Types
 export interface Notice {
   noticeId: string;
   title: string;
@@ -38,7 +33,6 @@ export interface Notice {
   updatedAt: string;
 }
 
-// Activity Types
 export interface Activity {
   activityId: string;
   title: string;
@@ -67,7 +61,6 @@ export interface Activity {
   updatedAt: string;
 }
 
-// Signup Form Field Type
 export interface SignupFormField {
   id: string;
   name: string;
@@ -78,7 +71,6 @@ export interface SignupFormField {
   placeholder?: string;
 }
 
-// Signup Types
 export interface Signup {
   signupId: string;
   activityId: string;
@@ -91,7 +83,6 @@ export interface Signup {
   updatedAt: string;
 }
 
-// Comment Types
 export interface Comment {
   commentId: string;
   contentType: 'notice' | 'activity';
@@ -105,7 +96,6 @@ export interface Comment {
   updatedAt: string;
 }
 
-// Club Info Types
 export interface ClubInfo {
   infoId: string;
   clubName: string;
@@ -120,7 +110,6 @@ export interface ClubInfo {
   updatedAt: string;
 }
 
-// AI Chat Types
 export interface AIChat {
   chatId: string;
   sessionId: string;
@@ -131,7 +120,6 @@ export interface AIChat {
   createdAt: string;
 }
 
-// Project Checklist Types
 export interface ChecklistItem {
   id: string;
   title: string;
@@ -150,7 +138,6 @@ export interface ProjectChecklist {
   updatedAt: string;
 }
 
-// Project Types
 export interface ProjectMember {
   userId: string;
   name: string;
@@ -207,7 +194,6 @@ export interface UpdateProjectInput {
   adminFeedback?: string;
 }
 
-// API Response Types
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -215,7 +201,6 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-// Form Submission Types
 export interface FormState {
   isLoading: boolean;
   isSuccess: boolean;
@@ -223,7 +208,6 @@ export interface FormState {
   error?: string;
 }
 
-// Authentication Types
 export interface AuthState {
   isAuthenticated: boolean;
   admin: Admin | null;
@@ -232,7 +216,6 @@ export interface AuthState {
   error?: string;
 }
 
-// Pagination Types
 export interface PaginationParams {
   limit: number;
   offset: number;
@@ -243,60 +226,4 @@ export interface PaginatedResponse<T> {
   total: number;
   limit: number;
   offset: number;
-}
-
-// Homework Types (功课栏)
-export interface Homework {
-  homeworkId: string;
-  title: string;
-  description: string;
-  subject: string;
-  dueDate: string;
-  attachments?: string[]; // 附件URLs (JSON存储)
-  allowedFileTypes?: string[]; // 允许上传的文件类型
-  maxFileSize?: number; // 最大文件大小 (MB)
-  status: 'draft' | 'published' | 'closed';
-  createdBy: string; // 管理员ID
-  createdByName: string; // 管理员姓名
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface HomeworkSubmission {
-  submissionId: string;
-  homeworkId: string;
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  content?: string; // 文字内容
-  attachments?: string[]; // 提交的附件URLs (JSON存储)
-  status: 'submitted' | 'late' | 'graded' | 'returned';
-  grade?: string; // 评分
-  feedback?: string; // 老师反馈
-  submittedAt: string;
-  gradedAt?: string;
-  gradedBy?: string;
-  updatedAt: string;
-}
-
-export interface CreateHomeworkInput {
-  title: string;
-  description: string;
-  subject: string;
-  dueDate: string;
-  attachments?: string[];
-  allowedFileTypes?: string[];
-  maxFileSize?: number;
-  status?: 'draft' | 'published';
-  createdBy: string;
-  createdByName: string;
-}
-
-export interface CreateSubmissionInput {
-  homeworkId: string;
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  content?: string;
-  attachments?: string[];
 }

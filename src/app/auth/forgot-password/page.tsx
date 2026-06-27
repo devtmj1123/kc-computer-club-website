@@ -1,47 +1,33 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState } from 'react';
 import Link from 'next/link';
-
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<'email' | 'verification' | 'success'>('email');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // 邮件格式验证
   const validateEmail = (emailValue: string): boolean => {
     const emailRegex = /^\d{5,6}@kuencheng\.edu\.my$/;
     return emailRegex.test(emailValue);
   };
-
-  // 提交重置密码请求
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     if (!validateEmail(email)) {
       setError('邮箱格式错误。请使用格式：5-6位数字@kuencheng.edu.my');
       return;
     }
-
     setIsLoading(true);
-
     try {
-      // 调用 API 发送重置密码邮件
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || '发送重置邮件失败');
       }
-
       setStep('success');
     } catch (err) {
       setError(err instanceof Error ? err.message : '发送失败，请稍后重试');
@@ -49,21 +35,16 @@ export default function ForgotPasswordPage() {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-12 relative overflow-hidden">
-      {/* 装饰背景 */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 right-20 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 left-20 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
       </div>
-
       <div className="w-full max-w-md relative z-10">
-        {/* 卡片容器 */}
         <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
           {step === 'email' && (
             <>
-              {/* 头部 */}
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary/10 mb-4">
                   <span className="material-symbols-outlined text-primary text-3xl">
@@ -75,18 +56,13 @@ export default function ForgotPasswordPage() {
                   输入您的学号邮箱，我们将发送重置密码指引
                 </p>
               </div>
-
-              {/* 错误提示 */}
               {error && (
                 <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-start gap-2">
                   <span className="material-symbols-outlined text-lg shrink-0">error</span>
                   <span>{error}</span>
                 </div>
               )}
-
-              {/* 表单 */}
               <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-                {/* 邮箱输入 */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                     学号邮箱
@@ -112,8 +88,6 @@ export default function ForgotPasswordPage() {
                     </span>
                   </div>
                 </div>
-
-                {/* 提交按钮 */}
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -132,8 +106,6 @@ export default function ForgotPasswordPage() {
                   )}
                 </button>
               </form>
-
-              {/* 提示信息 */}
               <div className="mb-6 p-4 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)]">
                 <div className="flex items-start gap-3">
                   <span className="material-symbols-outlined text-primary shrink-0">info</span>
@@ -149,10 +121,8 @@ export default function ForgotPasswordPage() {
               </div>
             </>
           )}
-
           {step === 'success' && (
             <>
-              {/* 成功状态 */}
               <div className="text-center">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
                   <span className="material-symbols-outlined text-primary text-5xl">
@@ -163,7 +133,6 @@ export default function ForgotPasswordPage() {
                 <p className="text-[var(--text-secondary)] mb-6">
                   您的重置密码请求已提交。请联系管理员获取新密码。
                 </p>
-
                 <div className="bg-[var(--surface-hover)] rounded-lg p-4 mb-6 text-left">
                   <p className="text-sm text-[var(--foreground)] font-medium mb-2">
                     <span className="material-symbols-outlined text-primary align-middle mr-2">support_agent</span>
@@ -173,7 +142,6 @@ export default function ForgotPasswordPage() {
                     请到电脑室找管理员，提供您的学号以重置密码。
                   </p>
                 </div>
-
                 <Link
                   href="/auth/login"
                   className="inline-flex items-center justify-center gap-2 w-full py-3 bg-primary text-[#102219] font-bold rounded-lg hover:bg-[var(--primary-hover)] transition-colors"
@@ -184,8 +152,6 @@ export default function ForgotPasswordPage() {
               </div>
             </>
           )}
-
-          {/* 返回登录链接 */}
           {step === 'email' && (
             <div className="text-center">
               <Link

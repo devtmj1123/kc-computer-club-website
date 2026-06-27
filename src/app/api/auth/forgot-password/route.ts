@@ -1,36 +1,21 @@
-/* eslint-disable prettier/prettier */
 import { NextResponse } from 'next/server';
 import { serverDatabases, Query } from '@/services/appwrite-server';
 import { Resend } from 'resend';
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-// 初始化 Resend 邮件服务
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
-
-/**
- * 忘记密码 API
- * POST /api/auth/forgot-password
- * 
- * 发送密码重置邮件给用户
- * 如果 RESEND_API_KEY 未配置，只返回成功（用于开发环境）
- */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { email } = body;
-
     if (!email) {
       return NextResponse.json(
         { error: '请提供邮箱地址' },
         { status: 400 }
       );
     }
-
-    // 验证邮箱格式
     const emailRegex = /^\d{5,6}@kuencheng\.edu\.my$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -38,27 +23,19 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    // 检查用户是否存在
     const userRecords = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       USERS_COLLECTION_ID,
       [Query.equal('email', email.toLowerCase().trim())]
     );
-
     if (userRecords.documents.length === 0) {
-      // 出于安全考虑，不透露用户是否存在
-      // 仍然返回成功，以防止账户枚举攻击
       return NextResponse.json({
         success: true,
         message: '如果该邮箱已注册，重置请求已提交。请检查邮件（包括垃圾邮件文件夹）',
       });
     }
-
     const user = userRecords.documents[0];
     const userId = user.$id;
-
-    // 生成重置令牌（有效期：24小时）
     const resetToken = Buffer.from(
       JSON.stringify({
         userId,
@@ -66,11 +43,7 @@ export async function POST(request: Request) {
         timestamp: Date.now(),
       })
     ).toString('base64');
-
-    // 构建重置链接
     const resetLink = `${APP_URL}/auth/reset-password?token=${resetToken}`;
-
-    // 如果配置了 Resend API 密钥，发送邮件
     if (resend) {
       try {
         const result = await resend.emails.send({
@@ -173,27 +146,20 @@ export async function POST(request: Request) {
                     <div class="logo-icon">🖥️</div>
                     <div class="logo-text">电脑学会</div>
                   </div>
-                  
                   <div class="content">
                     <div class="greeting">嗨，${user.name}！</div>
-                    
                     <div class="message">
                       我们收到了您的密码重置请求。请点击下方按钮来重置您的密码。此链接将在 <strong>24 小时</strong>后过期。
                     </div>
-                    
                     <a href="${resetLink}" class="reset-button">重置密码</a>
-                    
                     <div class="message" style="font-size: 14px; margin-top: 20px;">
                       如果上面的按钮不可点击，请复制下面的链接到浏览器地址栏：
                     </div>
-                    
                     <div class="verification-code">${resetLink}</div>
-                    
                     <div class="warning">
                       <strong>⚠️ 安全提示：</strong> 如果您没有请求重置密码，请忽略此邮件。您的账户是安全的。
                     </div>
                   </div>
-                  
                   <div class="footer">
                     <p>
                       这是一封自动生成的邮件，请勿直接回复。<br>
@@ -205,20 +171,16 @@ export async function POST(request: Request) {
             </html>
           `,
         });
-
         if (result.error) {
           console.error('邮件发送失败:', result.error);
-          // 邮件失败时仍返回成功，防止用户知道发送失败
           return NextResponse.json({
             success: true,
             message: '密码重置请求已提交。请检查邮件（包括垃圾邮件文件夹）',
           });
         }
-
         console.log(`密码重置邮件已发送: ${email} (用户ID: ${userId})`);
       } catch (emailError) {
         console.error('邮件发送异常:', emailError);
-        // 邮件失败时仍返回成功
         return NextResponse.json({
           success: true,
           message: '密码重置请求已提交。请检查邮件',
@@ -229,13 +191,10 @@ export async function POST(request: Request) {
       console.log(`[模拟] 密码重置邮件已发送到: ${email} (用户ID: ${userId})`);
       console.log(`[模拟] 重置链接: ${resetLink}`);
     }
-
-    // 返回成功响应
     return NextResponse.json({
       success: true,
       message: '密码重置请求已提交。请检查邮件（包括垃圾邮件文件夹）',
     });
-
   } catch (error) {
     console.error('忘记密码 API 错误:', error);
     return NextResponse.json(

@@ -1,42 +1,21 @@
-/* eslint-disable prettier/prettier */
 import { databases } from '@/services/appwrite';
 import { ID } from 'appwrite';
 import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
-
-/**
- * 创建默认管理员账户
- * POST /api/admin/seed
- * 
- * Body: { password: string }
- * 默认用户名: admin
- * 
- * 示例:
- * curl -X POST http://localhost:3000/api/admin/seed \
- *   -H "Content-Type: application/json" \
- *   -d '{"password":"admin123"}'
- */
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const ADMINS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_ADMINS_COLLECTION || '';
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { password } = body;
-
     if (!password || password.length < 6) {
       return NextResponse.json(
         { error: '密码至少需要6个字符' },
         { status: 400 }
       );
     }
-
-    // 生成密码哈希
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
-
-    // 创建管理员记录
     const now = new Date().toISOString();
     const adminRecord = await databases.createDocument(
       APPWRITE_DATABASE_ID,
@@ -46,12 +25,11 @@ export async function POST(request: NextRequest) {
         username: 'admin',
         passwordHash,
         isActive: true,
-        userId: '', // 占位符，管理员可以稍后关联用户
+        userId: '', 
         createdAt: now,
         permissions: JSON.stringify(['manage_notices', 'manage_activities', 'manage_comments', 'view_analytics']),
       }
     );
-
     return NextResponse.json({
       success: true,
       message: '管理员账户创建成功',
@@ -68,8 +46,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     const err = error as Error & { message?: string; code?: number };
-    
-    // 处理已存在的用户名
     if (err.message?.includes('duplicate') || err.message?.includes('already')) {
       return NextResponse.json(
         { 
@@ -79,7 +55,6 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
-
     console.error('管理员创建错误:', err);
     return NextResponse.json(
       { 
@@ -90,18 +65,12 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-/**
- * 检查管理员是否存在
- * GET /api/admin/seed
- */
 export async function GET() {
   try {
     const { documents } = await databases.listDocuments(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID
     );
-
     return NextResponse.json({
       adminExists: documents.length > 0,
       adminCount: documents.length,

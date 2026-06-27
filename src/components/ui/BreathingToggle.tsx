@@ -3,25 +3,10 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useEffect } from 'react';
 
-/**
- * BreathingToggle - Controls RGB breathing effect animation
- * 
- * Features:
- * - Toggle breathing animation on/off
- * - Stores preference in localStorage
- * - Shows current state with visual indicator
- * - Respects theme color changes
- * 
- * Usage:
- * ```tsx
- * <BreathingToggle />
- * ```
- */
 export function BreathingToggle() {
   const { breathingEffectEnabled, setBreathingEffectEnabled } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -50,7 +35,6 @@ export function BreathingToggle() {
       title={breathingEffectEnabled ? '关闭呼吸效果' : '启用呼吸效果'}
       aria-label={breathingEffectEnabled ? 'Disable breathing effect' : 'Enable breathing effect'}
     >
-      {/* Breathing indicator icon */}
       <span className="relative">
         <span className="material-symbols-outlined text-lg">
           {breathingEffectEnabled ? 'favorite' : 'favorite_border'}
@@ -64,7 +48,6 @@ export function BreathingToggle() {
         )}
       </span>
 
-      {/* Label (desktop only) */}
       <span className="hidden sm:inline text-sm font-medium">
         {breathingEffectEnabled ? '呼吸中' : '呼吸已关闭'}
       </span>
@@ -72,9 +55,6 @@ export function BreathingToggle() {
   );
 }
 
-/**
- * Compact version for minimal space (e.g., header)
- */
 export function BreathingToggleCompact() {
   const { breathingEffectEnabled, setBreathingEffectEnabled } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -107,9 +87,6 @@ export function BreathingToggleCompact() {
   );
 }
 
-/**
- * Settings page version with description
- */
 export function BreathingToggleSettings() {
   const { breathingEffectEnabled, setBreathingEffectEnabled } = useTheme();
   const [mounted, setMounted] = useState(false);

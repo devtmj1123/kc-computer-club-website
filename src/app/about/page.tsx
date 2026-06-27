@@ -1,15 +1,11 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { StudentLayout } from '@/components/layout/StudentLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import { useAuth } from '@/contexts/AuthContext';
-
-// 默认社团信息
 const DEFAULT_CLUB_INFO = {
   name: '康中电脑学会',
   description:
@@ -24,8 +20,6 @@ const DEFAULT_CLUB_INFO = {
     youtube: 'https://youtube.com/@computerclub',
   },
 };
-
-// FAQ 数据
 const faqs = [
   {
     icon: 'help',
@@ -52,8 +46,6 @@ const faqs = [
       '当然可以！科技影响着每一个领域。无论你学的是生物、艺术还是商科，只要对计算机有兴趣，都欢迎加入我们！',
   },
 ];
-
-// 联系主题选项
 const subjectOptions = [
   { value: '', label: '选择主题' },
   { value: 'membership', label: '社员咨询' },
@@ -62,11 +54,9 @@ const subjectOptions = [
   { value: 'collaboration', label: '合作洽谈' },
   { value: 'other', label: '其他问题' },
 ];
-
 export default function AboutPage() {
   const { user, isStudent, isLoading } = useAuth();
   const router = useRouter();
-
   const [clubInfo, setClubInfo] = useState(DEFAULT_CLUB_INFO);
   const [stats, setStats] = useState({ activeMembers: 50, yearlyActivities: 20, awardProjects: 10, partners: 5 });
   const [formData, setFormData] = useState({
@@ -78,12 +68,9 @@ export default function AboutPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // 从数据库加载社团设置
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        // 先从API读取
         const response = await fetch('/api/club-settings');
         if (response.ok) {
           const settings = await response.json();
@@ -107,7 +94,6 @@ export default function AboutPage() {
             partners: settings.partners || 5,
           });
         } else {
-          // 降级到 localStorage
           const stored = localStorage.getItem('clubSettings');
           if (stored) {
             const settings = JSON.parse(stored);
@@ -136,11 +122,8 @@ export default function AboutPage() {
         console.error('Failed to load club settings:', error);
       }
     };
-
     loadSettings();
   }, []);
-
-  // Allow viewing without login - form will show login prompt if needed
   if (isLoading) {
     return (
       <StudentLayout>
@@ -153,25 +136,17 @@ export default function AboutPage() {
       </StudentLayout>
     );
   }
-
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Check if user is logged in - redirect if not
     if (!user) {
       router.push('/auth/login?redirect=/about');
       return;
     }
-
     setIsSubmitting(true);
-
-    // 模拟提交
     await new Promise((resolve) => setTimeout(resolve, 1500));
-
     setIsSubmitting(false);
     setShowSuccess(true);
     setFormData({
@@ -181,20 +156,14 @@ export default function AboutPage() {
       subject: '',
       message: '',
     });
-
-    // 3秒后隐藏成功提示
     setTimeout(() => setShowSuccess(false), 3000);
   };
-
   return (
     <StudentLayout>
       <main className="grow py-8 px-4 md:px-10 lg:px-20">
         <div className="max-w-300 mx-auto">
-          {/* 主要内容区域 */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 pt-8">
-            {/* 左侧 - 联系信息 */}
             <div className="lg:col-span-5 flex flex-col gap-8">
-              {/* 标题 */}
               <div className="flex flex-col gap-4">
                 <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight">
                   联系我们
@@ -203,10 +172,7 @@ export default function AboutPage() {
                   有关于黑客马拉松、工作坊或社员资格的问题？欢迎随时联系我们或来我们的社团教室拜访。
                 </p>
               </div>
-
-              {/* 联系方式列表 */}
               <div className="flex flex-col border-t border-b border-[var(--border)]">
-                {/* 邮箱 */}
                 <div className="py-6 flex items-start gap-4 border-b border-[var(--border)]">
                   <div className="bg-[var(--surface-hover)] p-3 rounded-full shrink-0">
                     <span className="material-symbols-outlined">mail</span>
@@ -221,8 +187,6 @@ export default function AboutPage() {
                     </a>
                   </div>
                 </div>
-
-                {/* 地点 */}
                 <div className="py-6 flex items-start gap-4 border-b border-[var(--border)]">
                   <div className="bg-[var(--surface-hover)] p-3 rounded-full shrink-0">
                     <span className="material-symbols-outlined">location_on</span>
@@ -232,8 +196,6 @@ export default function AboutPage() {
                     <p className="text-lg font-semibold">{clubInfo.location}</p>
                   </div>
                 </div>
-
-                {/* 活动时间 */}
                 <div className="py-6 flex items-start gap-4">
                   <div className="bg-[var(--surface-hover)] p-3 rounded-full shrink-0">
                     <span className="material-symbols-outlined">schedule</span>
@@ -244,8 +206,6 @@ export default function AboutPage() {
                   </div>
                 </div>
               </div>
-
-              {/* 社交媒体链接 */}
               <div>
                 <p className="text-[var(--text-secondary)] text-sm font-medium mb-4">关注我们</p>
                 <div className="flex flex-wrap gap-3">
@@ -294,21 +254,15 @@ export default function AboutPage() {
                 </div>
               </div>
             </div>
-
-            {/* 右侧 - 联系表单 */}
             <div className="lg:col-span-7">
               <div className="bg-[var(--surface)] rounded-2xl p-6 md:p-8 border border-[var(--border)]">
                 <h3 className="text-2xl font-bold mb-6 text-[var(--foreground)]">发送消息</h3>
-
-                {/* 成功提示 */}
                 {showSuccess && (
                   <div className="mb-6 p-4 bg-primary/20 border border-primary/30 rounded-xl flex items-center gap-3">
                     <span className="material-symbols-outlined text-primary">check_circle</span>
                     <p className="text-sm text-primary">消息已成功发送！我们会尽快回复您。</p>
                   </div>
                 )}
-
-                {/* 未登录提示 */}
                 {!user && (
                   <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-xl flex items-center gap-3">
                     <span className="material-symbols-outlined text-blue-400">info</span>
@@ -335,9 +289,7 @@ export default function AboutPage() {
                     </div>
                   </div>
                 )}
-
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-                  {/* 姓名和学号 */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <Input
                       label="姓名"
@@ -357,8 +309,6 @@ export default function AboutPage() {
                       disabled={!user}
                     />
                   </div>
-
-                  {/* 邮箱 */}
                   <Input
                     label="邮箱"
                     type="email"
@@ -369,18 +319,13 @@ export default function AboutPage() {
                     required
                     disabled={!user}
                   />
-
-                  {/* 主题 */}
-                  <Select
+                  <NeumorphicSelect
                     label="主题"
                     options={subjectOptions}
                     value={formData.subject}
-                    onChange={(e) => handleInputChange('subject', e.target.value)}
-                    required
+                    onChange={(value) => handleInputChange('subject', value)}
                     disabled={!user}
                   />
-
-                  {/* 消息内容 */}
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium text-[var(--foreground)]">您的消息</label>
                     <textarea
@@ -393,8 +338,6 @@ export default function AboutPage() {
                       disabled={!user}
                     />
                   </div>
-
-                  {/* 提交按钮 */}
                   <div className="pt-2">
                     <Button
                       type="submit"
@@ -411,8 +354,6 @@ export default function AboutPage() {
               </div>
             </div>
           </div>
-
-          {/* FAQ 区域 */}
           <div className="py-16 border-t border-[var(--border)] mt-12">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
               <div>
@@ -427,8 +368,6 @@ export default function AboutPage() {
                 <span className="material-symbols-outlined text-base">arrow_forward</span>
               </a>
             </div>
-
-            {/* FAQ 卡片网格 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {faqs.map((faq, index) => (
                 <div
@@ -447,8 +386,6 @@ export default function AboutPage() {
                 </div>
               ))}
             </div>
-
-            {/* 移动端显示的链接 */}
             <div className="mt-8 text-center md:hidden">
               <a href="#" className="inline-flex items-center gap-2 text-primary font-bold">
                 查看所有问题
@@ -456,11 +393,8 @@ export default function AboutPage() {
               </a>
             </div>
           </div>
-
-          {/* 关于社团区域 */}
           <div className="py-16 border-t border-[var(--border)]">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              {/* 左侧 - 社团介绍 */}
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium mb-4">
                   <span className="material-symbols-outlined text-base">terminal</span>
@@ -468,8 +402,6 @@ export default function AboutPage() {
                 </div>
                 <h2 className="text-3xl md:text-4xl font-black mb-6 text-[var(--foreground)]">{clubInfo.name}</h2>
                 <p className="text-[var(--text-secondary)] text-lg leading-relaxed mb-8">{clubInfo.description}</p>
-
-                {/* 活动类型 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-3 p-4 bg-[var(--surface)] rounded-xl border border-[var(--border)]">
                     <span className="material-symbols-outlined text-primary">code</span>
@@ -489,8 +421,6 @@ export default function AboutPage() {
                   </div>
                 </div>
               </div>
-
-              {/* 右侧 - 装饰图片或统计 */}
               <div className="bg-gradient-to-br from-primary/20 via-[var(--surface)] to-[var(--input-bg)] rounded-3xl p-8 border border-[var(--border)]">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="text-center p-6 bg-[var(--input-bg)] rounded-2xl">
@@ -510,8 +440,6 @@ export default function AboutPage() {
                     <div className="text-[var(--text-secondary)] text-sm">合作伙伴</div>
                   </div>
                 </div>
-
-                {/* CTA */}
                 <div className="mt-8 text-center">
                   <Button
                     variant="primary"
@@ -527,8 +455,6 @@ export default function AboutPage() {
           </div>
         </div>
       </main>
-
-      {/* Toast 通知 */}
       {showSuccess && (
         <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-full duration-300">
           <div className="flex items-center gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-xl bg-green-500/20 border-green-500/30">

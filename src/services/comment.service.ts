@@ -1,14 +1,11 @@
-/* eslint-disable prettier/prettier */
 import { Client, Databases, Query } from 'appwrite';
 
-// Initialize Appwrite client
 const client = new Client()
   .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
   .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
 
 const databases = new Databases(client);
 
-// Type definitions
 export interface Comment {
   $id: string;
   contentType: 'notice' | 'activity';
@@ -17,9 +14,9 @@ export interface Comment {
   email?: string;
   content: string;
   status: 'pending' | 'approved' | 'rejected';
-  reply?: string; // 老师的回复
-  replyAuthor?: string; // 回复者（老师）的名字
-  replyAt?: string; // 回复时间
+  reply?: string;
+  replyAuthor?: string;
+  replyAt?: string;
   isDeleted?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -36,10 +33,9 @@ export interface CreateCommentInput {
 
 export interface ReplyCommentInput {
   reply: string;
-  replyAuthor: string; // 老师名字
+  replyAuthor: string;
 }
 
-// Comment Service
 const mapToComment = (doc: Record<string, unknown>): Comment => {
   return {
     $id: doc.$id as string,
@@ -60,7 +56,6 @@ const mapToComment = (doc: Record<string, unknown>): Comment => {
 
 export const commentService = {
 
-  // Get all comments (optionally filtered by status)
   async getAllComments(onlyApproved: boolean = false): Promise<Comment[]> {
     try {
       const queries = onlyApproved ? [Query.equal('status', 'approved')] : [];
@@ -70,7 +65,6 @@ export const commentService = {
         queries
       );
       const comments = (response.documents || []).map(mapToComment);
-      // 按createdAt降序排列，最新的在最前面
       return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
       console.error('Failed to fetch comments:', error);
@@ -78,7 +72,6 @@ export const commentService = {
     }
   },
 
-  // Get a single comment by ID
   async getCommentById(id: string): Promise<Comment> {
     try {
       const response = await databases.getDocument(
@@ -93,7 +86,6 @@ export const commentService = {
     }
   },
 
-  // Create a new comment
   async createComment(input: CreateCommentInput): Promise<Comment> {
     try {
       const response = await databases.createDocument(
@@ -106,7 +98,7 @@ export const commentService = {
           nickname: input.nickname,
           email: input.email || '',
           content: input.content,
-          status: input.status || 'approved', // Auto-approve by default
+          status: input.status || 'approved',
           isDeleted: false,
         }
       );
@@ -117,7 +109,6 @@ export const commentService = {
     }
   },
 
-  // Update an existing comment
   async updateComment(id: string, input: Partial<Comment>): Promise<Comment> {
     try {
       const response = await databases.updateDocument(
@@ -135,7 +126,6 @@ export const commentService = {
     }
   },
 
-  // Reply to a comment (teacher only)
   async replyToComment(id: string, input: ReplyCommentInput): Promise<Comment> {
     try {
       const response = await databases.updateDocument(
@@ -156,7 +146,6 @@ export const commentService = {
     }
   },
 
-  // Edit comment content
   async editComment(id: string, content: string): Promise<Comment> {
     try {
       return this.updateComment(id, { content });
@@ -166,7 +155,6 @@ export const commentService = {
     }
   },
 
-  // Delete a comment
   async deleteComment(id: string): Promise<void> {
     try {
       await databases.deleteDocument(
@@ -180,7 +168,6 @@ export const commentService = {
     }
   },
 
-  // Get comments for a specific target (notice or activity)
   async getCommentsByTarget(
     contentType: 'notice' | 'activity',
     contentId: string,
@@ -197,7 +184,6 @@ export const commentService = {
         queries
       );
       const comments = (response.documents || []).map(mapToComment);
-      // 按createdAt降序排列，最新的在最前面
       return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
       console.error(
@@ -208,7 +194,6 @@ export const commentService = {
     }
   },
 
-  // Get comments by status
   async getCommentsByStatus(status: string): Promise<Comment[]> {
     try {
       const response = await databases.listDocuments(
@@ -217,7 +202,6 @@ export const commentService = {
         [Query.equal('status', status)]
       );
       const comments = (response.documents || []).map(mapToComment);
-      // 按createdAt降序排列，最新的在最前面
       return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
       console.error(`Failed to fetch comments with status ${status}:`, error);
@@ -225,7 +209,6 @@ export const commentService = {
     }
   },
 
-  // Get pending comments for moderation
   async getPendingComments(): Promise<Comment[]> {
     try {
       return this.getCommentsByStatus('pending');
@@ -235,7 +218,6 @@ export const commentService = {
     }
   },
 
-  // Approve a comment
   async approveComment(id: string): Promise<Comment> {
     try {
       return this.updateComment(id, { status: 'approved' });
@@ -245,7 +227,6 @@ export const commentService = {
     }
   },
 
-  // Reject a comment
   async rejectComment(id: string): Promise<Comment> {
     try {
       return this.updateComment(id, { status: 'rejected' });
@@ -255,7 +236,6 @@ export const commentService = {
     }
   },
 
-  // Search comments
   async searchComments(query: string): Promise<Comment[]> {
     try {
       const allComments = await this.getAllComments(false);
@@ -270,7 +250,6 @@ export const commentService = {
     }
   },
 
-  // Get comment count for target
   async getCommentCount(contentId: string): Promise<number> {
     try {
       const allComments = await this.getAllComments(true);
@@ -281,7 +260,6 @@ export const commentService = {
     }
   },
 
-  // Get total pending comments count
   async getPendingCommentCount(): Promise<number> {
     try {
       const pendingComments = await this.getPendingComments();

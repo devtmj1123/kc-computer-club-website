@@ -1,13 +1,10 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useState } from 'react';
-
 interface ActivityFormData {
   title: string;
   description: string;
@@ -19,13 +16,12 @@ interface ActivityFormData {
   maxAttendees: number;
   registrationDeadline: string;
   registrationDeadlineTime: string;
-  coverImageUrl: string; // URL from input field
-  coverImageFile: File | null; // File from upload
+  coverImageUrl: string; 
+  coverImageFile: File | null; 
   status: 'draft' | 'published';
   visibility: 'public' | 'internal';
   allowedGrades: string[];
 }
-
 export default function CreateActivity() {
   const { user } = useAuth();
   const [formData, setFormData] = useState<ActivityFormData>({
@@ -45,32 +41,24 @@ export default function CreateActivity() {
     visibility: 'public',
     allowedGrades: [],
   });
-
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSuccessMessage('');
     setErrorMessage('');
-
     try {
       const signupDeadline = `${formData.registrationDeadline}T${formData.registrationDeadlineTime}`;
-      
-      // 处理图片：优先使用上传的文件，否则使用输入的URL
       let coverImageUrl: string | null = null;
       if (formData.coverImageFile) {
-        // 上传图片文件
         const uploadFormData = new FormData();
         uploadFormData.append('file', formData.coverImageFile);
-        
         const uploadResponse = await fetch('/api/upload/image', {
           method: 'POST',
           body: uploadFormData,
         });
-        
         const uploadResult = await uploadResponse.json();
         if (uploadResponse.ok && uploadResult.url) {
           coverImageUrl = uploadResult.url;
@@ -80,10 +68,8 @@ export default function CreateActivity() {
           return;
         }
       } else if (formData.coverImageUrl) {
-        // 使用输入的URL
         coverImageUrl = formData.coverImageUrl;
       }
-      
       const response = await fetch('/api/activities', {
         method: 'POST',
         headers: {
@@ -111,9 +97,7 @@ export default function CreateActivity() {
           allowedGrades: formData.allowedGrades,
         }),
       });
-
       const result = await response.json();
-
       if (response.ok && result.success) {
         setSuccessMessage('活动创建成功！');
         setTimeout(() => {
@@ -129,7 +113,6 @@ export default function CreateActivity() {
       setIsSaving(false);
     }
   };
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -139,11 +122,9 @@ export default function CreateActivity() {
       [name]: name === 'maxAttendees' ? parseInt(value) || 0 : value,
     }));
   };
-
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // 上传文件，清除URL输入
       setFormData((prev) => ({
         ...prev,
         coverImageFile: file,
@@ -151,26 +132,20 @@ export default function CreateActivity() {
       }));
     }
   };
-
   return (
     <AdminLayout adminName="管理员">
-      {/* 成功消息提示 */}
       {successMessage && (
         <div className="mb-6 bg-green-500/10 border border-green-500/50 rounded-xl p-4 flex items-center gap-3">
           <span className="material-symbols-outlined text-green-400">check_circle</span>
           <p className="text-green-400 font-medium">{successMessage}</p>
         </div>
       )}
-
-      {/* 错误消息提示 */}
       {errorMessage && (
         <div className="mb-6 bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex items-center gap-3">
           <span className="material-symbols-outlined text-red-400">error</span>
           <p className="text-red-400 font-medium">{errorMessage}</p>
         </div>
       )}
-
-      {/* 页面头部 */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-white mb-2">创建新活动</h1>
@@ -182,12 +157,9 @@ export default function CreateActivity() {
           </button>
         </Link>
       </div>
-
       <form onSubmit={handleSubmit} className="max-w-4xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 左侧：主要表单 */}
           <div className="lg:col-span-2 space-y-6">
-            {/* 标题 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <label htmlFor="title" className="block text-white font-semibold mb-3">
                 活动标题 *
@@ -201,8 +173,6 @@ export default function CreateActivity() {
                 required
               />
             </div>
-
-            {/* 日期和时间 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <h3 className="text-white font-semibold mb-4">活动时间 *</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -265,8 +235,6 @@ export default function CreateActivity() {
                 </div>
               )}
             </div>
-
-            {/* 地点和容量 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <h3 className="text-white font-semibold mb-4">活动地点与容量 *</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -298,8 +266,6 @@ export default function CreateActivity() {
                 </div>
               </div>
             </div>
-
-            {/* 报名截止 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <h3 className="text-white font-semibold mb-4">报名截止 *</h3>
               <div className="space-y-3">
@@ -338,7 +304,6 @@ export default function CreateActivity() {
                       {(() => {
                         const deadlineDate = new Date(`${formData.registrationDeadline}T${formData.registrationDeadlineTime}`);
                         const daysRemaining = Math.ceil((deadlineDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                        
                         if (daysRemaining > 0) {
                           return (
                             <>
@@ -359,8 +324,6 @@ export default function CreateActivity() {
                 )}
               </div>
             </div>
-
-            {/* 允许年级 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <h3 className="text-white font-semibold mb-4">允许参加的年级</h3>
               <div className="space-y-3">
@@ -406,8 +369,6 @@ export default function CreateActivity() {
                 <p className="text-yellow-400 text-sm mt-4">未选择任何年级 - 所有学生都可以报名</p>
               )}
             </div>
-
-            {/* 描述 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <label htmlFor="description" className="block text-white font-semibold mb-3">
                 活动描述 *
@@ -426,14 +387,11 @@ export default function CreateActivity() {
                 支持 Markdown 格式，包括标题、列表、链接等
               </p>
             </div>
-
-            {/* 封面图像 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <label className="block text-white font-semibold mb-3">
                 活动封面图像
               </label>
               <div className="space-y-4">
-                {/* 图片链接输入 */}
                 <div>
                   <label className="block text-gray-400 text-sm font-medium mb-2">
                     图片链接
@@ -445,15 +403,11 @@ export default function CreateActivity() {
                     disabled={!!formData.coverImageFile}
                   />
                 </div>
-                
-                {/* 分隔线 */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-[#283946]"></div>
                   <span className="text-gray-500 text-sm">或</span>
                   <div className="flex-1 h-px bg-[#283946]"></div>
                 </div>
-                
-                {/* 文件上传 */}
                 <div>
                   <label className="block text-gray-400 text-sm font-medium mb-2">
                     上传图片
@@ -472,8 +426,6 @@ export default function CreateActivity() {
                     className="hidden"
                   />
                 </div>
-                
-                {/* 图片预览 */}
                 {(formData.coverImageFile || formData.coverImageUrl) && (
                   <div className="relative w-full h-40 bg-[#1f2d39] rounded-lg overflow-hidden border border-[#283946]">
                     <img
@@ -500,14 +452,9 @@ export default function CreateActivity() {
               </div>
             </div>
           </div>
-
-          {/* 右侧：预览和发布选项 */}
           <div className="space-y-6">
-            {/* 预览卡片 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6 sticky top-6">
               <h2 className="text-white font-semibold mb-4">预览</h2>
-
-              {/* 预览内容 */}
               <div className="bg-[#1f2d39] rounded-xl p-4 mb-4 space-y-3">
                 {formData.title && (
                   <h3 className="text-white font-semibold text-sm">{formData.title}</h3>
@@ -530,8 +477,6 @@ export default function CreateActivity() {
                   </p>
                 )}
               </div>
-
-              {/* 发布选项 */}
               <div className="space-y-3 mb-6">
                 <div className="flex gap-2">
                   <input
@@ -562,8 +507,6 @@ export default function CreateActivity() {
                   </label>
                 </div>
               </div>
-
-              {/* 可见范围 */}
               <div className="mb-6">
                 <h3 className="text-white font-semibold mb-3 text-sm">可见范围</h3>
                 <div className="space-y-2">
@@ -599,8 +542,6 @@ export default function CreateActivity() {
                   </div>
                 </div>
               </div>
-
-              {/* 按钮组 */}
               <div className="space-y-2">
                 <Button
                   type="submit"

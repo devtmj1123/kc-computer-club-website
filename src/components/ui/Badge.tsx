@@ -1,23 +1,12 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { cn } from '@/lib/utils';
 
-// ========================================
-// Badge / Tag 组件
-// 参考设计：notice_detail_page/code.html, notice_management_(admin)_/code.html
-// ========================================
-
 export interface BadgeProps {
-  /** 显示文本 */
   children: React.ReactNode;
-  /** 变体样式 */
   variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
-  /** 大小 */
   size?: 'sm' | 'md';
-  /** 是否显示状态点 */
   dot?: boolean;
-  /** 额外类名 */
   className?: string;
 }
 
@@ -51,7 +40,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full font-medium border',
+        'inline-flex items-center gap-1.5 rounded-full font-medium border shadow-[var(--nm-raised-sm)]',
         size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-0.5 text-xs',
         variantStyles[variant],
         className
@@ -65,7 +54,6 @@ export function Badge({
   );
 }
 
-// 预设的状态 Badge
 export interface StatusBadgeProps {
   status: 'draft' | 'published' | 'pending' | 'confirmed' | 'cancelled' | 'planned' | 'active' | 'ended' | 'inactive';
   size?: 'sm' | 'md';
@@ -93,7 +81,6 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
   );
 }
 
-// 分类 Badge
 export interface CategoryBadgeProps {
   category: string;
   size?: 'sm' | 'md';
@@ -107,7 +94,6 @@ export function CategoryBadge({ category, size = 'sm' }: CategoryBadgeProps) {
     Workshop: { variant: 'primary' },
     Competition: { variant: 'danger' },
     Social: { variant: 'success' },
-    // 中文分类
     活动: { variant: 'purple' },
     紧急: { variant: 'warning' },
     通知: { variant: 'info' },

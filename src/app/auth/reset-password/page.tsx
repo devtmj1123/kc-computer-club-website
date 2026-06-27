@@ -1,14 +1,10 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
-
   const [step, setStep] = useState<'validating' | 'form' | 'success' | 'error'>('validating');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -17,8 +13,6 @@ function ResetPasswordContent() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userEmail, setUserEmail] = useState('');
-
-  // 验证令牌有效性
   useEffect(() => {
     const validateToken = async () => {
       if (!token) {
@@ -26,23 +20,18 @@ function ResetPasswordContent() {
         setStep('error');
         return;
       }
-
       try {
-        // 验证令牌格式和有效期
         const response = await fetch('/api/auth/verify-reset-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         });
-
         const data = await response.json();
-
         if (!response.ok) {
           setError(data.error || '重置链接已过期或无效');
           setStep('error');
           return;
         }
-
         setUserEmail(data.email || '');
         setStep('form');
       } catch (err) {
@@ -50,14 +39,10 @@ function ResetPasswordContent() {
         setStep('error');
       }
     };
-
     validateToken();
   }, [token]);
-
-  // 验证密码强度
   const validatePassword = (password: string): string[] => {
     const errors: string[] = [];
-
     if (password.length < 6) {
       errors.push('密码至少需要 6 个字符');
     }
@@ -76,30 +61,21 @@ function ResetPasswordContent() {
     if (!/[!@#$%^&*]/.test(password)) {
       errors.push('密码需要包含特殊字符 (!@#$%^&*)');
     }
-
     return errors;
   };
-
-  // 提交重置密码
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    // 验证新密码
     const passwordErrors = validatePassword(newPassword);
     if (passwordErrors.length > 0) {
       setError(passwordErrors.join('; '));
       return;
     }
-
-    // 验证确认密码
     if (newPassword !== confirmPassword) {
       setError('两次输入的密码不一致');
       return;
     }
-
     setIsLoading(true);
-
     try {
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
@@ -109,13 +85,10 @@ function ResetPasswordContent() {
           newPassword,
         }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || '密码重置失败');
       }
-
       setStep('success');
     } catch (err) {
       setError(err instanceof Error ? err.message : '重置密码失败，请稍后重试');
@@ -123,17 +96,13 @@ function ResetPasswordContent() {
       setIsLoading(false);
     }
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-12 relative overflow-hidden">
-      {/* 装饰背景 */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 right-20 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 left-20 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
       </div>
-
       <div className="w-full max-w-md relative z-10">
-        {/* 验证中 */}
         {step === 'validating' && (
           <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
             <div className="flex flex-col items-center justify-center">
@@ -146,11 +115,8 @@ function ResetPasswordContent() {
             </div>
           </div>
         )}
-
-        {/* 重置表单 */}
         {step === 'form' && (
           <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
-            {/* 头部 */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary/10 mb-4">
                 <span className="material-symbols-outlined text-primary text-3xl">
@@ -162,25 +128,18 @@ function ResetPasswordContent() {
                 为您的账户创建一个新的强密码
               </p>
             </div>
-
-            {/* 错误提示 */}
             {error && (
               <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-start gap-2">
                 <span className="material-symbols-outlined text-lg shrink-0">error</span>
                 <span>{error}</span>
               </div>
             )}
-
-            {/* 用户邮箱显示 */}
             {userEmail && (
               <div className="mb-6 p-3 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-sm text-[var(--text-secondary)]">
                 <p>重置账户: <span className="font-medium text-[var(--foreground)]">{userEmail}</span></p>
               </div>
             )}
-
-            {/* 表单 */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* 新密码 */}
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                   新密码
@@ -208,8 +167,6 @@ function ResetPasswordContent() {
                   </button>
                 </div>
               </div>
-
-              {/* 确认密码 */}
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                   确认密码
@@ -237,8 +194,6 @@ function ResetPasswordContent() {
                   </button>
                 </div>
               </div>
-
-              {/* 密码要求提示 */}
               <div className="mb-6 p-4 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)]">
                 <div className="flex items-start gap-3">
                   <span className="material-symbols-outlined text-primary shrink-0 mt-1">
@@ -256,8 +211,6 @@ function ResetPasswordContent() {
                   </div>
                 </div>
               </div>
-
-              {/* 提交按钮 */}
               <button
                 type="submit"
                 disabled={isLoading}
@@ -276,8 +229,6 @@ function ResetPasswordContent() {
                 )}
               </button>
             </form>
-
-            {/* 返回登录链接 */}
             <div className="mt-6 text-center">
               <p className="text-[var(--text-secondary)] text-sm">
                 想起密码了?{' '}
@@ -291,8 +242,6 @@ function ResetPasswordContent() {
             </div>
           </div>
         )}
-
-        {/* 成功状态 */}
         {step === 'success' && (
           <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
             <div className="text-center">
@@ -307,7 +256,6 @@ function ResetPasswordContent() {
               <p className="text-[var(--text-secondary)] mb-6">
                 您的密码已成功更新。现在可以使用新密码登录了。
               </p>
-
               <Link
                 href="/auth/login"
                 className="inline-flex items-center justify-center gap-2 w-full py-3 bg-primary text-[#102219] font-bold rounded-lg hover:bg-[var(--primary-hover)] transition-colors"
@@ -318,8 +266,6 @@ function ResetPasswordContent() {
             </div>
           </div>
         )}
-
-        {/* 错误状态 */}
         {step === 'error' && (
           <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
             <div className="text-center">
@@ -334,7 +280,6 @@ function ResetPasswordContent() {
               <p className="text-[var(--text-secondary)] mb-6">
                 {error || '重置密码链接已过期（有效期：24小时）。请重新申请。'}
               </p>
-
               <Link
                 href="/auth/forgot-password"
                 className="inline-flex items-center justify-center gap-2 w-full py-3 bg-primary text-[#102219] font-bold rounded-lg hover:bg-[var(--primary-hover)] transition-colors mb-3"
@@ -342,7 +287,6 @@ function ResetPasswordContent() {
                 <span className="material-symbols-outlined">mail</span>
                 重新申请重置
               </Link>
-
               <Link
                 href="/auth/login"
                 className="inline-flex items-center justify-center gap-2 w-full py-3 bg-[var(--surface-hover)] text-[var(--foreground)] font-bold border border-[var(--border)] rounded-lg hover:bg-[var(--card-hover-dark)] transition-colors"
@@ -357,8 +301,6 @@ function ResetPasswordContent() {
     </div>
   );
 }
-
-// Loading fallback component
 function ResetPasswordLoading() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
@@ -377,8 +319,6 @@ function ResetPasswordLoading() {
     </div>
   );
 }
-
-// Export the page with Suspense boundary
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={<ResetPasswordLoading />}>

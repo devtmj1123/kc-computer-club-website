@@ -1,49 +1,27 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
-// ========================================
-// UnifiedCard 组件
-// 统一的卡片设计，支持所有页面使用
-// 特性：彩色头部，Logo/图片，标题，描述，状态徽章，管理员设置按钮
-// ========================================
-
 interface UnifiedCardProps {
-  /** 卡片ID */
   id: string;
-  /** 卡片标题 */
   title: string;
-  /** 卡片描述 */
   description: string;
-  /** 卡片类型 (用于路由) */
   cardType: 'notice' | 'activity' | 'project' | 'signup';
-  /** 头部颜色 (主要使用梯度) */
   headerColor?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
-  /** 自定义头部背景 */
   headerBackground?: string;
-  /** 头部图片或Logo URL */
   headerImage?: string;
-  /** 头部图标 (Material Symbol) */
   headerIcon?: string;
-  /** 显示的 Logo URL (右上角) */
   logoUrl?: string;
-  /** 状态徽章 */
   status?: {
     label: string;
     variant: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'secondary';
   };
-  /** 底部信息 (左侧) */
   footerLeft?: string;
-  /** 底部信息 (右侧) */
   footerRight?: string;
-  /** 是否显示管理员设置按钮 */
   showAdminButton?: boolean;
-  /** 额外类名 */
   className?: string;
-  /** 点击处理 */
   onClick?: () => void;
 }
 
@@ -90,10 +68,8 @@ export function UnifiedCard({
 }: UnifiedCardProps) {
   const { isAdmin } = useAuth();
 
-  // 路由链接
-  const cardLink = `/notice/${id}`;
+   const cardLink = `/${cardType}s/${id}`;
 
-  // 头部背景
   const headerBgClass = headerBackground || `bg-gradient-to-br ${headerGradients[headerColor]}`;
 
   return (
@@ -101,18 +77,16 @@ export function UnifiedCard({
       <article
         onClick={onClick}
         className={cn(
-          'rounded-lg overflow-hidden',
-          'border border-[var(--border)] bg-[var(--surface)]',
-          'hover:border-primary/50 hover:shadow-lg',
+          'rounded-[28px] overflow-hidden',
+          'bg-[var(--nm-bg)] shadow-[var(--nm-raised)]',
+          'hover:shadow-[var(--nm-raised-lg)] hover:-translate-y-1',
           'transition-all duration-300',
           'h-full flex flex-col',
           'cursor-pointer',
           className
         )}
       >
-        {/* 头部区域 - 彩色背景 */}
         <div className={cn('relative h-40 flex items-center justify-center', headerBgClass)}>
-          {/* 头部图片 */}
           {headerImage ? (
             <img
               src={headerImage}
@@ -125,9 +99,8 @@ export function UnifiedCard({
             </span>
           )}
 
-          {/* Logo - 右上角 */}
           {logoUrl && (
-            <div className="absolute top-3 right-3 w-12 h-12 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center overflow-hidden">
+            <div className="absolute top-3 right-3 w-12 h-12 rounded-2xl bg-white/12 backdrop-blur-sm shadow-[var(--nm-raised-sm)] flex items-center justify-center overflow-hidden">
               <img
                 src={logoUrl}
                 alt="Logo"
@@ -136,11 +109,10 @@ export function UnifiedCard({
             </div>
           )}
 
-          {/* 状态徽章 - 右上角 (如果没有Logo) */}
           {status && !logoUrl && (
             <span
               className={cn(
-                'absolute top-3 right-3 px-3 py-1 rounded-lg text-xs font-medium border',
+                'absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-medium shadow-[var(--nm-raised-sm)]',
                 statusColors[status.variant]
               )}
             >
@@ -148,12 +120,11 @@ export function UnifiedCard({
             </span>
           )}
 
-          {/* 管理员编辑按钮 - 左上角 */}
           {isAdmin && showAdminButton && (
             <Link
               href={`/admin/edit/${cardType}/${id}`}
               onClick={(e) => e.preventDefault()}
-              className="absolute top-3 left-3 p-2 rounded-lg bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors"
+              className="absolute top-3 left-3 p-2 rounded-2xl bg-white/12 backdrop-blur-sm shadow-[var(--nm-raised-sm)] hover:bg-white/20 transition-colors"
               title="编辑此项"
             >
               <span className="material-symbols-outlined text-white text-xl">edit</span>
@@ -161,9 +132,7 @@ export function UnifiedCard({
           )}
         </div>
 
-        {/* 内容区域 */}
         <div className="p-4 flex-1 flex flex-col">
-          {/* 标题 + 状态 */}
           <div className="mb-2 flex items-start justify-between gap-2">
             <h3
               className={cn(
@@ -176,7 +145,6 @@ export function UnifiedCard({
               {title}
             </h3>
 
-            {/* 如果有Logo就在这里显示状态 */}
             {status && logoUrl && (
               <span
                 className={cn(
@@ -189,13 +157,11 @@ export function UnifiedCard({
             )}
           </div>
 
-          {/* 描述 */}
           <p className="text-sm text-[var(--text-secondary)] line-clamp-2 mb-3 flex-1">
             {description}
           </p>
 
-          {/* 底部信息 */}
-          <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] pt-3 border-t border-[var(--border)]">
+          <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] pt-3 mt-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <span>{footerLeft}</span>
             {footerRight && <span>{footerRight}</span>}
           </div>
@@ -204,10 +170,6 @@ export function UnifiedCard({
     </Link>
   );
 }
-
-// ========================================
-// 便捷导出 - 特定卡片类型的快捷组件
-// ========================================
 
 export function NoticeCardUnified({
   id,

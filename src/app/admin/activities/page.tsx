@@ -1,6 +1,4 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -9,7 +7,6 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-
 interface Activity {
   $id: string;
   id?: string;
@@ -22,16 +19,12 @@ interface Activity {
   signupDeadline: string;
   status: 'published' | 'draft' | 'cancelled' | 'ongoing' | 'completed';
 }
-
 const statuses = ['全部', 'published', 'draft', 'cancelled'];
 const statusLabels: Record<string, string> = {
   published: '已发布',
   draft: '草稿',
   cancelled: '已取消',
 };
-
-// No mock data - fetch from database
-
 export default function AdminActivities() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -42,21 +35,17 @@ export default function AdminActivities() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  // 权限检查
   useEffect(() => {
     if (!authLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, authLoading, router]);
-
   useEffect(() => {
     const loadActivities = async () => {
       try {
         setIsLoading(true);
         const response = await fetch('/api/activities');
         const data = await response.json();
-        
         if (data.success && data.activities) {
           const formatted = data.activities.map((a: Record<string, unknown>) => ({
             ...a,
@@ -73,12 +62,10 @@ export default function AdminActivities() {
         setIsLoading(false);
       }
     };
-
     if (user && 'role' in user && user.role === 'admin') {
       loadActivities();
     }
   }, [user]);
-
   const handleDelete = async (id: string) => {
     try {
       setIsDeleting(true);
@@ -86,7 +73,6 @@ export default function AdminActivities() {
         method: 'DELETE',
       });
       const data = await response.json();
-
       if (data.success) {
         setActivities(activities.filter((a) => a.$id !== id));
         setDeleteId(null);
@@ -99,8 +85,6 @@ export default function AdminActivities() {
       setIsDeleting(false);
     }
   };
-
-  // 过滤活动
   const filteredActivities = activities.filter((activity) => {
     const matchSearch =
       activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,17 +92,13 @@ export default function AdminActivities() {
     const matchStatus = selectedStatus === '全部' || activity.status === selectedStatus;
     return matchSearch && matchStatus;
   });
-
   return (
     <AdminLayout adminName="管理员">
       <div style={{ backgroundColor: '#101922', color: 'white', minHeight: '100vh' }} className="p-6">
-        {/* 页面头部 */}
         <div className="mb-8">
           <h1 className="text-3xl font-black mb-2 text-white">活动管理</h1>
           <p className="text-[#8ba3a6]">管理社团的所有活动，支持创建、编辑和取消活动。</p>
         </div>
-
-        {/* 操作栏 */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
           <div className="flex-1">
             <Input
@@ -138,8 +118,6 @@ export default function AdminActivities() {
             </Button>
           </Link>
         </div>
-
-        {/* 状态过滤 */}
         <div className="mb-6 flex gap-2 flex-wrap">
           {statuses.map((status) => (
             <button
@@ -156,8 +134,6 @@ export default function AdminActivities() {
             </button>
           ))}
         </div>
-
-        {/* 统计信息 */}
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="rounded-xl p-4 border border-[#2a3c4a]" style={{ backgroundColor: '#1a2632' }}>
             <p className="text-sm mb-1 text-[#8ba3a6]">活动总数</p>
@@ -182,8 +158,6 @@ export default function AdminActivities() {
             </p>
           </div>
         </div>
-
-        {/* 活动列表 */}
         <div className="rounded-2xl overflow-hidden border border-[#2a3c4a]" style={{ backgroundColor: '#1a2632' }}>
           {isLoading ? (
             <div className="px-6 py-12 flex justify-center">
@@ -195,7 +169,6 @@ export default function AdminActivities() {
                 let statusBg = '';
                 let statusText = '';
                 let statusLabel = '';
-
                 if (activity.status === 'published') {
                   statusBg = 'bg-green-900/30';
                   statusText = 'text-green-400';
@@ -209,7 +182,6 @@ export default function AdminActivities() {
                   statusText = 'text-red-400';
                   statusLabel = '已取消';
                 }
-
                 return (
                   <div
                     key={activity.id}
@@ -255,8 +227,6 @@ export default function AdminActivities() {
                         )}
                       </div>
                     </div>
-
-                    {/* 操作按钮 */}
                     <div className="ml-4 flex gap-2 shrink-0">
                       <Link href={`/admin/activities/${activity.id}/edit`}>
                         <button className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-[#137fec] transition-colors" title="编辑">
@@ -297,8 +267,6 @@ export default function AdminActivities() {
             </div>
           )}
         </div>
-
-        {/* 删除确认对话框 */}
         {deleteId && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-[#1a2632] border border-[#2a3c4a] rounded-2xl p-6 max-w-sm w-full mx-4">

@@ -1,45 +1,32 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDatabases, Query } from '@/services/appwrite-server';
 import bcrypt from 'bcryptjs';
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
 const ATTENDANCE_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_ATTENDANCE_COLLECTION || '';
 const PROJECTS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_PROJECTS_COLLECTION || '';
-
-// 从邮箱提取学号
 function extractStudentIdFromEmail(email: string): string {
   const match = email.match(/^(\d+)@/);
   return match ? match[1] : '';
 }
-
-/**
- * GET /api/admin/students/[id]
- * 获取单个学生详细信息
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    
     const doc = await serverDatabases.getDocument(
       APPWRITE_DATABASE_ID,
       USERS_COLLECTION_ID,
       id
     );
-    
     if (!doc) {
       return NextResponse.json(
         { success: false, error: '学生不存在' },
         { status: 404 }
       );
     }
-
-    // 获取出勤统计
-    let attendanceStats = { total: 0, present: 0, late: 0, absent: 0 };
+    const attendanceStats = { total: 0, present: 0, late: 0, absent: 0 };
     try {
       const possibleStudentIds: string[] = [];
       const extractedId = extractStudentIdFromEmail(doc.email);
@@ -50,7 +37,6 @@ export async function GET(
       if (doc.$id && !possibleStudentIds.includes(doc.$id)) {
         possibleStudentIds.push(doc.$id);
       }
-
       for (const studentIdToFind of possibleStudentIds) {
         try {
           const attendanceResponse = await serverDatabases.listDocuments(
@@ -58,7 +44,6 @@ export async function GET(
             ATTENDANCE_COLLECTION_ID,
             [Query.equal('studentId', studentIdToFind), Query.limit(200)]
           );
-
           if (attendanceResponse.documents.length > 0) {
             const docs = attendanceResponse.documents as Array<{ status?: string }>;
             attendanceStats.total += docs.length;
@@ -67,15 +52,11 @@ export async function GET(
             attendanceStats.absent += docs.filter(a => a.status === 'absent').length;
           }
         } catch {
-          // 忽略单个查询错误
         }
       }
     } catch {
-      // 忽略出勤统计错误
     }
-
-    // 获取项目信息
-    let projects: Array<{ projectId: string; title: string; teamName: string; role: string; status: string }> = [];
+    const projects: Array<{ projectId: string; title: string; teamName: string; role: string; status: string }> = [];
     try {
       const projectResponse = await serverDatabases.listDocuments(
         APPWRITE_DATABASE_ID,
@@ -83,10 +64,8 @@ export async function GET(
         [Query.limit(100)]
       );
       const studentEmail = doc.email.toLowerCase().trim();
-
       for (const project of projectResponse.documents) {
         const leaderEmail = (project.leaderEmail || '').toLowerCase().trim();
-
         if (leaderEmail === studentEmail) {
           projects.push({
             projectId: project.$id,
@@ -111,14 +90,11 @@ export async function GET(
               });
             }
           } catch {
-            // 忽略解析错误
           }
         }
       }
     } catch {
-      // 忽略项目统计错误
     }
-
     const student = {
       $id: doc.$id,
       studentId: doc.studentId || extractStudentIdFromEmail(doc.email),
@@ -141,7 +117,6 @@ export async function GET(
       attendanceStats,
       projects,
     };
-    
     return NextResponse.json({ success: true, student });
   } catch (error) {
     const err = error as Error;
@@ -152,11 +127,6 @@ export async function GET(
     );
   }
 }
-
-/**
- * PATCH /api/admin/students/[id]
- * 更新学生信息
- */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -164,19 +134,15 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    
     const updateData: Record<string, unknown> = {
       updatedAt: new Date().toISOString(),
     };
-    
-    // 复制所有可更新的字段
     const allowedFields = [
       'studentId', 'chineseName', 'englishName', 'email',
       'classNameCn', 'classNameEn', 'classCode',
       'groupLevel', 'level', 'phone', 'instagram',
       'group', 'position', 'notes', 'role'
     ];
-    
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         updateData[field] = body[field];
@@ -185,8 +151,6 @@ export async function PATCH(
         }
       }
     }
-
-    // 管理员重置密码
     if (body.newPassword) {
       if (body.newPassword.length < 6) {
         return NextResponse.json(
@@ -198,14 +162,12 @@ export async function PATCH(
       updateData.passwordHash = await bcrypt.hash(body.newPassword, salt);
       updateData.requirePasswordChange = body.requirePasswordChange ?? false;
     }
-    
     await serverDatabases.updateDocument(
       APPWRITE_DATABASE_ID,
       USERS_COLLECTION_ID,
       id,
       updateData
     );
-    
     return NextResponse.json({ success: true, message: '学生信息已更新' });
   } catch (error) {
     const err = error as Error;
@@ -215,24 +177,17 @@ export async function PATCH(
     );
   }
 }
-
-/**
- * DELETE /api/admin/students/[id]
- * 删除单个学生
- */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    
     await serverDatabases.deleteDocument(
       APPWRITE_DATABASE_ID,
       USERS_COLLECTION_ID,
       id
     );
-    
     return NextResponse.json({ success: true, message: '学生已删除' });
   } catch (error) {
     const err = error as Error;

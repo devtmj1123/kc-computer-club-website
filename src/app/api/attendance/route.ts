@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDatabases, ID, Query } from '@/services/appwrite-server';
 import {
@@ -6,7 +5,6 @@ import {
   getCurrentWeekNumberWithConfig,
   AttendanceConfig,
 } from '@/services/attendance.service';
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const ATTENDANCE_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_ATTENDANCE_COLLECTION || 'attendance';
 const SETTINGS_COLLECTION_ID = 'clubSettings';
@@ -14,10 +12,6 @@ const ATTENDANCE_CONFIG_DOC_ID = 'attendance_config';
 const APPWRITE_ENDPOINT = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '';
 const APPWRITE_PROJECT_ID = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '';
 const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY || '';
-
-/**
- * 默认配置
- */
 const DEFAULT_CONFIG: AttendanceConfig = {
   dayOfWeek: 2,
   session1Start: { hour: 15, minute: 20 },
@@ -26,11 +20,6 @@ const DEFAULT_CONFIG: AttendanceConfig = {
   session2Duration: 5,
   weekStartDate: '2026-01-06',
 };
-
-/**
- * 当 Appwrite 集合缺少验证码相关属性时，自动创建它们
- * 仅在 saveAttendanceConfigToDB 400 错误时调用一次
- */
 async function ensureCodeAttributes(): Promise<void> {
   const baseUrl = `${APPWRITE_ENDPOINT}/databases/${APPWRITE_DATABASE_ID}/collections/${SETTINGS_COLLECTION_ID}/attributes`;
   const headers: Record<string, string> = {
@@ -38,8 +27,6 @@ async function ensureCodeAttributes(): Promise<void> {
     'X-Appwrite-Project': APPWRITE_PROJECT_ID,
     'X-Appwrite-Key': APPWRITE_API_KEY,
   };
-
-  // 创建缺失的字符串属性
   for (const key of ['attendanceCode1', 'attendanceCode2']) {
     try {
       await fetch(`${baseUrl}/string`, {
@@ -48,10 +35,8 @@ async function ensureCodeAttributes(): Promise<void> {
         body: JSON.stringify({ key, size: 16, required: false }),
         signal: AbortSignal.timeout(8000),
       });
-    } catch { /* 可能已存在，忽略 */ }
+    } catch {  }
   }
-
-  // 创建缺失的整数属性
   try {
     await fetch(`${baseUrl}/integer`, {
       method: 'POST',
@@ -59,24 +44,14 @@ async function ensureCodeAttributes(): Promise<void> {
       body: JSON.stringify({ key: 'attendanceCodesWeek', required: false }),
       signal: AbortSignal.timeout(8000),
     });
-  } catch { /* 可能已存在，忽略 */ }
-
-  // 固定等待 5 秒让 Appwrite 处理新属性
+  } catch {  }
   console.log('[ensureCodeAttributes] 等待 Appwrite 处理新属性（约 5 秒）...');
   await new Promise(r => setTimeout(r, 5000));
   console.log('[ensureCodeAttributes] 属性处理完成，准备重试写入');
 }
-
-/**
- * 生成随机点名验证码（4位数字）
- */
 function generateAttendanceCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
-
-/**
- * 从数据库获取点名配置（包括验证码）
- */
 async function getAttendanceConfigFromDB(): Promise<{ config: AttendanceConfig; debugMode: boolean; attendanceCode1: string | null; attendanceCode2: string | null; attendanceCodesWeek: number | null; codeEnabled: boolean }> {
   try {
     const doc = await serverDatabases.getDocument(
@@ -84,7 +59,6 @@ async function getAttendanceConfigFromDB(): Promise<{ config: AttendanceConfig; 
       SETTINGS_COLLECTION_ID,
       ATTENDANCE_CONFIG_DOC_ID
     );
-
     const config: AttendanceConfig = {
       dayOfWeek: doc.attendanceDayOfWeek ?? DEFAULT_CONFIG.dayOfWeek,
       session1Start: doc.attendanceSession1Start 
@@ -97,7 +71,6 @@ async function getAttendanceConfigFromDB(): Promise<{ config: AttendanceConfig; 
       session2Duration: doc.attendanceSession2Duration ?? DEFAULT_CONFIG.session2Duration,
       weekStartDate: doc.attendanceWeekStartDate ?? DEFAULT_CONFIG.weekStartDate,
     };
-
     return {
       config,
       debugMode: doc.attendanceDebugMode ?? false,
@@ -116,10 +89,6 @@ async function getAttendanceConfigFromDB(): Promise<{ config: AttendanceConfig; 
     return { config: DEFAULT_CONFIG, debugMode: false, attendanceCode1: null, attendanceCode2: null, attendanceCodesWeek: null, codeEnabled: false };
   }
 }
-
-/**
- * 保存点名配置到数据库（包括验证码）
- */
 async function saveAttendanceConfigToDB(
   config: Partial<AttendanceConfig>, 
   debugMode?: boolean,
@@ -129,7 +98,6 @@ async function saveAttendanceConfigToDB(
   codeEnabled?: boolean,
 ): Promise<void> {
   const updateData: Record<string, unknown> = {};
-  
   if (config.dayOfWeek !== undefined) updateData.attendanceDayOfWeek = config.dayOfWeek;
   if (config.session1Start !== undefined) updateData.attendanceSession1Start = JSON.stringify(config.session1Start);
   if (config.session1Duration !== undefined) updateData.attendanceSession1Duration = config.session1Duration;
@@ -141,7 +109,6 @@ async function saveAttendanceConfigToDB(
   if (attendanceCode2 !== undefined) updateData.attendanceCode2 = attendanceCode2;
   if (attendanceCodesWeek !== undefined) updateData.attendanceCodesWeek = attendanceCodesWeek;
   if (codeEnabled !== undefined) updateData.attendanceCodeEnabled = codeEnabled;
-
   const fullConfig = { ...DEFAULT_CONFIG, ...config };
   const createData = {
     attendanceDayOfWeek: fullConfig.dayOfWeek,
@@ -156,7 +123,6 @@ async function saveAttendanceConfigToDB(
     attendanceCodesWeek: attendanceCodesWeek ?? null,
     attendanceCodeEnabled: codeEnabled ?? false,
   };
-
   const doUpdate = () => serverDatabases.updateDocument(
     APPWRITE_DATABASE_ID,
     SETTINGS_COLLECTION_ID,
@@ -169,8 +135,6 @@ async function saveAttendanceConfigToDB(
     ATTENDANCE_CONFIG_DOC_ID,
     createData
   );
-
-  // 第一步：尝试更新
   let needCreate = false;
   try {
     await doUpdate();
@@ -178,7 +142,6 @@ async function saveAttendanceConfigToDB(
   } catch (e: unknown) {
     const err = e as { code?: number; message?: string };
     if (err.code === 400) {
-      // schema 缺少属性 —— 自动修复后重试
       console.warn('[saveAttendanceConfigToDB] 400, 自动修复 schema...', err.message);
       await ensureCodeAttributes();
       try {
@@ -198,19 +161,15 @@ async function saveAttendanceConfigToDB(
       throw e;
     }
   }
-
-  // 第二步：创建文档（不存在时）
   if (needCreate) {
     try {
       await doCreate();
     } catch (ce: unknown) {
       const cErr = ce as { code?: number };
       if (cErr.code === 400) {
-        // schema 缺少属性，自动修复后重试 create
         await ensureCodeAttributes();
         await doCreate();
       } else if (cErr.code === 409) {
-        // 文档并发创建—— 改为更新
         await doUpdate();
       } else {
         throw ce;
@@ -218,29 +177,18 @@ async function saveAttendanceConfigToDB(
     }
   }
 }
-
-/**
- * GET /api/attendance/status
- * 获取当前点名状态（是否在点名时间，还剩多少时间）
- */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
-
-    // 从数据库获取配置
     const { config, attendanceCode1, attendanceCode2, attendanceCodesWeek, codeEnabled } = await getAttendanceConfigFromDB();
-    const debugMode = false; // 调试模式已禁用
-
+    const debugMode = false; 
     const now = new Date();
     const dayOfWeek = now.getDay();
     const currentHour = now.getHours();
     const weekNumber = getCurrentWeekNumberWithConfig(config);
-
     let code1 = attendanceCode1;
     let code2 = attendanceCode2;
-
-    // 每周配置日到达时段1开始时间，自动生成两个新验证码（每周只生成一次）
     if (dayOfWeek === config.dayOfWeek && currentHour >= config.session1Start.hour && attendanceCodesWeek !== weekNumber) {
       code1 = generateAttendanceCode();
       code2 = generateAttendanceCode();
@@ -248,11 +196,8 @@ export async function GET(request: NextRequest) {
         await saveAttendanceConfigToDB({}, undefined, code1, code2, weekNumber, true);
       } catch (saveErr) {
         console.error('[AttendanceAPI] 自动生成验证码保存失败（将在手动生成时重试）:', saveErr);
-        // 即使保存失败也继续返回内存中生成的 codes
       }
     }
-
-    // 获取调试/管理状态
     if (action === 'debug-status') {
       return NextResponse.json({
         debugMode,
@@ -263,11 +208,8 @@ export async function GET(request: NextRequest) {
         codeEnabled,
       });
     }
-
-    // 只要是配置的星期，全天开放点名（移除时间窗口限制）
     const isAttendanceOpen = dayOfWeek === config.dayOfWeek;
     const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-
     return NextResponse.json({
       isAttendanceOpen,
       session: null,
@@ -288,58 +230,16 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-/**
- * POST /api/attendance/check-in
- * 学生点名
- * 
- * Body: {
- *   studentId: string,
- *   studentName: string,
- *   studentEmail: string,
- *   verificationCode?: string  // 验证码（如果开启）
- * }
- * 
- * 或者设置调试模式:
- * Body: {
- *   action: 'toggle-debug',
- *   enabled: boolean
- * }
- * 
- * 或者更新配置:
- * Body: {
- *   action: 'update-config',
- *   config: AttendanceConfig
- * }
- * 
- * 或者生成/切换验证码:
- * Body: {
- *   action: 'generate-code'  // 生成新验证码
- * }
- * Body: {
- *   action: 'toggle-code',
- *   enabled: boolean  // 开启/关闭验证码
- * }
- * Body: {
- *   action: 'clear-code'  // 清除验证码
- * }
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
-    // 从数据库获取当前配置
     const { config: currentConfig, attendanceCode1: currentCode1, attendanceCode2: currentCode2, codeEnabled: currentCodeEnabled } = await getAttendanceConfigFromDB();
-
-    // 切换调试模式（已禁用，返回错误）
     if (body.action === 'toggle-debug') {
       return NextResponse.json(
         { success: false, error: '调试模式已禁用' },
         { status: 403 }
       );
     }
-
-    // 更新点名配置
     if (body.action === 'update-config') {
       await saveAttendanceConfigToDB(body.config, undefined, undefined, undefined, undefined, undefined);
       const { config: updatedConfig } = await getAttendanceConfigFromDB();
@@ -349,8 +249,6 @@ export async function POST(request: NextRequest) {
         message: '点名配置已更新',
       });
     }
-
-    // 手动生成两个新验证码
     if (body.action === 'generate-code') {
       const newCode1 = generateAttendanceCode();
       const newCode2 = generateAttendanceCode();
@@ -364,8 +262,6 @@ export async function POST(request: NextRequest) {
         message: `验证码已生成 — 时段1: ${newCode1}，时段2: ${newCode2}`,
       });
     }
-
-    // 清除验证码
     if (body.action === 'clear-code') {
       await saveAttendanceConfigToDB({}, undefined, null, null, null, false);
       return NextResponse.json({
@@ -376,18 +272,13 @@ export async function POST(request: NextRequest) {
         message: '验证码已清除',
       });
     }
-
-    // 正常点名流程
     const { studentId, studentName, studentEmail, verificationCode } = body;
-
     if (!studentId || !studentName || !studentEmail) {
       return NextResponse.json(
         { error: '学生ID、姓名和邮箱必填' },
         { status: 400 }
       );
     }
-
-    // 星期检查（移除时间窗口限制，全天开放点名）
     const nowDate = new Date();
     const nowDay = nowDate.getDay();
     if (nowDay !== currentConfig.dayOfWeek) {
@@ -397,11 +288,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // 根据验证码判断是哪个时段
     let sessionTime: string;
     let sessionNumber: 1 | 2;
-
     if (currentCodeEnabled && (currentCode1 || currentCode2)) {
       if (!verificationCode) {
         return NextResponse.json(
@@ -422,11 +310,9 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      // 无验证码时：优先检查学生本周时段1是否已完成，若完成则自动分配到时段2
       const weekNumber_temp = getCurrentWeekNumberWithConfig(currentConfig);
       const sessionTime1 = `${currentConfig.session1Start.hour}:${String(currentConfig.session1Start.minute).padStart(2, '0')}`;
       const sessionTime2 = `${currentConfig.session2Start.hour}:${String(currentConfig.session2Start.minute).padStart(2, '0')}`;
-
       let session1Done = false;
       try {
         const s1Records = await serverDatabases.listDocuments(
@@ -440,8 +326,7 @@ export async function POST(request: NextRequest) {
           ]
         );
         session1Done = s1Records.documents.length > 0 && s1Records.documents[0].status !== 'pending';
-      } catch { /* ignore */ }
-
+      } catch {  }
       if (!session1Done) {
         sessionTime = sessionTime1;
         sessionNumber = 1;
@@ -450,12 +335,8 @@ export async function POST(request: NextRequest) {
         sessionNumber = 2;
       }
     }
-
-    // 检查是否已有点名记录（包括 pending 状态）
     const weekNumber = getCurrentWeekNumberWithConfig(currentConfig);
     const nowIso = nowDate.toISOString();
-
-    // 查找当前时段本周的记录（不限日期，因为使用 weekNumber）
     let existingRecord = null;
     try {
       const existingRecords = await serverDatabases.listDocuments(
@@ -468,19 +349,14 @@ export async function POST(request: NextRequest) {
           Query.limit(1),
         ]
       );
-
       if (existingRecords.documents.length > 0) {
         existingRecord = existingRecords.documents[0];
       }
     } catch (queryError) {
       console.error('检查现有记录失败:', queryError);
-      // 如果查询失败，继续执行
     }
-
-    // 如果已有非 pending 状态的记录，说明已点过名
     if (existingRecord && existingRecord.status !== 'pending') {
       const statusLabel = existingRecord.status === 'present' ? '出席' : existingRecord.status === 'late' ? '迟到' : '缺席';
-      // If this was session 2 (last session), both are done
       const bothDone = sessionNumber === 2;
       return NextResponse.json(
         { error: bothDone
@@ -489,11 +365,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // 所有在点名日的签到均视为出席（不再按时间窗口区分迟到）
     const checkInStatus: 'present' | 'late' = 'present';
     const lateNote = '';
-
     console.log('[DEBUG POST] 点名处理:', {
       studentId,
       studentName,
@@ -503,11 +376,8 @@ export async function POST(request: NextRequest) {
       existingRecordId: existingRecord?.$id || null,
       status: checkInStatus,
     });
-
     let record;
-    
     if (existingRecord) {
-      // 更新现有的 pending 记录为 present/late
       record = await serverDatabases.updateDocument(
         APPWRITE_DATABASE_ID,
         ATTENDANCE_COLLECTION_ID,
@@ -520,15 +390,12 @@ export async function POST(request: NextRequest) {
       );
       console.log('[DEBUG POST] 更新 pending 记录为:', checkInStatus);
     } else {
-      // 创建新记录（未初始化时段的情况）
-      // 使用 uniqueKey 作为文档ID：studentId_sessionNumber_weekNumber
       const uniqueKey = `${studentId}_${sessionNumber}_${weekNumber}`;
-      
       try {
         record = await serverDatabases.createDocument(
           APPWRITE_DATABASE_ID,
           ATTENDANCE_COLLECTION_ID,
-          uniqueKey,  // 使用 uniqueKey 作为文档ID
+          uniqueKey,  
           {
             studentId,
             studentName,
@@ -539,32 +406,27 @@ export async function POST(request: NextRequest) {
             status: checkInStatus,
             notes: lateNote || '',
             createdAt: nowIso,
-            uniqueKey,  // 保存 uniqueKey 字段以便查询
+            uniqueKey,  
           }
         );
         console.log('[DEBUG POST] 创建新记录:', record.$id);
       } catch (createError: unknown) {
         const err = createError as Error & { message?: string };
-        // 如果是"已存在"错误，说明已经点过名
         if (err.message && err.message.includes('already exists')) {
           return NextResponse.json(
             { error: '您已完成点名，请勿重复提交' },
             { status: 400 }
           );
         }
-        // 其他错误继续抛出
         throw createError;
       }
     }
-
     console.log('[DEBUG POST] 记录处理成功:', {
       id: record.$id,
       weekNumber: record.weekNumber,
       status: record.status,
     });
-
     const statusMessage = '点名成功！';
-
     return NextResponse.json({
       success: true,
       message: statusMessage,

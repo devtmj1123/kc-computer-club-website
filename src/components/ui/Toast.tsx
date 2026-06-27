@@ -1,14 +1,7 @@
-/* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { createContext, useContext, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-
-// ========================================
-// Toast 组件
-// 全局提示消息
-// ========================================
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -27,7 +20,6 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null);
 
-// Toast 样式配置
 const toastStyles: Record<ToastType, { icon: string; bg: string; border: string }> = {
   success: {
     icon: 'check_circle',
@@ -58,10 +50,6 @@ const iconColors: Record<ToastType, string> = {
   info: 'text-blue-500',
 };
 
-// ========================================
-// ToastProvider
-// ========================================
-
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -72,7 +60,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
       setToasts((prev) => [...prev, toast]);
 
-      // 自动移除
       if (duration > 0) {
         setTimeout(() => {
           setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -94,10 +81,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ========================================
-// useToast Hook
-// ========================================
-
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) {
@@ -105,10 +88,6 @@ export function useToast() {
   }
   return context;
 }
-
-// ========================================
-// ToastContainer
-// ========================================
 
 interface ToastContainerProps {
   toasts: Toast[];
@@ -133,10 +112,6 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   );
 }
 
-// ========================================
-// ToastItem
-// ========================================
-
 interface ToastItemProps {
   toast: Toast;
   onRemove: (id: string) => void;
@@ -159,17 +134,14 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
         border
       )}
     >
-      {/* 图标 */}
       <span className={cn('material-symbols-outlined', iconColor)}>
         {icon}
       </span>
 
-      {/* 内容 */}
       <p className="flex-1 text-sm text-gray-900 dark:text-white">
         {toast.message}
       </p>
 
-      {/* 关闭按钮 */}
       <button
         onClick={() => onRemove(toast.id)}
         className={cn(
@@ -184,13 +156,8 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
   );
 }
 
-// ========================================
-// 便捷方法（需要在 ToastProvider 内使用）
-// ========================================
-
 export const toast = {
   success: (_message: string, _duration?: number) => {
-    // 需要通过 useToast hook 使用
     console.warn('toast.success 需要在 ToastProvider 内通过 useToast hook 使用');
   },
   error: (_message: string, _duration?: number) => {

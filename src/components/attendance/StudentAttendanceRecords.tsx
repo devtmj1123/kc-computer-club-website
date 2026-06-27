@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -26,26 +25,22 @@ export default function StudentAttendanceRecords() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // 等待认证完成
     if (authLoading) {
       return;
     }
 
-    // 调试日志
     console.log('StudentAttendanceRecords - authLoading:', authLoading);
     console.log('StudentAttendanceRecords - user:', user);
     console.log('StudentAttendanceRecords - user?.email:', user?.email);
-    
+
     if (!user) {
       setError('请先登录');
       setIsLoading(false);
       return;
     }
 
-    // 重置错误状态（用户登录后）
     setError('');
 
-    // 检查 email 字段
     const email = user.email || (user as any).username;
     if (!email) {
       console.error('User object missing email field:', user);
@@ -107,17 +102,16 @@ export default function StudentAttendanceRecords() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'present':
-        return '#3fb950'; // GitHub 绿色
+        return '#3fb950';
       case 'late':
-        return '#d29922'; // GitHub 橙色
+        return '#d29922';
       case 'absent':
-        return '#ff7b72'; // GitHub 红色
+        return '#ff7b72';
       default:
         return '#6e7681';
     }
   };
 
-  // 等待认证完成或数据加载中
   if (authLoading || isLoading) {
     return <div className={styles.loading}>加载中...</div>;
   }

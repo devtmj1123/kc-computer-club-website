@@ -1,47 +1,30 @@
-/* eslint-disable prettier/prettier */
 import { NextResponse } from 'next/server';
 import { serverDatabases } from '@/services/appwrite-server';
 import bcrypt from 'bcryptjs';
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
-const RESET_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const RESET_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; 
 const DEFAULT_STUDENT_PASSWORD = '11111111';
-
-/**
- * 重置密码 API
- * POST /api/auth/reset-password
- * 
- * 使用重置令牌来重置用户密码
- */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { token, newPassword } = body;
-
     if (!token || !newPassword) {
       return NextResponse.json(
         { error: '缺少必要的参数' },
         { status: 400 }
       );
     }
-
-    // 1. 验证重置令牌
     let tokenData: any;
     try {
       const decoded = Buffer.from(token, 'base64').toString('utf-8');
       tokenData = JSON.parse(decoded);
-
       const { userId, email, timestamp } = tokenData;
-
       if (!userId || !email || !timestamp) {
         throw new Error('Invalid token format');
       }
-
-      // 检查令牌是否过期
       const currentTime = Date.now();
       const tokenAge = currentTime - timestamp;
-
       if (tokenAge > RESET_TOKEN_EXPIRY) {
         return NextResponse.json(
           { error: '重置链接已过期。请重新申请。' },
@@ -55,15 +38,12 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
-    // 2. 验证用户存在且邮箱匹配
     try {
       const userRecord = await serverDatabases.getDocument(
         APPWRITE_DATABASE_ID,
         USERS_COLLECTION_ID,
         tokenData.userId
       );
-
       if (!userRecord || userRecord.email !== tokenData.email) {
         return NextResponse.json(
           { error: '无效的重置请求' },
@@ -77,42 +57,31 @@ export async function POST(request: Request) {
         { status: 404 }
       );
     }
-
-    // 3. 验证新密码强度
     const passwordErrors: string[] = [];
-
     if (newPassword.length < 6) {
       passwordErrors.push('密码至少需要 6 个字符');
     }
-
     if (newPassword === DEFAULT_STUDENT_PASSWORD) {
       passwordErrors.push('密码不能为默认密码');
     }
-
     if (!/[a-z]/.test(newPassword)) {
       passwordErrors.push('密码需要包含小写字母');
     }
-
     if (!/[A-Z]/.test(newPassword)) {
       passwordErrors.push('密码需要包含大写字母');
     }
-
     if (!/[0-9]/.test(newPassword)) {
       passwordErrors.push('密码需要包含数字');
     }
-
     if (!/[!@#$%^&*]/.test(newPassword)) {
       passwordErrors.push('密码需要包含特殊字符 (!@#$%^&*)');
     }
-
     if (passwordErrors.length > 0) {
       return NextResponse.json(
         { error: passwordErrors.join('; ') },
         { status: 400 }
       );
     }
-
-    // 4. 哈希新密码
     let hashedPassword: string;
     try {
       hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -123,8 +92,6 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-
-    // 5. 更新用户密码
     try {
       await serverDatabases.updateDocument(
         APPWRITE_DATABASE_ID,
@@ -136,10 +103,7 @@ export async function POST(request: Request) {
           updatedAt: new Date().toISOString(),
         }
       );
-
       console.log(`密码重置成功: ${tokenData.email} (用户ID: ${tokenData.userId})`);
-
-      // 返回成功响应
       return NextResponse.json({
         success: true,
         message: '密码重置成功。请使用新密码登录。',

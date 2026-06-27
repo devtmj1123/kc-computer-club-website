@@ -1,9 +1,6 @@
-/* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
 import { getAuthToken } from './storage';
 
-// Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   timeout: 30000,
@@ -12,7 +9,6 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
     const token = getAuthToken();
@@ -26,14 +22,11 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Unauthorized - token expired
       console.error('Unauthorized - please login again');
-      // 可以在这里触发重定向到登录页
     }
     return Promise.reject(error);
   }
@@ -45,7 +38,6 @@ export interface ApiOptions {
   timeout?: number;
 }
 
-// GET request
 export const apiGet = async <T = any>(
   url: string,
   options?: ApiOptions
@@ -62,7 +54,6 @@ export const apiGet = async <T = any>(
   }
 };
 
-// POST request
 export const apiPost = async <T = any>(
   url: string,
   data?: any,
@@ -80,7 +71,6 @@ export const apiPost = async <T = any>(
   }
 };
 
-// PUT request
 export const apiPut = async <T = any>(
   url: string,
   data?: any,
@@ -98,7 +88,6 @@ export const apiPut = async <T = any>(
   }
 };
 
-// PATCH request
 export const apiPatch = async <T = any>(
   url: string,
   data?: any,
@@ -116,7 +105,6 @@ export const apiPatch = async <T = any>(
   }
 };
 
-// DELETE request
 export const apiDelete = async <T = any>(
   url: string,
   options?: ApiOptions
@@ -133,7 +121,6 @@ export const apiDelete = async <T = any>(
   }
 };
 
-// Error handler
 const handleApiError = (error: any): Error => {
   if (axios.isAxiosError(error)) {
     const message = error.response?.data?.message || error.message;

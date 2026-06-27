@@ -1,48 +1,36 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDatabases, Query } from '@/services/appwrite-server';
 import bcrypt from 'bcryptjs';
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const ADMINS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_ADMINS_COLLECTION || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
-
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
-
     if (!username || !password) {
       return NextResponse.json(
         { success: false, error: '请输入用户名和密码' },
         { status: 400 }
       );
     }
-
-    // 1. 查找管理员
     const adminRecords = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       [Query.equal('username', username)]
     );
-
     if (adminRecords.documents.length === 0) {
       return NextResponse.json(
         { success: false, error: '用户名或密码错误' },
         { status: 401 }
       );
     }
-
     const adminRecord = adminRecords.documents[0];
-
-    // 2. 检查是否激活
     if (!adminRecord.isActive) {
       return NextResponse.json(
         { success: false, error: '此账号已被禁用' },
         { status: 403 }
       );
     }
-
-    // 3. 验证密码
     const passwordHash = adminRecord.passwordHash || adminRecord.password;
     if (!passwordHash) {
       return NextResponse.json(
@@ -50,7 +38,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
     const passwordMatch = await bcrypt.compare(password, passwordHash);
     if (!passwordMatch) {
       return NextResponse.json(
@@ -58,8 +45,6 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-
-    // 4. 更新最后登录时间
     try {
       await serverDatabases.updateDocument(
         APPWRITE_DATABASE_ID,
@@ -68,10 +53,7 @@ export async function POST(request: NextRequest) {
         { lastLogin: new Date().toISOString() }
       );
     } catch {
-      // 非关键性操作，忽略失败
     }
-
-    // 5. 获取关联用户名称
     let adminName = username;
     if (adminRecord.userId) {
       try {
@@ -85,7 +67,6 @@ export async function POST(request: NextRequest) {
         adminName = username;
       }
     }
-
     return NextResponse.json({
       success: true,
       admin: {
@@ -104,4 +85,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}

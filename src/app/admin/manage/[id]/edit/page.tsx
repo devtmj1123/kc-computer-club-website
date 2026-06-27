@@ -1,24 +1,19 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-
 interface Admin {
   id: string;
   username: string;
   isActive: boolean;
   createdAt: string;
 }
-
 export default function EditAdminPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const adminId = params?.id as string;
-
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [username, setUsername] = useState('');
   const [isActive, setIsActive] = useState(true);
@@ -28,21 +23,16 @@ export default function EditAdminPage() {
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingAdmin, setIsLoadingAdmin] = useState(true);
-
-  // 权限检查
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
-
-  // 加载管理员信息
   const loadAdmin = useCallback(async () => {
     try {
       setIsLoadingAdmin(true);
       const response = await fetch('/api/admin/manage');
       const data = await response.json();
-
       if (data.success) {
         const foundAdmin = data.admins.find((a: Admin) => a.id === adminId);
         if (foundAdmin) {
@@ -59,31 +49,24 @@ export default function EditAdminPage() {
       setIsLoadingAdmin(false);
     }
   }, [adminId]);
-
   useEffect(() => {
     if (adminId && user && 'role' in user && user.role === 'admin') {
       loadAdmin();
     }
   }, [adminId, user, loadAdmin]);
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-
     if (!username.trim()) {
       setError('用户名不能为空');
       return;
     }
-
     if (newPassword && newPassword.length < 6) {
       setError('密码至少 6 个字符');
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       const response = await fetch('/api/admin/manage', {
         method: 'PUT',
@@ -95,9 +78,7 @@ export default function EditAdminPage() {
           ...(newPassword && { newPassword }),
         }),
       });
-
       const data = await response.json();
-
       if (data.success) {
         setSuccess('管理员更新成功！');
         setNewPassword('');
@@ -111,7 +92,6 @@ export default function EditAdminPage() {
       setIsSubmitting(false);
     }
   };
-
   if (isLoading || !user || isLoadingAdmin) {
     return (
       <div className="min-h-screen bg-[#0a1220] flex items-center justify-center">
@@ -126,7 +106,6 @@ export default function EditAdminPage() {
       </div>
     );
   }
-
   if (!admin) {
     return (
       <div className="min-h-screen bg-[#0a1220] py-12 px-4">
@@ -139,11 +118,9 @@ export default function EditAdminPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-[#0a1220] py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* 导航 */}
         <div className="mb-8">
           <Link
             href="/admin/manage"
@@ -152,7 +129,6 @@ export default function EditAdminPage() {
             <span className="material-symbols-outlined">arrow_back</span>
             返回管理员列表
           </Link>
-
           <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-8">
             <div className="mb-6">
               <div className="w-16 h-16 rounded-full bg-[#137fec]/20 flex items-center justify-center mb-4">
@@ -163,24 +139,17 @@ export default function EditAdminPage() {
               <h1 className="text-2xl font-bold text-white mb-2">编辑管理员</h1>
               <p className="text-[#7a8fa5]">修改管理员账户信息</p>
             </div>
-
-            {/* 错误提示 */}
             {error && (
               <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
                 {error}
               </div>
             )}
-
-            {/* 成功提示 */}
             {success && (
               <div className="mb-6 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
                 ✓ {success}
               </div>
             )}
-
-            {/* 表单 */}
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* 用户名 */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   管理员用户名
@@ -200,8 +169,6 @@ export default function EditAdminPage() {
                   />
                 </div>
               </div>
-
-              {/* 账户状态 */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   账户状态
@@ -229,8 +196,6 @@ export default function EditAdminPage() {
                   </label>
                 </div>
               </div>
-
-              {/* 新密码 */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   新密码（可选）
@@ -259,8 +224,6 @@ export default function EditAdminPage() {
                 </div>
                 <p className="text-xs text-[#7a8fa5] mt-1">若要修改密码，请输入新密码（至少 6 个字符）</p>
               </div>
-
-              {/* 操作按钮 */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"

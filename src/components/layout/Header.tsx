@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import Link from 'next/link';
@@ -10,11 +9,6 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BreathingToggleCompact } from '@/components/ui/BreathingToggle';
 import { cn } from '@/lib/utils';
 
-// ========================================
-// Header 组件
-// 参考设计：club_homepage_1/code.html
-// ========================================
-
 interface NavItem {
   label: string;
   href: string;
@@ -23,9 +17,7 @@ interface NavItem {
 }
 
 interface HeaderProps {
-  /** 导航项 */
   navItems?: NavItem[];
-  /** 额外类名 */
   className?: string;
 }
 
@@ -36,11 +28,82 @@ const defaultNavItems: NavItem[] = [
   { label: '活动', href: '/activities' },
 ];
 
-export function Header({
-  navItems = defaultNavItems,
-  className,
-}: HeaderProps) {
+function NavLinkItem({ item }: { item: NavItem }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Link
+      href={item.href}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '6px 14px',
+        borderRadius: 8,
+        fontSize: '0.875rem',
+        fontWeight: 500,
+        background: 'var(--nm-bg)',
+        boxShadow: hovered ? 'var(--nm-raised-sm)' : 'none',
+        color: item.active
+          ? 'var(--primary)'
+          : hovered
+            ? 'var(--foreground)'
+            : 'var(--text-secondary)',
+        transition: 'box-shadow 0.2s ease, color 0.2s ease',
+        textDecoration: 'none',
+      }}
+    >
+      {item.label}
+    </Link>
+  );
+}
+
+function DropdownItem({
+  href,
+  icon,
+  label,
+  sublabel,
+}: {
+  href: string;
+  icon: string;
+  label: string;
+  sublabel: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Link
+      href={href}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 16px',
+        fontSize: '0.875rem',
+        background: hovered ? 'rgba(19, 236, 128, 0.08)' : 'transparent',
+        color: hovered ? 'var(--primary)' : 'var(--text-secondary)',
+        transition: 'background 0.15s ease, color 0.15s ease',
+        textDecoration: 'none',
+      }}
+    >
+      <span className="material-symbols-outlined text-lg">{icon}</span>
+      <div>
+        <div style={{ fontWeight: 500, color: hovered ? 'var(--primary)' : 'var(--foreground)' }}>
+          {label}
+        </div>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{sublabel}</div>
+      </div>
+    </Link>
+  );
+}
+
+export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [moreHovered, setMoreHovered] = useState(false);
+  const [loginHovered, setLoginHovered] = useState(false);
+  const [logoutHovered, setLogoutHovered] = useState(false);
+  const [userHovered, setUserHovered] = useState(false);
   const router = useRouter();
   const { user, isStudent, isLoading, logout } = useAuth();
 
@@ -51,282 +114,354 @@ export function Header({
 
   return (
     <header
-      className={cn(
-        'sticky top-0 z-50 w-full',
-        'border-b border-gray-200 dark:border-[#283930]',
-        'bg-white dark:bg-[#111814]/80',
-        'backdrop-blur-md',
-        className
-      )}
+      className={cn('sticky top-0 z-50 w-full', className)}
+      style={{
+        background: 'var(--nm-bg)',
+        boxShadow: '0 4px 16px var(--nm-shadow-dark)',
+      }}
     >
       <div className="mx-auto flex h-16 max-w-300 items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Logo - 使用文字代替图标 */}
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/20">
-            <span className="text-primary font-black text-lg">KC</span>
+          <div
+            className="flex size-10 items-center justify-center"
+            style={{
+              background: 'var(--nm-bg)',
+              boxShadow: 'var(--nm-raised-sm)',
+              borderRadius: 12,
+            }}
+          >
+            <span className="font-black text-lg" style={{ color: 'var(--primary)' }}>
+              KC
+            </span>
           </div>
-          <h2 className="text-lg font-bold tracking-tight text-black dark:text-white hidden sm:block">
+          <h2
+            className="text-lg font-bold tracking-tight hidden sm:block"
+            style={{ color: 'var(--foreground)' }}
+          >
             电脑学会
           </h2>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-1">
           {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'text-sm font-medium transition-colors',
-                item.active
-                  ? 'text-primary'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-primary'
-              )}
-            >
-              {item.label}
-            </Link>
+            <NavLinkItem key={item.href} item={item} />
           ))}
-          
-          {/* 更多菜单 */}
+
           <div className="relative group">
-            <button className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
+            <button
+              onMouseEnter={() => setMoreHovered(true)}
+              onMouseLeave={() => setMoreHovered(false)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '6px 14px',
+                borderRadius: 8,
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                background: 'var(--nm-bg)',
+                boxShadow: moreHovered ? 'var(--nm-raised-sm)' : 'none',
+                color: moreHovered ? 'var(--foreground)' : 'var(--text-secondary)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'box-shadow 0.2s ease, color 0.2s ease',
+              }}
+            >
               <span>更多</span>
               <span className="material-symbols-outlined text-lg">expand_more</span>
             </button>
-            
-            {/* Dropdown Menu */}
-            <div className="absolute right-0 mt-0 w-56 bg-white dark:bg-[#1a2c24] border border-gray-200 dark:border-[#283930] rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+
+            <div
+              className="absolute right-0 mt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+              style={{
+                background: 'var(--nm-bg)',
+                boxShadow: 'var(--nm-raised-lg)',
+                borderRadius: 16,
+                border: 'none',
+                overflow: 'hidden',
+              }}
+            >
               <div className="py-2">
-                {/* 学生菜单项 */}
-                <Link
+                <DropdownItem
                   href="/attendance"
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-[#13ec80]/10 dark:hover:bg-[#13ec80]/10 hover:text-primary transition-colors"
-                >
-                  <span className="material-symbols-outlined text-lg">event_available</span>
-                  <div>
-                    <div className="font-medium">签到</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">标记考勤</div>
-                  </div>
-                </Link>
-                
-                <Link
-                  href="/chat"
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-lg">chat</span>
-                  <div>
-                    <div className="font-medium">群聊</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">加入讨论</div>
-                  </div>
-                </Link>
-                
-                <Link
+                  icon="event_available"
+                  label="签到"
+                  sublabel="标记考勤"
+                />
+                <DropdownItem href="/chat" icon="chat" label="群聊" sublabel="加入讨论" />
+                <DropdownItem
                   href="/projects/submit"
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-lg">lightbulb</span>
-                  <div>
-                    <div className="font-medium">项目提交</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">提案新项目</div>
-                  </div>
-                </Link>
+                  icon="lightbulb"
+                  label="项目提交"
+                  sublabel="提案新项目"
+                />
 
-                <div className="border-t border-gray-200 dark:border-[#283930] my-2" />
+                <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
 
-                {/* 项目列表菜单项 */}
-                <Link
+                <DropdownItem
                   href="/projects"
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-lg">folder</span>
-                  <div>
-                    <div className="font-medium">所有项目</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">浏览项目列表</div>
-                  </div>
-                </Link>
+                  icon="folder"
+                  label="所有项目"
+                  sublabel="浏览项目列表"
+                />
+                <DropdownItem
+                  href="/tutorial"
+                  icon="school"
+                  label="开发者教程"
+                  sublabel="了解项目结构"
+                />
               </div>
             </div>
           </div>
         </nav>
 
-        {/* Right Actions */}
         <div className="flex items-center gap-3">
-          {/* Theme Toggle */}
           <ThemeToggle compact className="hidden md:flex" />
-          
-          {/* Breathing Effect Toggle */}
           <BreathingToggleCompact />
-          
+
           {isStudent && user ? (
-            // Student logged in
             <div className="hidden md:flex items-center gap-3">
               <NotificationBell />
               <Link
                 href="/profile"
-                className="text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-colors cursor-pointer flex items-center gap-1"
+                onMouseEnter={() => setUserHovered(true)}
+                onMouseLeave={() => setUserHovered(false)}
                 title="查看个人资料"
+                className="cursor-pointer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: '0.875rem',
+                  color: userHovered ? 'var(--primary)' : 'var(--text-secondary)',
+                  transition: 'color 0.2s ease',
+                  textDecoration: 'none',
+                }}
               >
                 <span className="material-symbols-outlined text-[18px]">person</span>
                 {user.name}
               </Link>
               <button
                 onClick={handleLogout}
-                className={cn(
-                  'flex items-center justify-center gap-2',
-                  'rounded-xl bg-red-500/10 px-4 py-2',
-                  'text-sm font-bold text-red-400',
-                  'hover:bg-red-500 hover:text-white',
-                  'transition-all duration-300'
-                )}
+                onMouseEnter={() => setLogoutHovered(true)}
+                onMouseLeave={() => setLogoutHovered(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  borderRadius: 12,
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  background: logoutHovered ? 'var(--error)' : 'var(--nm-bg)',
+                  boxShadow: 'var(--nm-raised-sm)',
+                  color: logoutHovered ? '#fff' : 'var(--error)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease',
+                }}
               >
-                <span className="material-symbols-outlined text-[18px]">
-                  logout
-                </span>
+                <span className="material-symbols-outlined text-[18px]">logout</span>
                 <span>退出</span>
               </button>
             </div>
           ) : (
-            // Not logged in
             <Link
               href="/auth/login"
-              className={cn(
-                'hidden md:flex items-center justify-center gap-2',
-                'rounded-xl bg-primary/10 px-4 py-2',
-                'text-sm font-bold text-primary',
-                'hover:bg-primary hover:text-black',
-                'transition-all duration-300'
-              )}
+              onMouseEnter={() => setLoginHovered(true)}
+              onMouseLeave={() => setLoginHovered(false)}
+              className="hidden md:flex items-center justify-center gap-2"
+              style={{
+                padding: '8px 16px',
+                borderRadius: 12,
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                background: loginHovered ? 'var(--primary)' : 'var(--nm-bg)',
+                boxShadow: 'var(--nm-raised-sm)',
+                color: loginHovered ? '#111814' : 'var(--primary)',
+                transition: 'box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease',
+                textDecoration: 'none',
+              }}
             >
-              <span className="material-symbols-outlined text-[18px]">
-                login
-              </span>
+              <span className="material-symbols-outlined text-[18px]">login</span>
               <span>登录</span>
             </Link>
           )}
 
-          {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-gray-900 dark:text-white p-2"
+            className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 8,
+              background: 'var(--nm-bg)',
+              boxShadow: 'var(--nm-raised-sm)',
+              borderRadius: 10,
+              color: 'var(--foreground)',
+              border: 'none',
+              cursor: 'pointer',
+            }}
           >
-            <span className="material-symbols-outlined">
-              {mobileMenuOpen ? 'close' : 'menu'}
-            </span>
+            <span className="material-symbols-outlined">{mobileMenuOpen ? 'close' : 'menu'}</span>
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-200 dark:border-[#283930] bg-white dark:bg-[#111814]">
-          <nav className="flex flex-col px-4 py-4 gap-2">
+        <div
+          className="md:hidden"
+          style={{
+            background: 'var(--nm-bg)',
+            boxShadow: 'inset 0 4px 12px var(--nm-shadow-dark)',
+          }}
+        >
+          <nav className="flex flex-col px-4 py-4 gap-1">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={cn(
-                  'px-4 py-3 rounded-lg text-sm font-medium transition-colors',
-                  item.active
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#283930]'
-                )}
                 onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  background: item.active ? 'rgba(19, 236, 128, 0.08)' : 'transparent',
+                  boxShadow: item.active ? 'var(--nm-inset-sm)' : 'none',
+                  color: item.active ? 'var(--primary)' : 'var(--text-secondary)',
+                  textDecoration: 'none',
+                }}
               >
                 {item.label}
               </Link>
             ))}
-            
-            {/* 更多菜单 - 移动端 */}
-            <div className="border-t border-gray-200 dark:border-[#283930] my-2 pt-2">
-              <p className="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                更多功能
-              </p>
+
+            <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
+            <p
+              style={{
+                padding: '4px 16px 8px',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: 'var(--text-tertiary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              更多功能
+            </p>
+
+            {[
+              { href: '/attendance', icon: 'event_available', label: '签到', sub: '标记考勤' },
+              { href: '/chat', icon: 'chat', label: '群聊', sub: '加入讨论' },
+              { href: '/projects/submit', icon: 'lightbulb', label: '项目提交', sub: '提案新项目' },
+              { href: '/projects', icon: 'folder', label: '所有项目', sub: '浏览项目列表' },
+              { href: '/tutorial', icon: 'school', label: '开发者教程', sub: '了解项目结构' },
+            ].map(({ href, icon, label, sub }) => (
               <Link
-                href="/attendance"
-                className="px-4 py-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-[#13ec80]/10 hover:text-primary transition-colors flex items-center gap-3"
+                key={href}
+                href={href}
                 onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  fontSize: '0.875rem',
+                  color: 'var(--text-secondary)',
+                  textDecoration: 'none',
+                }}
               >
-                <span className="material-symbols-outlined text-lg text-primary">event_available</span>
-                <div>
-                  <div className="font-medium">签到</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">标记考勤</div>
-                </div>
-              </Link>
-              <Link
-                href="/chat"
-                className="px-4 py-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-3"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="material-symbols-outlined text-lg text-blue-500">chat</span>
-                <div>
-                  <div className="font-medium">群聊</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">加入讨论</div>
-                </div>
-              </Link>
-              <Link
-                href="/projects/submit"
-                className="px-4 py-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-3"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="material-symbols-outlined text-lg text-purple-500">lightbulb</span>
-                <div>
-                  <div className="font-medium">项目提交</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">提案新项目</div>
-                </div>
-              </Link>
-              <Link
-                href="/projects"
-                className="px-4 py-3 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-cyan-500/10 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors flex items-center gap-3"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="material-symbols-outlined text-lg text-cyan-500">folder</span>
-                <div>
-                  <div className="font-medium">所有项目</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">浏览项目列表</div>
-                </div>
-              </Link>
-            </div>
-            
-            {/* 用户操作 */}
-            <div className="border-t border-gray-200 dark:border-[#283930] my-2 pt-2">
-              {isStudent && user ? (
-                <div className="space-y-2">
-                  <Link
-                    href="/profile"
-                    className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-primary/10 text-primary flex items-center gap-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      person
-                    </span>
-                    个人资料
-                  </Link>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="w-full px-4 py-3 rounded-lg text-sm font-medium bg-red-500/10 text-red-400 flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      logout
-                    </span>
-                    退出
-                  </button>
-                </div>
-              ) : (
-                <Link
-                  href="/auth/login"
-                  className="px-4 py-3 rounded-lg text-sm font-medium bg-primary/10 text-primary flex items-center gap-2"
-                  onClick={() => setMobileMenuOpen(false)}
+                <span
+                  className="material-symbols-outlined text-lg"
+                  style={{ color: 'var(--primary)' }}
                 >
-                  <span className="material-symbols-outlined text-[18px]">
-                    login
-                  </span>
-                  登录
+                  {icon}
+                </span>
+                <div>
+                  <div style={{ fontWeight: 500, color: 'var(--foreground)' }}>{label}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{sub}</div>
+                </div>
+              </Link>
+            ))}
+
+            <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
+
+            {isStudent && user ? (
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '12px 16px',
+                    borderRadius: 8,
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    background: 'rgba(19, 236, 128, 0.08)',
+                    boxShadow: 'var(--nm-inset-sm)',
+                    color: 'var(--primary)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <span className="material-symbols-outlined text-[18px]">person</span>
+                  个人资料
                 </Link>
-              )}
-            </div>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '12px 16px',
+                    borderRadius: 8,
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    background: 'var(--nm-bg)',
+                    boxShadow: 'var(--nm-raised-sm)',
+                    color: 'var(--error)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span className="material-symbols-outlined text-[18px]">logout</span>
+                  退出
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/auth/login"
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  background: 'rgba(19, 236, 128, 0.08)',
+                  boxShadow: 'var(--nm-inset-sm)',
+                  color: 'var(--primary)',
+                  textDecoration: 'none',
+                }}
+              >
+                <span className="material-symbols-outlined text-[18px]">login</span>
+                登录
+              </Link>
+            )}
           </nav>
         </div>
       )}

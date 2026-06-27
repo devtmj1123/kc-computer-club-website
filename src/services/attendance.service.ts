@@ -1,104 +1,78 @@
-/* eslint-disable prettier/prettier */
 import { databases } from '@/services/appwrite';
 import { ID, Query } from 'appwrite';
 
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const ATTENDANCE_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_ATTENDANCE_COLLECTION || 'attendance';
 
-/**
- * 点名系统服务
- * 每周二 15:20-15:25 和 16:35-16:40 开放点名（5分钟）
- */
-
 export interface AttendanceRecord {
   $id: string;
   studentId: string;
   studentName: string;
   studentEmail: string;
-  checkInTime: string | null; // ISO datetime, null for pending
-  sessionTime: '15:20' | '16:35' | string; // 点名时段，支持自定义格式 HH:MM
-  weekNumber: number; // 第几周
-  status: 'present' | 'absent' | 'late' | 'pending'; // pending = 等待点名
+  checkInTime: string | null;
+  sessionTime: '15:20' | '16:35' | string;
+  weekNumber: number;
+  status: 'present' | 'absent' | 'late' | 'pending';
   notes?: string;
 }
 
 export interface AttendanceSession {
   sessionTime: '15:20' | '16:35';
-  sessionNumber: 1 | 2;  // 时段编号：1 或 2
+  sessionNumber: 1 | 2;
   startTime: Date;
   endTime: Date;
   isActive: boolean;
   minutesRemaining: number;
 }
 
-// 点名配置（可从数据库或设置中读取）
 export interface AttendanceConfig {
-  dayOfWeek: number; // 0=Sunday, 1=Monday, 2=Tuesday, etc.
+  dayOfWeek: number;
   session1Start: { hour: number; minute: number };
-  session1Duration: number; // 分钟
+  session1Duration: number;
   session2Start: { hour: number; minute: number };
-  session2Duration: number; // 分钟
-  weekStartDate: string; // ISO 日期字符串，第1周的开始日期，如 '2026-01-06'
+  session2Duration: number;
+  weekStartDate: string;
 }
 
-// 默认配置：周二 15:20-15:25 和 16:35-16:40
 let attendanceConfig: AttendanceConfig = {
-  dayOfWeek: 2, // Tuesday
+  dayOfWeek: 2,
   session1Start: { hour: 15, minute: 20 },
   session1Duration: 5,
   session2Start: { hour: 16, minute: 35 },
   session2Duration: 5,
-  weekStartDate: '2026-01-06', // 默认第1周从2026年1月6日开始
+  weekStartDate: '2026-01-06',
 };
 
-// 是否启用调试模式（允许任何时间点名）
 let debugMode = false;
 
-/**
- * 设置点名配置
- */
 export function setAttendanceConfig(config: Partial<AttendanceConfig>): void {
   attendanceConfig = { ...attendanceConfig, ...config };
 }
 
-/**
- * 获取当前点名配置
- */
 export function getAttendanceConfig(): AttendanceConfig {
   return { ...attendanceConfig };
 }
 
-/**
- * 切换调试模式
- */
 export function setDebugMode(enabled: boolean): void {
   debugMode = enabled;
 }
 
-/**
- * 获取调试模式状态
- */
 export function isDebugMode(): boolean {
   return debugMode;
 }
 
-/**
- * 获取当前点名时段（如果在开放时间内）
- * 每周二 15:20-15:25 和 16:35-16:40
- */
 export function getCurrentAttendanceSession(): AttendanceSession | null {
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sunday, 2=Tuesday
+  const dayOfWeek = now.getDay();
   const hours = now.getHours();
   const minutes = now.getMinutes();
 
-  // 调试模式：始终返回第一个时段
   if (debugMode) {
     const startTime = new Date(now);
     startTime.setSeconds(0, 0);
     const endTime = new Date(now);
     endTime.setMinutes(endTime.getMinutes() + 5);
-    
+
     return {
       sessionTime: '15:20',
       sessionNumber: 1,
@@ -109,14 +83,12 @@ export function getCurrentAttendanceSession(): AttendanceSession | null {
     };
   }
 
-  // 不是配置的日期，返回 null
   if (dayOfWeek !== attendanceConfig.dayOfWeek) {
     return null;
   }
 
   const { session1Start, session1Duration, session2Start, session2Duration } = attendanceConfig;
 
-  // 第一个时段: 15:20-15:25 (可配置)
   const session1EndMinute = session1Start.minute + session1Duration;
   if (hours === session1Start.hour && minutes >= session1Start.minute && minutes < session1EndMinute) {
     const startTime = new Date(now);
@@ -135,7 +107,6 @@ export function getCurrentAttendanceSession(): AttendanceSession | null {
     };
   }
 
-  // 第二个时段: 16:35-16:40 (可配置)
   const session2EndMinute = session2Start.minute + session2Duration;
   if (hours === session2Start.hour && minutes >= session2Start.minute && minutes < session2EndMinute) {
     const startTime = new Date(now);
@@ -157,22 +128,18 @@ export function getCurrentAttendanceSession(): AttendanceSession | null {
   return null;
 }
 
-/**
- * 使用外部配置获取当前点名时段（用于 API 路由，配置从数据库加载）
- */
 export function getCurrentAttendanceSessionWithConfig(config: AttendanceConfig, isDebug: boolean): AttendanceSession | null {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const hours = now.getHours();
   const minutes = now.getMinutes();
 
-  // 调试模式：始终返回第一个时段
   if (isDebug) {
     const startTime = new Date(now);
     startTime.setSeconds(0, 0);
     const endTime = new Date(now);
     endTime.setMinutes(endTime.getMinutes() + 5);
-    
+
     const sessionTimeStr = `${config.session1Start.hour}:${String(config.session1Start.minute).padStart(2, '0')}`;
     return {
       sessionTime: sessionTimeStr as '15:20' | '16:35',
@@ -184,27 +151,25 @@ export function getCurrentAttendanceSessionWithConfig(config: AttendanceConfig, 
     };
   }
 
-  // 不是配置的日期，返回 null
   if (dayOfWeek !== config.dayOfWeek) {
     return null;
   }
 
   const { session1Start, session1Duration, session2Start, session2Duration } = config;
 
-  // 第一个时段 - 使用绝对分钟数比较，支持跨小时时段
   const currentTotalMinutes = hours * 60 + minutes;
   const session1StartMinutes = session1Start.hour * 60 + session1Start.minute;
   const session1EndMinutes = session1StartMinutes + session1Duration;
-  
+
   if (currentTotalMinutes >= session1StartMinutes && currentTotalMinutes < session1EndMinutes) {
     const startTime = new Date(now);
     startTime.setHours(session1Start.hour, session1Start.minute, 0, 0);
-    
+
     const endTime = new Date(now);
     const endHour = Math.floor(session1EndMinutes / 60);
     const endMinute = session1EndMinutes % 60;
     endTime.setHours(endHour, endMinute, 0, 0);
-    
+
     const minutesRemaining = session1EndMinutes - currentTotalMinutes;
     const sessionTimeStr = `${session1Start.hour}:${String(session1Start.minute).padStart(2, '0')}`;
 
@@ -218,19 +183,18 @@ export function getCurrentAttendanceSessionWithConfig(config: AttendanceConfig, 
     };
   }
 
-  // 第二个时段 - 使用绝对分钟数比较，支持跨小时时段
   const session2StartMinutes = session2Start.hour * 60 + session2Start.minute;
   const session2EndMinutes = session2StartMinutes + session2Duration;
-  
+
   if (currentTotalMinutes >= session2StartMinutes && currentTotalMinutes < session2EndMinutes) {
     const startTime = new Date(now);
     startTime.setHours(session2Start.hour, session2Start.minute, 0, 0);
-    
+
     const endTime = new Date(now);
     const endHour = Math.floor(session2EndMinutes / 60);
     const endMinute = session2EndMinutes % 60;
     endTime.setHours(endHour, endMinute, 0, 0);
-    
+
     const minutesRemaining = session2EndMinutes - currentTotalMinutes;
     const sessionTimeStr = `${session2Start.hour}:${String(session2Start.minute).padStart(2, '0')}`;
 
@@ -247,16 +211,11 @@ export function getCurrentAttendanceSessionWithConfig(config: AttendanceConfig, 
   return null;
 }
 
-/**
- * 获取当前周数（从配置的起始日期开始计算）
- */
 export function getCurrentWeekNumber(): number {
   const now = new Date();
-  
-  // 从配置中获取第1周的开始日期
+
   const weekStartDate = new Date(attendanceConfig.weekStartDate);
-  
-  // 如果当前日期早于起始日期，返回第1周
+
   if (now < weekStartDate) {
     return 1;
   }
@@ -268,16 +227,11 @@ export function getCurrentWeekNumber(): number {
   return Math.max(1, weekNumber);
 }
 
-/**
- * 使用外部配置获取当前周数（用于 API 路由，配置从数据库加载）
- */
 export function getCurrentWeekNumberWithConfig(config: AttendanceConfig): number {
   const now = new Date();
-  
-  // 从配置中获取第1周的开始日期
+
   const weekStartDate = new Date(config.weekStartDate);
-  
-  // 如果当前日期早于起始日期，返回第1周
+
   if (now < weekStartDate) {
     return 1;
   }
@@ -289,9 +243,6 @@ export function getCurrentWeekNumberWithConfig(config: AttendanceConfig): number
   return Math.max(1, weekNumber);
 }
 
-/**
- * 学生点名
- */
 export async function checkInAttendance(
   studentId: string,
   studentName: string,
@@ -303,7 +254,6 @@ export async function checkInAttendance(
       throw new Error('当前不在点名时间内。点名时间为每周二 15:20-15:25 或 16:35-16:40');
     }
 
-    // 检查今天同一时段是否已经点过名
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -324,7 +274,6 @@ export async function checkInAttendance(
       throw new Error(`您已在 ${session.sessionTime} 完成点名`);
     }
 
-    // 记录点名
     const weekNumber = getCurrentWeekNumber();
     const now = new Date().toISOString();
 
@@ -351,9 +300,6 @@ export async function checkInAttendance(
   }
 }
 
-/**
- * 获取学生的点名记录（支持按周过滤）
- */
 export async function getStudentAttendanceRecords(
   studentId: string,
   weekNumber?: number
@@ -378,9 +324,6 @@ export async function getStudentAttendanceRecords(
   }
 }
 
-/**
- * 获取某个时段的所有点名记录（管理员）
- */
 export async function getAttendanceRecordsBySession(
   sessionTime: '15:20' | '16:35',
   weekNumber?: number
@@ -397,10 +340,8 @@ export async function getAttendanceRecordsBySession(
       queries as unknown as string[]
     );
 
-    // 按点名时间排序（最近的在前面，pending 记录排在最后）
     const records = response.documents as unknown as AttendanceRecord[];
     return records.sort((a, b) => {
-      // 处理 null checkInTime（pending 记录）
       const timeA = a.checkInTime ? new Date(a.checkInTime).getTime() : 0;
       const timeB = b.checkInTime ? new Date(b.checkInTime).getTime() : 0;
       return timeB - timeA;
@@ -412,9 +353,6 @@ export async function getAttendanceRecordsBySession(
   }
 }
 
-/**
- * 获取某周的全部点名统计
- */
 export async function getWeeklyAttendanceSummary(weekNumber: number): Promise<{
   weekNumber: number;
   session1: { total: number; students: AttendanceRecord[] };
@@ -441,9 +379,6 @@ export async function getWeeklyAttendanceSummary(weekNumber: number): Promise<{
   }
 }
 
-/**
- * 获取所有学生的点名统计（当周）
- */
 export async function getAllStudentsAttendanceStatus(weekNumber: number): Promise<{
   weekNumber: number;
   presentCount: number;
@@ -462,7 +397,7 @@ export async function getAllStudentsAttendanceStatus(weekNumber: number): Promis
     return {
       weekNumber,
       presentCount: records.length,
-      totalExpected: 0, // 需要从学生表计算
+      totalExpected: 0,
       attendanceRecords: records,
     };
   } catch (error: unknown) {
@@ -471,21 +406,15 @@ export async function getAllStudentsAttendanceStatus(weekNumber: number): Promis
   }
 }
 
-/**
- * 检查是否应该自动标记缺席
- * 返回 { shouldMarkAbsent: boolean, sessionTime: string }
- */
 export function checkIfShouldMarkAbsent(): { shouldMarkAbsent: boolean; sessionTime?: '15:20' | '16:35' } {
   const now = new Date();
   const hours = now.getHours();
   const minutes = now.getMinutes();
 
-  // 第一时段结束时间：15:25
   if (hours === 15 && minutes >= 25 && minutes < 30) {
     return { shouldMarkAbsent: true, sessionTime: '15:20' };
   }
 
-  // 第二时段结束时间：16:40
   if (hours === 16 && minutes >= 40 && minutes < 45) {
     return { shouldMarkAbsent: true, sessionTime: '16:35' };
   }
@@ -493,12 +422,8 @@ export function checkIfShouldMarkAbsent(): { shouldMarkAbsent: boolean; sessionT
   return { shouldMarkAbsent: false };
 }
 
-/**
- * 检查是否应该自动标记缺席（使用配置）
- * 支持自定义时段的配置
- */
-export function checkIfShouldMarkAbsentWithConfig(config: AttendanceConfig): { 
-  shouldMarkAbsent: boolean; 
+export function checkIfShouldMarkAbsentWithConfig(config: AttendanceConfig): {
+  shouldMarkAbsent: boolean;
   sessionTime?: string;
   minutesSinceEnd?: number;
 } {
@@ -507,26 +432,22 @@ export function checkIfShouldMarkAbsentWithConfig(config: AttendanceConfig): {
   const minutes = now.getMinutes();
   const currentMinutes = hours * 60 + minutes;
 
-  // 第一时段结束时间
   const session1EndMinutes = config.session1Start.hour * 60 + config.session1Start.minute + config.session1Duration;
-  // 第二时段结束时间
   const session2EndMinutes = config.session2Start.hour * 60 + config.session2Start.minute + config.session2Duration;
 
-  // 检查是否在第一时段结束后 5 分钟内（标记缺席窗口）
   if (currentMinutes >= session1EndMinutes && currentMinutes < session1EndMinutes + 5) {
     const sessionTime = `${String(config.session1Start.hour).padStart(2, '0')}:${String(config.session1Start.minute).padStart(2, '0')}`;
-    return { 
-      shouldMarkAbsent: true, 
+    return {
+      shouldMarkAbsent: true,
       sessionTime,
       minutesSinceEnd: currentMinutes - session1EndMinutes,
     };
   }
 
-  // 检查是否在第二时段结束后 5 分钟内（标记缺席窗口）
   if (currentMinutes >= session2EndMinutes && currentMinutes < session2EndMinutes + 5) {
     const sessionTime = `${String(config.session2Start.hour).padStart(2, '0')}:${String(config.session2Start.minute).padStart(2, '0')}`;
-    return { 
-      shouldMarkAbsent: true, 
+    return {
+      shouldMarkAbsent: true,
       sessionTime,
       minutesSinceEnd: currentMinutes - session2EndMinutes,
     };
@@ -535,13 +456,6 @@ export function checkIfShouldMarkAbsentWithConfig(config: AttendanceConfig): {
   return { shouldMarkAbsent: false };
 }
 
-/**
- * 判断学生点名状态（是否迟到）
- * @param sessionConfig 时段配置 { hour, minute, duration }
- * @param checkInTime 点名时间
- * @param lateBufferMinutes 迟到缓冲时间（默认0分钟，即时段结束后立即为迟到）
- * @returns 'present' | 'late' | 'absent'
- */
 export function determineCheckInStatus(
   sessionConfig: { hour: number; minute: number; duration: number },
   checkInTime: Date,
@@ -555,26 +469,17 @@ export function determineCheckInStatus(
   const sessionEndMinutes = sessionStartMinutes + sessionConfig.duration;
   const lateDeadlineMinutes = sessionEndMinutes + lateBufferMinutes;
 
-  // 在正常点名时间内
   if (checkInTotalMinutes >= sessionStartMinutes && checkInTotalMinutes < sessionEndMinutes) {
     return 'present';
   }
 
-  // 在迟到缓冲时间内
   if (checkInTotalMinutes >= sessionEndMinutes && checkInTotalMinutes < lateDeadlineMinutes + 5) {
     return 'late';
   }
 
-  // 超过迟到窗口（通常不会到达这里，因为点名入口会关闭）
   return 'absent';
 }
 
-/**
- * 获取时段的剩余时间（考虑迟到缓冲）
- * @param sessionConfig 时段配置
- * @param lateBufferMinutes 迟到缓冲时间
- * @returns { isOpen, isLateWindow, minutesRemaining }
- */
 export function getSessionTimeStatus(
   sessionConfig: { hour: number; minute: number; duration: number },
   lateBufferMinutes: number = 5
@@ -588,7 +493,6 @@ export function getSessionTimeStatus(
   const sessionEndMinutes = sessionStartMinutes + sessionConfig.duration;
   const lateDeadlineMinutes = sessionEndMinutes + lateBufferMinutes;
 
-  // 在正常点名时间内
   if (currentTotalMinutes >= sessionStartMinutes && currentTotalMinutes < sessionEndMinutes) {
     return {
       isOpen: true,
@@ -597,7 +501,6 @@ export function getSessionTimeStatus(
     };
   }
 
-  // 在迟到缓冲时间内
   if (currentTotalMinutes >= sessionEndMinutes && currentTotalMinutes < lateDeadlineMinutes) {
     return {
       isOpen: true,
@@ -606,11 +509,9 @@ export function getSessionTimeStatus(
     };
   }
 
-  // 不在点名时间
   return {
     isOpen: false,
     isLateWindow: false,
     minutesRemaining: 0,
   };
 }
-

@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import Link from 'next/link';
@@ -62,7 +61,6 @@ export function AdminModernSidebar({
 
   return (
     <>
-      {/* Sidebar Background Overlay (Mobile) */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
@@ -70,7 +68,6 @@ export function AdminModernSidebar({
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`${
           sidebarOpen ? 'w-72' : 'w-20'
@@ -79,7 +76,6 @@ export function AdminModernSidebar({
         }`}
       >
         <div className="flex flex-col gap-6 p-4">
-          {/* Logo/Brand */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-white font-bold text-xl">
@@ -96,7 +92,6 @@ export function AdminModernSidebar({
             )}
           </div>
 
-          {/* Navigation */}
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => {
               const isItemActive = isActive(item.href);
@@ -132,7 +127,6 @@ export function AdminModernSidebar({
                     )}
                   </button>
 
-                  {/* Submenu */}
                   {hasSubmenu && isExpanded && sidebarOpen && (
                     <div className="ml-6 mt-1 space-y-1 border-l border-white/10 pl-4">
                       {item.submenu?.map((subitem) => (
@@ -158,7 +152,6 @@ export function AdminModernSidebar({
           </nav>
         </div>
 
-        {/* User Profile */}
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 px-2 py-2">
             <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 font-bold shrink-0">

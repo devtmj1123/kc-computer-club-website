@@ -1,20 +1,15 @@
-/* eslint-disable prettier/prettier */
 import { Client, Databases } from 'node-appwrite';
-
 interface AppwriteError {
   code?: number;
   type?: string;
   message?: string;
 }
-
 export async function GET() {
   try {
-    // 验证必需的环境变量
     const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
     const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
     const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
     const apiKey = process.env.APPWRITE_API_KEY;
-
     if (!endpoint || !projectId || !databaseId) {
       return Response.json(
         {
@@ -24,7 +19,6 @@ export async function GET() {
         { status: 500 }
       );
     }
-
     if (!apiKey) {
       return Response.json(
         {
@@ -34,19 +28,13 @@ export async function GET() {
         { status: 500 }
       );
     }
-
-    // 创建Appwrite客户端 (node-appwrite版本)
     const client = new Client()
       .setEndpoint(endpoint)
       .setProject(projectId)
       .setKey(apiKey);
-
     const databases = new Databases(client);
     const collectionId = 'clubSettings';
-
     console.log('开始初始化数据库...');
-
-    // 创建集合
     let collectionCreated = false;
     try {
       await databases.createCollection(
@@ -67,12 +55,9 @@ export async function GET() {
         throw error;
       }
     }
-
     if (!collectionCreated) {
       throw new Error('Failed to create or verify collection');
     }
-
-    // 创建属性
     const attributes = [
       { name: 'aboutTitle', type: 'string', size: 255 },
       { name: 'aboutDescription', type: 'string', size: 2000 },
@@ -87,7 +72,6 @@ export async function GET() {
       { name: 'discordUrl', type: 'string', size: 255 },
       { name: 'instagramUrl', type: 'string', size: 255 },
       { name: 'youtubeUrl', type: 'string', size: 255 },
-      // 点名配置属性
       { name: 'attendanceDayOfWeek', type: 'integer' },
       { name: 'attendanceSession1Start', type: 'string', size: 255 },
       { name: 'attendanceSession1Duration', type: 'integer' },
@@ -96,9 +80,7 @@ export async function GET() {
       { name: 'attendanceWeekStartDate', type: 'string', size: 255 },
       { name: 'attendanceDebugMode', type: 'boolean' },
     ];
-
     const results: Array<{ name: string; status: 'created' | 'exists' | 'error'; error?: string }> = [];
-
     for (const attr of attributes) {
       try {
         if (attr.type === 'integer') {
@@ -144,9 +126,7 @@ export async function GET() {
         }
       }
     }
-
     console.log('✓ 数据库初始化完成');
-
     return Response.json({
       success: true,
       message: 'Database initialization completed',

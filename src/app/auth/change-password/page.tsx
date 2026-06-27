@@ -1,11 +1,8 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-
 export default function ChangePasswordPage() {
   const router = useRouter();
   const { user, isLoading, changePassword } = useAuth();
@@ -18,13 +15,10 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Redirect to login if not authenticated
   if (!isLoading && !user) {
     router.push('/auth/login');
     return null;
   }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#102219] flex items-center justify-center">
@@ -39,49 +33,37 @@ export default function ChangePasswordPage() {
       </div>
     );
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
-
-    // Validation
     if (!oldPassword || !newPassword || !confirmPassword) {
       setError('请填写所有字段');
       return;
     }
-
     if (newPassword.length < 8) {
       setError('新密码至少需要 8 个字符');
       return;
     }
-
     if (newPassword !== confirmPassword) {
       setError('新密码和确认密码不匹配');
       return;
     }
-
     if (oldPassword === newPassword) {
       setError('新密码不能与旧密码相同');
       return;
     }
-
-    // 检查新密码不能与学号相同
     if (user && 'studentId' in user && user.studentId && newPassword === user.studentId) {
       setError('新密码不能与学号相同');
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       await changePassword(oldPassword, newPassword);
       setSuccess(true);
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      
-      // Redirect to home after 3 seconds
       setTimeout(() => {
         router.push('/');
       }, 3000);
@@ -91,19 +73,14 @@ export default function ChangePasswordPage() {
       setIsSubmitting(false);
     }
   };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#102219] px-4 py-12 relative overflow-hidden">
-      {/* 装饰背景 */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 right-20 w-72 h-72 bg-[#13ec80] rounded-full blur-3xl"></div>
         <div className="absolute bottom-20 left-20 w-72 h-72 bg-[#13ec80] rounded-full blur-3xl"></div>
       </div>
-
       <div className="w-full max-w-md relative z-10">
-        {/* 卡片容器 */}
         <div className="bg-[#1a2c23] rounded-2xl border border-[#283930] p-8 shadow-2xl">
-          {/* 头部 */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-[#13ec80]/10 mb-4">
               <span className="material-symbols-outlined text-[#13ec80] text-3xl">
@@ -115,15 +92,11 @@ export default function ChangePasswordPage() {
               更新您的账号密码以保护您的账户安全
             </p>
           </div>
-
-          {/* 错误提示 */}
           {error && (
             <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
               {error}
             </div>
           )}
-
-          {/* 成功提示 */}
           {success ? (
             <div className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
               <div className="flex items-start gap-3">
@@ -140,7 +113,6 @@ export default function ChangePasswordPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-              {/* 旧密码 */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   当前密码
@@ -169,8 +141,6 @@ export default function ChangePasswordPage() {
                   </button>
                 </div>
               </div>
-
-              {/* 新密码 */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   新密码
@@ -202,8 +172,6 @@ export default function ChangePasswordPage() {
                   至少需要 8 个字符，包括字母和数字
                 </p>
               </div>
-
-              {/* 确认新密码 */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   确认新密码
@@ -232,8 +200,6 @@ export default function ChangePasswordPage() {
                   </button>
                 </div>
               </div>
-
-              {/* 提交按钮 */}
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -255,8 +221,6 @@ export default function ChangePasswordPage() {
               </button>
             </form>
           )}
-
-          {/* 返回主站链接 */}
           <div className="text-center">
             <Link
               href="/"

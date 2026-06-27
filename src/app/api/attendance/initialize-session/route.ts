@@ -1,67 +1,35 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDatabases, Query } from '@/services/appwrite-server';
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const ATTENDANCE_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_ATTENDANCE_COLLECTION || 'attendance';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || 'users';
-
-/**
- * 从邮箱提取学号
- */
 function extractStudentIdFromEmail(email: string): string {
   const match = email?.match(/^(\d+)@/);
   return match ? match[1] : email?.split('@')[0] || '';
 }
-
-/**
- * POST /api/attendance/initialize-session
- * 初始化点名时段：预先为所有学生创建 "pending" 状态的记录
- * 
- * 功能说明：
- * 1. 获取所有学生列表
- * 2. 为每个学生创建 "pending" 状态的出勤记录
- * 3. 当学生点名时，将 "pending" 更新为 "present" 或 "late"
- * 4. 时段结束后，所有 "pending" 自动标记为 "absent"
- * 
- * Body: {
- *   sessionTime: '15:20' | '16:35' | string (HH:MM格式),
- *   weekNumber: number,
- *   sessionDuration?: number (分钟，默认5分钟)
- * }
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { sessionTime, weekNumber, sessionDuration = 5 } = body;
-
     if (!sessionTime || weekNumber === undefined) {
       return NextResponse.json(
         { error: '缺少必要参数：sessionTime, weekNumber' },
         { status: 400 }
       );
     }
-
-    // 验证 sessionTime 格式 (HH:MM)
     if (!/^\d{1,2}:\d{2}$/.test(sessionTime)) {
       return NextResponse.json(
         { error: 'sessionTime 格式必须是 HH:MM（如 15:20 或 21:00）' },
         { status: 400 }
       );
     }
-
-    // 确定 sessionNumber (用于生成 uniqueKey)
     const sessionNumber = parseInt(sessionTime.split(':')[0]) < 16 ? 1 : 2;
-
     console.log(`[INIT-SESSION] 初始化点名时段: 周${weekNumber} 时段${sessionNumber} (${sessionTime})`);
-
-    // 获取所有学生
     const allUsers = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       USERS_COLLECTION_ID,
       [Query.equal('role', 'student'), Query.limit(500)]
     );
-
     const studentList = allUsers.documents.map((doc) => {
       const email = String(doc.email || '');
       const studentId = doc.studentId 
@@ -74,10 +42,7 @@ export async function POST(request: NextRequest) {
         studentEmail: email,
       };
     });
-
     console.log(`[INIT-SESSION] 获取学生列表: ${studentList.length} 名学生`);
-
-    // 检查本周该时段是否已有记录（按 weekNumber 查询，然后按 sessionNumber 过滤）
     const existingRecords = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       ATTENDANCE_COLLECTION_ID,
@@ -86,8 +51,6 @@ export async function POST(request: NextRequest) {
         Query.limit(500),
       ]
     );
-
-    // 过滤出该时段的记录（支持多种格式）
     const sessionRecords = existingRecords.documents.filter((doc) => {
       const st = String(doc.sessionTime || '');
       const uk = String(doc.uniqueKey || doc.$id || '');
@@ -95,15 +58,10 @@ export async function POST(request: NextRequest) {
              uk.includes(`_${sessionNumber}_`) || 
              st === `session${sessionNumber}`;
     });
-
-    // 已有记录的学生ID集合
     const existingStudentIds = new Set(sessionRecords.map((doc) => String(doc.studentId)));
     console.log(`[INIT-SESSION] 周${weekNumber}时段${sessionNumber}已有记录: ${existingStudentIds.size} 条`);
-
-    // 找出尚未有记录的学生
     const studentsToAdd = studentList.filter((student) => !existingStudentIds.has(student.studentId));
     console.log(`[INIT-SESSION] 需要初始化的学生: ${studentsToAdd.length} 名`);
-
     if (studentsToAdd.length === 0) {
       return NextResponse.json({
         success: true,
@@ -118,18 +76,15 @@ export async function POST(request: NextRequest) {
         },
       });
     }
-
-    // 为未有记录的学生创建 "pending" 记录（使用 uniqueKey 格式作为文档ID）
     const createdRecords = [];
     const now = new Date().toISOString();
-
     for (const student of studentsToAdd) {
       const uniqueKey = `${student.studentId}_${sessionNumber}_${weekNumber}`;
       try {
         const record = await serverDatabases.createDocument(
           APPWRITE_DATABASE_ID,
           ATTENDANCE_COLLECTION_ID,
-          uniqueKey,  // 使用 uniqueKey 作为文档ID
+          uniqueKey,  
           {
             studentId: student.studentId,
             studentName: student.studentName,
@@ -137,7 +92,7 @@ export async function POST(request: NextRequest) {
             checkInTime: now,
             sessionTime,
             weekNumber,
-            status: 'pending', // 等待点名状态
+            status: 'pending', 
             notes: '等待点名',
             createdAt: now,
             uniqueKey,
@@ -153,9 +108,7 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-
     console.log(`[INIT-SESSION] 成功初始化 ${createdRecords.length} 条记录`);
-
     return NextResponse.json({
       success: true,
       message: `点名时段初始化完成：已为 ${createdRecords.length} 名学生创建待点名记录`,
@@ -177,32 +130,18 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-/**
- * GET /api/attendance/initialize-session
- * 获取当前时段的初始化状态
- * 
- * Query params:
- *   sessionTime: string (HH:MM格式)
- *   weekNumber: number
- */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const sessionTime = searchParams.get('sessionTime');
     const weekNumber = searchParams.get('weekNumber');
-
     if (!sessionTime || !weekNumber) {
       return NextResponse.json(
         { error: '缺少必要参数：sessionTime, weekNumber' },
         { status: 400 }
       );
     }
-
-    // 确定 sessionNumber
     const sessionNumber = parseInt(sessionTime.split(':')[0]) < 16 ? 1 : 2;
-
-    // 获取本周所有记录，然后按时段过滤
     const allRecords = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       ATTENDANCE_COLLECTION_ID,
@@ -211,8 +150,6 @@ export async function GET(request: NextRequest) {
         Query.limit(500),
       ]
     );
-
-    // 过滤出该时段的记录
     const records = allRecords.documents.filter((doc) => {
       const st = String(doc.sessionTime || '');
       const uk = String(doc.uniqueKey || doc.$id || '');
@@ -220,8 +157,6 @@ export async function GET(request: NextRequest) {
              uk.includes(`_${sessionNumber}_`) || 
              st === `session${sessionNumber}`;
     });
-
-    // 统计各状态数量
     const stats = {
       total: records.length,
       pending: 0,
@@ -229,14 +164,12 @@ export async function GET(request: NextRequest) {
       late: 0,
       absent: 0,
     };
-
     for (const doc of records) {
       const status = doc.status as keyof typeof stats;
       if (status in stats && status !== 'total') {
         stats[status]++;
       }
     }
-
     return NextResponse.json({
       success: true,
       sessionTime,

@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getNoticeById,
@@ -7,10 +6,6 @@ import {
   UpdateNoticeInput,
 } from '@/services/notice.service';
 import { serverDatabases } from '@/services/appwrite-server';
-
-/**
- * GET /api/notices/[id] - 获取单个公告
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -18,7 +13,6 @@ export async function GET(
   try {
     const { id } = await params;
     const notice = await getNoticeById(id);
-
     return NextResponse.json({
       success: true,
       notice,
@@ -32,10 +26,6 @@ export async function GET(
     );
   }
 }
-
-/**
- * PUT /api/notices/[id] - 更新公告
- */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -43,7 +33,6 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-
     const input: UpdateNoticeInput = {
       title: body.title,
       content: body.content,
@@ -52,9 +41,7 @@ export async function PUT(
       images: body.images,
       tags: body.tags,
     };
-
     const notice = await updateNotice(id, input);
-
     return NextResponse.json({
       success: true,
       message: '公告更新成功',
@@ -69,10 +56,6 @@ export async function PUT(
     );
   }
 }
-
-/**
- * PATCH /api/notices/[id] - 置顶/取消置顶（自动创建缺失属性）
- */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -85,16 +68,13 @@ export async function PATCH(
     const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '';
     const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '';
     const apiKey = process.env.APPWRITE_API_KEY || '';
-
     const doUpdate = () =>
       serverDatabases.updateDocument(db, coll, id, { pinned: !!pinned });
-
     try {
       await doUpdate();
     } catch (e: unknown) {
       const err = e as { code?: number };
       if (err.code === 400) {
-        // 'pinned' 属性不存在于 schema —— 自动创建并重试
         try {
           await fetch(
             `${endpoint}/databases/${db}/collections/${coll}/attributes/boolean`,
@@ -109,15 +89,13 @@ export async function PATCH(
               signal: AbortSignal.timeout(8000),
             }
           );
-        } catch { /* 属性可能已存在 */ }
-        // 等待 Appwrite 处理新属性
+        } catch {  }
         await new Promise(r => setTimeout(r, 5000));
         await doUpdate();
       } else {
         throw e;
       }
     }
-
     return NextResponse.json({ success: true, pinned: !!pinned });
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
@@ -125,10 +103,6 @@ export async function PATCH(
     return NextResponse.json({ error: err.message || '操作失败' }, { status: 500 });
   }
 }
-
-/**
- * DELETE /api/notices/[id] - 删除公告
- */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -136,7 +110,6 @@ export async function DELETE(
   try {
     const { id } = await params;
     await deleteNotice(id);
-
     return NextResponse.json({
       success: true,
       message: '公告删除成功',

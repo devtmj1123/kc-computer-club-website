@@ -1,12 +1,9 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { StudentLayout } from '@/components/layout/StudentLayout';
-
 interface StudentInfo {
   studentId?: string;
   chineseName?: string;
@@ -19,7 +16,6 @@ interface StudentInfo {
   phone?: string;
   instagram?: string;
 }
-
 export default function ProfilePage() {
   const { user, isLoading, logout, changePassword } = useAuth();
   const { mode, setMode, colors, presetColors, applyPreset, resetTheme } = useTheme();
@@ -36,15 +32,11 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/auth/login');
     }
   }, [user, isLoading, router]);
-
-  // Fetch student info from database
   useEffect(() => {
     if (user && !('role' in user) && user.id) {
       setLoadingInfo(true);
@@ -70,7 +62,6 @@ export default function ProfilePage() {
         .finally(() => setLoadingInfo(false));
     }
   }, [user]);
-
   if (isLoading || loadingInfo) {
     return (
       <StudentLayout>
@@ -87,38 +78,30 @@ export default function ProfilePage() {
       </StudentLayout>
     );
   }
-
   if (!user) {
     return null;
   }
-
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-
     if (!oldPassword || !newPassword || !confirmPassword) {
       setError('请填写所有字段');
       return;
     }
-
     if (newPassword.length < 6) {
       setError('新密码至少需要 6 个字符');
       return;
     }
-
     if (newPassword !== confirmPassword) {
       setError('新密码和确认密码不匹配');
       return;
     }
-
     if (oldPassword === newPassword) {
       setError('新密码不能与旧密码相同');
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       await changePassword(oldPassword, newPassword);
       setSuccess('密码修改成功！');
@@ -131,7 +114,6 @@ export default function ProfilePage() {
       setIsSubmitting(false);
     }
   };
-
   const handleLogout = async () => {
     try {
       await logout();
@@ -140,12 +122,10 @@ export default function ProfilePage() {
       console.error('登出失败:', err);
     }
   };
-
   return (
     <StudentLayout>
       <div className="py-8 px-4">
         <div className="max-w-4xl mx-auto">
-          {/* 头部 */}
           <div className="mb-8">
             <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-sm">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 mb-6">
@@ -180,7 +160,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-
               <div className="pt-6 border-t border-[var(--border)] flex gap-4">
                 <button
                   onClick={handleLogout}
@@ -192,10 +171,7 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-
-        {/* 标签页 */}
         <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] overflow-hidden shadow-sm">
-          {/* 标签页导航 */}
           <div className="flex border-b border-[var(--border)] overflow-x-auto">
             <button
               onClick={() => setActiveTab('info')}
@@ -237,13 +213,9 @@ export default function ProfilePage() {
               </span>
             </button>
           </div>
-
-          {/* 标签页内容 */}
           <div className="p-8">
-            {/* 详细资料标签页 */}
             {activeTab === 'info' && (
               <div className="space-y-6">
-                {/* 基本信息 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
@@ -256,7 +228,6 @@ export default function ProfilePage() {
                       className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--text-secondary)] cursor-not-allowed opacity-60"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                       英文姓名
@@ -268,7 +239,6 @@ export default function ProfilePage() {
                       className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--text-secondary)] cursor-not-allowed opacity-60"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                       学号
@@ -280,7 +250,6 @@ export default function ProfilePage() {
                       className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--text-secondary)] cursor-not-allowed opacity-60"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                       邮箱
@@ -293,8 +262,6 @@ export default function ProfilePage() {
                     />
                   </div>
                 </div>
-
-                {/* 班级信息 */}
                 <div>
                   <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined">school</span>
@@ -312,7 +279,6 @@ export default function ProfilePage() {
                         className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--text-secondary)] cursor-not-allowed opacity-60"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         英文班级
@@ -324,7 +290,6 @@ export default function ProfilePage() {
                         className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--text-secondary)] cursor-not-allowed opacity-60"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         班级代码
@@ -336,7 +301,6 @@ export default function ProfilePage() {
                         className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--text-secondary)] cursor-not-allowed opacity-60"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         年级
@@ -350,8 +314,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-
-                {/* 社团信息 */}
                 <div>
                   <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined">groups</span>
@@ -369,7 +331,6 @@ export default function ProfilePage() {
                         className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--text-secondary)] cursor-not-allowed opacity-60"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         联系电话
@@ -381,7 +342,6 @@ export default function ProfilePage() {
                         className="w-full px-4 py-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--text-secondary)] cursor-not-allowed opacity-60"
                       />
                     </div>
-
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                         Instagram 账号
@@ -395,8 +355,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-
-                {/* 加入时间 */}
                 {'createdAt' in user && user.createdAt && (
                   <div>
                     <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
@@ -410,7 +368,6 @@ export default function ProfilePage() {
                     />
                   </div>
                 )}
-
                 <div className="pt-4 border-t border-[var(--border)]">
                   <p className="text-[var(--text-secondary)] text-sm">
                     💡 提示：资料信息由管理员管理。如需更新信息，请联系社团管理员。
@@ -418,8 +375,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
-
-            {/* 修改密码标签页 */}
             {activeTab === 'password' && (
               <form onSubmit={handlePasswordSubmit} className="space-y-6">
                 {error && (
@@ -427,14 +382,11 @@ export default function ProfilePage() {
                     {error}
                   </div>
                 )}
-
                 {success && (
                   <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 text-sm">
                     ✓ {success}
                   </div>
                 )}
-
-                {/* 当前密码 */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                     当前密码
@@ -463,8 +415,6 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 </div>
-
-                {/* 新密码 */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                     新密码
@@ -496,8 +446,6 @@ export default function ProfilePage() {
                     至少需要 8 个字符，包括字母和数字
                   </p>
                 </div>
-
-                {/* 确认新密码 */}
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                     确认新密码
@@ -526,7 +474,6 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 </div>
-
                 <div className="flex gap-4 pt-4">
                   <button
                     type="submit"
@@ -551,7 +498,6 @@ export default function ProfilePage() {
                     取消
                   </button>
                 </div>
-
                 <div className="pt-4 border-t border-[var(--border)]">
                   <p className="text-[var(--text-secondary)] text-sm">
                     🔐 提示：新密码至少需要 6 个字符，建议使用大小写字母和数字组合。
@@ -559,11 +505,8 @@ export default function ProfilePage() {
                 </div>
               </form>
             )}
-
-            {/* 主题设置标签页 */}
             {activeTab === 'theme' && (
               <div className="space-y-8">
-                {/* 外观模式 */}
                 <div>
                   <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined">contrast</span>
@@ -611,8 +554,6 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 </div>
-
-                {/* 主题颜色 */}
                 <div>
                   <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined">palette</span>
@@ -647,8 +588,6 @@ export default function ProfilePage() {
                     ))}
                   </div>
                 </div>
-
-                {/* 预览 */}
                 <div>
                   <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined">preview</span>
@@ -684,8 +623,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </div>
-
-                {/* 重置按钮 */}
                 <div className="pt-4 border-t border-[var(--border)]">
                   <button
                     onClick={resetTheme}

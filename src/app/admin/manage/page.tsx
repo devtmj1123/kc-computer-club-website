@@ -1,12 +1,9 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-
 interface Admin {
   id: string;
   username: string;
@@ -14,7 +11,6 @@ interface Admin {
   lastLogin: string | null;
   createdAt: string;
 }
-
 export default function AdminManagePage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -23,28 +19,22 @@ export default function AdminManagePage() {
   const [error, setError] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // 权限检查
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
-
-  // 加载管理员列表
   useEffect(() => {
     if (user && 'role' in user && user.role === 'admin') {
       loadAdmins();
     }
   }, [user]);
-
   const loadAdmins = async () => {
     try {
       setIsLoadingAdmins(true);
       setError('');
       const response = await fetch('/api/admin/manage');
       const data = await response.json();
-
       if (data.success) {
         setAdmins(data.admins);
       } else {
@@ -56,7 +46,6 @@ export default function AdminManagePage() {
       setIsLoadingAdmins(false);
     }
   };
-
   const handleDelete = async (adminId: string) => {
     setIsDeleting(true);
     try {
@@ -64,7 +53,6 @@ export default function AdminManagePage() {
         method: 'DELETE',
       });
       const data = await response.json();
-
       if (data.success) {
         setAdmins(admins.filter(a => a.id !== adminId));
         setDeleteId(null);
@@ -77,7 +65,6 @@ export default function AdminManagePage() {
       setIsDeleting(false);
     }
   };
-
   if (isLoading || !user) {
     return (
       <AdminLayout adminName={user?.name || '管理员'}>
@@ -94,11 +81,9 @@ export default function AdminManagePage() {
       </AdminLayout>
     );
   }
-
   return (
     <AdminLayout adminName={user?.name || '管理员'}>
       <div className="max-w-6xl">
-        {/* 导航 */}
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">管理员管理</h1>
@@ -112,15 +97,11 @@ export default function AdminManagePage() {
             添加管理员
           </Link>
         </div>
-
-        {/* 错误提示 */}
         {error && (
           <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
             {error}
           </div>
         )}
-
-        {/* 管理员列表 */}
         <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] overflow-hidden shadow-sm">
           {isLoadingAdmins ? (
             <div className="p-8 text-center">
@@ -220,8 +201,6 @@ export default function AdminManagePage() {
             </div>
           )}
         </div>
-
-        {/* 删除确认对话框 */}
         {deleteId && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6 max-w-sm">
@@ -233,11 +212,9 @@ export default function AdminManagePage() {
                 </div>
                 <h3 className="text-lg font-bold text-white text-center">确认删除</h3>
               </div>
-
               <p className="text-gray-400 text-sm mb-6 text-center">
                 确定要删除这个管理员吗？此操作无法撤销。
               </p>
-
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteId(null)}

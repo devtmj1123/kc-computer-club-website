@@ -1,12 +1,9 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-
 interface NoticeFormData {
   title: string;
   category: string;
@@ -16,13 +13,10 @@ interface NoticeFormData {
   tags: string;
   images: string[];
 }
-
 const categories = ['活动通知', '课程公告', '会议通知', '其他'];
-
 export default function CreateNotice() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  
   const [formData, setFormData] = useState<NoticeFormData>({
     title: '',
     category: '活动通知',
@@ -32,30 +26,23 @@ export default function CreateNotice() {
     tags: '',
     images: [],
   });
-
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [imageInputType, setImageInputType] = useState<'upload' | 'link'>('upload');
   const [newImageLink, setNewImageLink] = useState('');
-
-  // Instagram 导入
   const [instagramUrl, setInstagramUrl] = useState('');
   const [instagramImporting, setInstagramImporting] = useState(false);
   const [instagramError, setInstagramError] = useState('');
   const [instagramPreview, setInstagramPreview] = useState<{ image?: string | null; caption?: string; sourceUrl?: string } | null>(null);
-
-  // 权限检查
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsSaving(true);
-    
     try {
       if (!formData.title.trim()) {
         throw new Error('请输入公告标题');
@@ -63,7 +50,6 @@ export default function CreateNotice() {
       if (!formData.content.trim()) {
         throw new Error('请输入公告内容');
       }
-
       const response = await fetch('/api/notices', {
         method: 'POST',
         headers: {
@@ -83,9 +69,7 @@ export default function CreateNotice() {
             : [],
         }),
       });
-
       const data = await response.json();
-
       if (data.success) {
         router.push('/admin/notices');
       } else {
@@ -97,7 +81,6 @@ export default function CreateNotice() {
       setIsSaving(false);
     }
   };
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -107,16 +90,13 @@ export default function CreateNotice() {
       [name]: value,
     }));
   };
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-
     for (let i = 0; i < Math.min(files.length, 5 - formData.images.length); i++) {
       const file = files[i];
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
-
       try {
         const response = await fetch('/api/upload/image', {
           method: 'POST',
@@ -133,10 +113,8 @@ export default function CreateNotice() {
         console.error('上传失败:', err);
       }
     }
-    // 清空 input
     e.target.value = '';
   };
-
   const handleAddImageLink = () => {
     if (newImageLink.trim() && formData.images.length < 5) {
       setFormData((prev) => ({
@@ -146,14 +124,12 @@ export default function CreateNotice() {
       setNewImageLink('');
     }
   };
-
   const handleRemoveImage = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
   };
-
   const handleImportInstagram = async () => {
     if (!instagramUrl.trim()) return;
     setInstagramImporting(true);
@@ -177,7 +153,6 @@ export default function CreateNotice() {
       setInstagramImporting(false);
     }
   };
-
   const handleApplyInstagram = () => {
     if (!instagramPreview) return;
     if (instagramPreview.image && formData.images.length < 5) {
@@ -189,7 +164,6 @@ export default function CreateNotice() {
     setInstagramPreview(null);
     setInstagramUrl('');
   };
-
   if (isLoading || !user) {
     return (
       <AdminLayout adminName={user?.name || '管理员'}>
@@ -206,10 +180,8 @@ export default function CreateNotice() {
       </AdminLayout>
     );
   }
-
   return (
     <AdminLayout adminName={user?.name || '管理员'}>
-      {/* 页面头部 */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-white mb-2">发布新公告</h1>
@@ -221,19 +193,14 @@ export default function CreateNotice() {
           </button>
         </Link>
       </div>
-
       <form onSubmit={handleSubmit} className="max-w-4xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 左侧：主要表单 */}
           <div className="lg:col-span-2 space-y-6">
-            {/* 错误提示 */}
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">
                 {error}
               </div>
             )}
-
-            {/* 标题 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <label htmlFor="title" className="block text-white font-semibold mb-3">
                 公告标题 *
@@ -249,8 +216,6 @@ export default function CreateNotice() {
               />
               <p className="text-gray-500 text-sm mt-2">标题字数建议 10-100 字</p>
             </div>
-
-            {/* 分类 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <label htmlFor="category" className="block text-white font-semibold mb-3">
                 公告分类 *
@@ -269,8 +234,6 @@ export default function CreateNotice() {
                 ))}
               </select>
             </div>
-
-            {/* 内容 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <label htmlFor="content" className="block text-white font-semibold mb-3">
                 公告内容 *
@@ -289,8 +252,6 @@ export default function CreateNotice() {
                 支持 Markdown 格式，包括标题、列表、链接等
               </p>
             </div>
-
-            {/* Instagram 导入 */}
             <div className="bg-[#1a2632] border border-[#e1306c]/30 rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-1">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -302,7 +263,6 @@ export default function CreateNotice() {
                 <h3 className="text-white font-semibold">从 Instagram 导入</h3>
               </div>
               <p className="text-gray-500 text-sm mb-4">粘贴 Instagram 帖子链接，自动提取图片和说明文字</p>
-
               <div className="flex gap-2 mb-3">
                 <input
                   type="url"
@@ -321,18 +281,15 @@ export default function CreateNotice() {
                   {instagramImporting ? '导入中...' : '导入'}
                 </button>
               </div>
-
               {instagramError && (
                 <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-sm mb-3">
                   {instagramError}
                 </div>
               )}
-
               {instagramPreview && (
                 <div className="border border-[#e1306c]/30 rounded-xl p-4 space-y-3">
                   <p className="text-[#e1306c] text-xs font-semibold uppercase tracking-wide">预览</p>
                   {instagramPreview.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={instagramPreview.image}
                       alt="Instagram 图片"
@@ -353,15 +310,11 @@ export default function CreateNotice() {
                 </div>
               )}
             </div>
-
-            {/* 图片上传 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <label className="block text-white font-semibold mb-3">
                 配图（最多 5 张）{formData.images.length > 0 && `(${formData.images.length}/5)`}
               </label>
               <p className="text-gray-500 text-sm mb-4">建议图片大小：1200x600px 或 1920x1080px，支持 JPG、PNG 格式</p>
-              
-              {/* 上传类型选择 */}
               <div className="flex gap-3 mb-4">
                 <button
                   type="button"
@@ -388,8 +341,6 @@ export default function CreateNotice() {
                   图片链接
                 </button>
               </div>
-
-              {/* 上传或链接输入 */}
               {imageInputType === 'upload' ? (
                 <div className="border-2 border-dashed border-[#283946] rounded-lg p-6 text-center">
                   <input
@@ -399,7 +350,6 @@ export default function CreateNotice() {
                     onChange={handleImageUpload}
                     className="hidden"
                     id="image-upload"
-
                   />
                   <label htmlFor="image-upload" className="cursor-pointer block">
                     <span className="material-symbols-outlined text-4xl text-gray-500 block mb-2">
@@ -430,15 +380,12 @@ export default function CreateNotice() {
                   </button>
                 </div>
               )}
-
-              {/* 已选图片 */}
               {formData.images.length > 0 && (
                 <div className="mt-4 space-y-2">
                   <p className="text-gray-400 text-sm">已选择的图片：</p>
                   <div className="grid grid-cols-2 gap-2">
                     {formData.images.map((img, idx) => (
                       <div key={idx} className="relative group">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={img}
                           alt={`图片 ${idx + 1}`}
@@ -460,8 +407,6 @@ export default function CreateNotice() {
                 </div>
               )}
             </div>
-
-            {/* 标签 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
               <label htmlFor="tags" className="block text-white font-semibold mb-3">
                 标签（用逗号或中文逗号分隔）
@@ -476,17 +421,11 @@ export default function CreateNotice() {
               />
             </div>
           </div>
-
-          {/* 右侧：预览和发布选项 */}
           <div className="space-y-6">
-            {/* 预览卡片 */}
             <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6 sticky top-6">
               <h2 className="text-white font-semibold mb-4">预览</h2>
-
-              {/* 图片预览 */}
               {formData.images.length > 0 && (
                 <div className="mb-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={formData.images[0]}
                     alt="预览"
@@ -502,8 +441,6 @@ export default function CreateNotice() {
                   )}
                 </div>
               )}
-
-              {/* 预览内容 */}
               <div className="bg-[#1f2d39] rounded-xl p-4 mb-4 space-y-2">
                 {formData.title && (
                   <h3 className="text-white font-semibold text-sm line-clamp-2">
@@ -520,8 +457,6 @@ export default function CreateNotice() {
                   </p>
                 )}
               </div>
-
-              {/* 发布选项 */}
               <div className="space-y-3 mb-6">
                 <div className="flex gap-2">
                   <input
@@ -552,8 +487,6 @@ export default function CreateNotice() {
                   </label>
                 </div>
               </div>
-
-              {/* 可见范围 */}
               <div className="mb-6">
                 <h3 className="text-white font-semibold mb-3 text-sm">可见范围</h3>
                 <div className="space-y-2">
@@ -593,8 +526,6 @@ export default function CreateNotice() {
                   </div>
                 </div>
               </div>
-
-              {/* 按钮组 */}
               <div className="space-y-2">
                 <button
                   type="submit"

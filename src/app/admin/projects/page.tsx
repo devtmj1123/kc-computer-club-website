@@ -1,16 +1,12 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-
 interface TeamMember {
   userId: string;
   name: string;
   email: string;
   role: 'leader' | 'member' | 'tech_lead' | 'design_lead';
 }
-
 interface Project {
   projectId: string;
   teamName: string;
@@ -29,14 +25,12 @@ interface Project {
   createdAt: string;
   updatedAt: string;
 }
-
 interface ProjectStats {
   total: number;
   pending: number;
   approved: number;
   rejected: number;
 }
-
 export default function AdminProjectsPage() {
   const [stats, setStats] = useState<ProjectStats>({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [projects, setProjects] = useState<Project[]>([]);
@@ -48,18 +42,14 @@ export default function AdminProjectsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // 加载项目数据
   const fetchProjects = async () => {
     try {
       setIsLoading(true);
       const response = await fetch('/api/projects?stats=true');
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || '获取项目列表失败');
       }
-
       setProjects(data.projects || []);
       if (data.stats) {
         setStats(data.stats);
@@ -71,11 +61,9 @@ export default function AdminProjectsPage() {
       setIsLoading(false);
     }
   };
-
   useEffect(() => {
     fetchProjects();
   }, []);
-
   const getCategoryLabel = (category: string): string => {
     const labels: Record<string, string> = {
       'web': '网页应用开发',
@@ -89,11 +77,9 @@ export default function AdminProjectsPage() {
     };
     return labels[category] || category;
   };
-
   const formatDate = (dateStr: string): string => {
     return new Date(dateStr).toLocaleDateString('zh-CN');
   };
-
   const filteredProjects = projects.filter((project) => {
     const matchesFilter = filter === 'all' || project.status === filter;
     const matchesSearch = searchQuery === '' || 
@@ -101,28 +87,24 @@ export default function AdminProjectsPage() {
       project.teamName.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
-
   const statusLabels: Record<string, string> = {
     pending: '待审核',
     approved: '已批准',
     rejected: '已拒绝',
     revision: '需修改',
   };
-
   const statusColors: Record<string, string> = {
     pending: 'bg-amber-900/30 text-amber-400',
     approved: 'bg-green-900/30 text-green-400',
     rejected: 'bg-red-900/30 text-red-400',
     revision: 'bg-blue-900/30 text-blue-400',
   };
-
   const roleLabels: Record<string, string> = {
     leader: '组长',
     member: '成员',
     tech_lead: '技术负责',
     design_lead: '设计负责',
   };
-
   const handleApprove = async (projectId: string) => {
     setActionLoading(true);
     try {
@@ -131,12 +113,10 @@ export default function AdminProjectsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'approve' }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '操作失败');
       }
-
       await fetchProjects();
       setShowModal(false);
       setSelectedProject(null);
@@ -147,7 +127,6 @@ export default function AdminProjectsPage() {
       setActionLoading(false);
     }
   };
-
   const handleReject = async (projectId: string) => {
     setActionLoading(true);
     try {
@@ -159,12 +138,10 @@ export default function AdminProjectsPage() {
           feedback: feedbackText || undefined,
         }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '操作失败');
       }
-
       await fetchProjects();
       setShowModal(false);
       setSelectedProject(null);
@@ -176,7 +153,6 @@ export default function AdminProjectsPage() {
       setActionLoading(false);
     }
   };
-
   const handleRequestRevision = async (projectId: string) => {
     if (!feedbackText.trim()) {
       alert('请填写修改意见');
@@ -192,12 +168,10 @@ export default function AdminProjectsPage() {
           feedback: feedbackText,
         }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '操作失败');
       }
-
       await fetchProjects();
       setShowModal(false);
       setSelectedProject(null);
@@ -209,7 +183,6 @@ export default function AdminProjectsPage() {
       setActionLoading(false);
     }
   };
-
   const handleRevertToPending = async (projectId: string) => {
     setActionLoading(true);
     try {
@@ -218,12 +191,10 @@ export default function AdminProjectsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'revert-pending' }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '操作失败');
       }
-
       await fetchProjects();
       setShowModal(false);
       setSelectedProject(null);
@@ -234,8 +205,6 @@ export default function AdminProjectsPage() {
       setActionLoading(false);
     }
   };
-
-  // 加载中状态
   if (isLoading) {
     return (
       <AdminLayout>
@@ -248,8 +217,6 @@ export default function AdminProjectsPage() {
       </AdminLayout>
     );
   }
-
-  // 错误状态
   if (error) {
     return (
       <AdminLayout>
@@ -269,19 +236,15 @@ export default function AdminProjectsPage() {
       </AdminLayout>
     );
   }
-
   return (
     <AdminLayout>
       <div className="p-6 lg:p-8" style={{ backgroundColor: '#101922', color: 'white', minHeight: '100vh' }}>
-        {/* 页面标题 */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white">项目计划审核</h1>
             <p className="mt-1 text-[#8ba3a6]">审核学生提交的项目计划提案</p>
           </div>
         </div>
-
-        {/* 统计卡片 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="rounded-xl p-6 border border-[#2a3c4a]" style={{ backgroundColor: '#1a2632' }}>
             <div className="flex items-center gap-4">
@@ -294,7 +257,6 @@ export default function AdminProjectsPage() {
               </div>
             </div>
           </div>
-
           <div className="rounded-xl p-6 border border-[#2a3c4a]" style={{ backgroundColor: '#1a2632' }}>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-500/20 text-[#137fec]">
@@ -306,7 +268,6 @@ export default function AdminProjectsPage() {
               </div>
             </div>
           </div>
-
           <div className="rounded-xl p-6 border border-[#2a3c4a]" style={{ backgroundColor: '#1a2632' }}>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-500/20 text-[#137fec]">
@@ -318,7 +279,6 @@ export default function AdminProjectsPage() {
               </div>
             </div>
           </div>
-
           <div className="rounded-xl p-6 border border-[#2a3c4a]" style={{ backgroundColor: '#1a2632' }}>
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-500/20 text-[#137fec]">
@@ -331,8 +291,6 @@ export default function AdminProjectsPage() {
             </div>
           </div>
         </div>
-
-        {/* 筛选和搜索 */}
         <div className="flex flex-wrap items-center gap-4 mb-6">
           <div className="flex items-center gap-2 p-1 rounded-xl border border-[#2a3c4a]" style={{ backgroundColor: '#1a2632' }}>
             {(['all', 'pending', 'approved', 'rejected', 'revision'] as const).map((status) => (
@@ -349,7 +307,6 @@ export default function AdminProjectsPage() {
               </button>
             ))}
           </div>
-
           <div className="flex-1 min-w-50 max-w-md">
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8ba3a6]">search</span>
@@ -368,8 +325,6 @@ export default function AdminProjectsPage() {
             </div>
           </div>
         </div>
-
-        {/* 项目列表 */}
         <div className="grid gap-4">
           {filteredProjects.map((project) => (
             <div
@@ -477,7 +432,6 @@ export default function AdminProjectsPage() {
               </div>
             </div>
           ))}
-
           {filteredProjects.length === 0 && (
             <div className="bg-[#1a2632] rounded-xl border border-[#2a3c4a] p-12 text-center">
               <span className="material-symbols-outlined text-5xl text-[#2a3c4a] mb-4">folder_off</span>
@@ -485,8 +439,6 @@ export default function AdminProjectsPage() {
             </div>
           )}
         </div>
-
-        {/* 项目详情弹窗 - 蓝色主题 */}
         {showModal && selectedProject && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
             <div className="bg-[#1a2632] rounded-2xl border border-[#2a3c4a] w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -521,19 +473,16 @@ export default function AdminProjectsPage() {
                     </span>
                   </div>
                 </div>
-
                 <div>
                   <h4 className="text-sm font-medium text-[#8ba396] mb-2">项目描述</h4>
                   <p className="text-white whitespace-pre-wrap">{selectedProject.description}</p>
                 </div>
-
                 {selectedProject.objectives && (
                   <div>
                     <h4 className="text-sm font-medium text-[#8ba396] mb-2">项目目标</h4>
                     <p className="text-white whitespace-pre-wrap">{selectedProject.objectives}</p>
                   </div>
                 )}
-
                 <div className="grid grid-cols-2 gap-4">
                   {selectedProject.timeline && (
                     <div>
@@ -548,7 +497,6 @@ export default function AdminProjectsPage() {
                     </div>
                   )}
                 </div>
-
                 {selectedProject.projectLink && (
                   <div>
                     <h4 className="text-sm font-medium text-[#8ba396] mb-2">项目链接</h4>
@@ -563,7 +511,6 @@ export default function AdminProjectsPage() {
                     </a>
                   </div>
                 )}
-
                 <div>
                   <h4 className="text-sm font-medium text-[#8ba3a6] mb-3">团队成员（{selectedProject.members.length} 人）</h4>
                   <div className="grid gap-2">
@@ -587,7 +534,6 @@ export default function AdminProjectsPage() {
                     ))}
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="text-sm font-medium text-[#8ba396] mb-2">提交时间</h4>
@@ -598,11 +544,8 @@ export default function AdminProjectsPage() {
                     <p className="text-white">{formatDate(selectedProject.updatedAt)}</p>
                   </div>
                 </div>
-
-                {/* 反馈输入框 - 蓝色主题 */}
                 <div>
                   <h4 className="text-sm font-medium text-[#8ba3a6] mb-2">管理员反馈</h4>
-                  {/* 待审核和需修改状态都可以输入反馈 */}
                   {(selectedProject.status === 'pending' || selectedProject.status === 'revision') ? (
                     <>
                       {selectedProject.adminFeedback && (
@@ -637,7 +580,6 @@ export default function AdminProjectsPage() {
                 >
                   关闭
                 </button>
-                {/* 待审核、需修改、已拒绝和已批准状态都可以操作 */}
                 {(selectedProject.status === 'pending' || selectedProject.status === 'revision' || selectedProject.status === 'rejected' || selectedProject.status === 'approved') && (
                   <>
                     {selectedProject.status !== 'rejected' && selectedProject.status !== 'approved' && (

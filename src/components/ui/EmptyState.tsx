@@ -1,26 +1,14 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { cn } from '@/lib/utils';
 import { Button } from './Button';
 
-// ========================================
-// EmptyState 组件
-// 空状态提示
-// ========================================
-
 interface EmptyStateProps {
-  /** 图标 */
   icon?: string;
-  /** 标题 */
   title: string;
-  /** 描述 */
   description?: string;
-  /** 操作按钮文字 */
   actionText?: string;
-  /** 操作按钮回调 */
   onAction?: () => void;
-  /** 额外类名 */
   className?: string;
 }
 
@@ -39,7 +27,6 @@ export function EmptyState({
         className
       )}
     >
-      {/* 图标 */}
       <div
         className={cn(
           'size-16 rounded-2xl',
@@ -53,19 +40,16 @@ export function EmptyState({
         </span>
       </div>
 
-      {/* 标题 */}
       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
         {title}
       </h3>
 
-      {/* 描述 */}
       {description && (
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
           {description}
         </p>
       )}
 
-      {/* 操作按钮 */}
       {actionText && onAction && (
         <Button variant="primary" onClick={onAction}>
           {actionText}
@@ -75,19 +59,10 @@ export function EmptyState({
   );
 }
 
-// ========================================
-// ErrorState 组件
-// 错误状态提示
-// ========================================
-
 interface ErrorStateProps {
-  /** 错误标题 */
   title?: string;
-  /** 错误描述 */
   message?: string;
-  /** 重试按钮回调 */
   onRetry?: () => void;
-  /** 额外类名 */
   className?: string;
 }
 
@@ -104,7 +79,6 @@ export function ErrorState({
         className
       )}
     >
-      {/* 图标 */}
       <div
         className={cn(
           'size-16 rounded-2xl',
@@ -118,17 +92,14 @@ export function ErrorState({
         </span>
       </div>
 
-      {/* 标题 */}
       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
         {title}
       </h3>
 
-      {/* 描述 */}
       <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
         {message}
       </p>
 
-      {/* 重试按钮 */}
       {onRetry && (
         <Button variant="secondary" onClick={onRetry} leftIcon="refresh">
           重试

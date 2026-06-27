@@ -1,20 +1,16 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { StudentLayout } from '@/components/layout/StudentLayout';
 import { Button } from '@/components/ui/Button';
 import { ProjectChecklistComponent } from '@/components/projects/ProjectChecklist';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-
 interface TeamMember {
   userId: string;
   name: string;
   email: string;
   role: 'leader' | 'member' | 'tech_lead' | 'design_lead';
 }
-
 interface Project {
   projectId: string;
   teamName: string;
@@ -48,7 +44,6 @@ interface Project {
   createdAt: string;
   updatedAt: string;
 }
-
 export default function ProjectDetailPage() {
   const params = useParams();
   const projectId = params.id as string;
@@ -56,26 +51,20 @@ export default function ProjectDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showShareMenu, setShowShareMenu] = useState(false);
-
   useEffect(() => {
     const fetchProject = async () => {
       try {
         setIsLoading(true);
-        
-        // 检查 projectId 是否有效
         if (!projectId || projectId === 'undefined') {
           setError('无效的项目 ID');
           setIsLoading(false);
           return;
         }
-        
         const response = await fetch(`/api/projects/${projectId}`);
         const data = await response.json();
-
         if (!response.ok) {
           throw new Error(data.error || '获取项目失败');
         }
-
         setProject(data.project);
       } catch (err) {
         const error = err as Error;
@@ -85,7 +74,6 @@ export default function ProjectDetailPage() {
         setIsLoading(false);
       }
     };
-
     if (projectId && projectId !== 'undefined') {
       fetchProject();
     } else {
@@ -93,7 +81,6 @@ export default function ProjectDetailPage() {
       setIsLoading(false);
     }
   }, [projectId]);
-
   const getResourceIcon = (type: string) => {
     switch (type) {
       case 'code':
@@ -108,11 +95,9 @@ export default function ProjectDetailPage() {
         return '📎';
     }
   };
-
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('zh-CN');
   };
-
   const getStatusColor = (status: string): string => {
     switch (status) {
       case 'pending':
@@ -127,7 +112,6 @@ export default function ProjectDetailPage() {
         return 'bg-gray-500/10 text-gray-600 dark:bg-gray-500/10 dark:text-gray-400';
     }
   };
-
   const getStatusLabel = (status: string): string => {
     switch (status) {
       case 'pending':
@@ -142,7 +126,6 @@ export default function ProjectDetailPage() {
         return status;
     }
   };
-
   const getCategoryLabel = (category: string): string => {
     const categoryMap: Record<string, string> = {
       'web': '网页应用',
@@ -156,7 +139,6 @@ export default function ProjectDetailPage() {
     };
     return categoryMap[category] || category;
   };
-
   const getRoleLabel = (role: string): string => {
     const roleMap: Record<string, string> = {
       'leader': '组长',
@@ -166,8 +148,6 @@ export default function ProjectDetailPage() {
     };
     return roleMap[role] || role;
   };
-
-  // 加载中状态
   if (isLoading) {
     return (
       <StudentLayout>
@@ -182,8 +162,6 @@ export default function ProjectDetailPage() {
       </StudentLayout>
     );
   }
-
-  // 错误状态
   if (error || !project) {
     return (
       <StudentLayout>
@@ -204,19 +182,16 @@ export default function ProjectDetailPage() {
       </StudentLayout>
     );
   }
-
   return (
     <StudentLayout>
       <div className="py-8 px-4 md:px-10 lg:px-20" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
         <div className="max-w-7xl mx-auto">
-          {/* 页面头部 */}
           <div className="mb-8">
             <div className="text-sm mb-4 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
               <Link href="/projects" className="hover:text-[var(--primary)]">项目</Link>
               <span className="material-symbols-outlined">chevron_right</span>
               <span>{project.title}</span>
             </div>
-
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
               <div className="flex-1">
                 <h1 className="text-3xl md:text-4xl font-black mb-2" style={{ color: 'var(--foreground)' }}>{project.title}</h1>
@@ -225,7 +200,6 @@ export default function ProjectDetailPage() {
                   <span className="size-1 bg-gray-600 rounded-full"></span>
                   <p>创建于 {formatDate(project.createdAt)}</p>
                 </div>
-
                 <div className="flex flex-wrap gap-2">
                   <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-medium ${getStatusColor(project.status)}`}>
                     {getStatusLabel(project.status)}
@@ -235,7 +209,6 @@ export default function ProjectDetailPage() {
                   </span>
                 </div>
               </div>
-
               <div className="flex items-center gap-3 shrink-0">
                 <div className="relative">
                   <Button
@@ -257,30 +230,23 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
-
-          {/* 主网格布局 */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            {/* 左列 - 内容 */}
             <div className="lg:col-span-2 space-y-8">
-              {/* 概览卡片 */}
               <div className="border border-[var(--border)] bg-[var(--surface)] rounded-2xl p-6 lg:p-8">
                 <h3 className="text-lg font-bold mb-3 text-[var(--foreground)]">项目描述</h3>
                 <p className="text-[var(--text-secondary)] leading-relaxed mb-6">{project.description}</p>
-
                 {project.objectives && (
                   <>
                     <h3 className="text-lg font-bold mb-3 mt-6 text-[var(--foreground)]">项目目标</h3>
                     <p className="text-[var(--text-secondary)] leading-relaxed mb-6 whitespace-pre-wrap">{project.objectives}</p>
                   </>
                 )}
-
                 {project.timeline && (
                   <>
                     <h3 className="text-xs font-bold uppercase tracking-wider mb-3 mt-6 text-[var(--foreground)]">时间线</h3>
                     <p className="text-[var(--text-secondary)]">{project.timeline}</p>
                   </>
                 )}
-
                 {project.resources && (
                   <>
                     <h3 className="text-xs font-bold uppercase tracking-wider mb-3 mt-6 text-[var(--foreground)]">所需资源</h3>
@@ -288,8 +254,6 @@ export default function ProjectDetailPage() {
                   </>
                 )}
               </div>
-
-              {/* 项目链接 */}
               {project.projectLink && (
                 <div className="border border-[var(--border)] bg-[var(--surface)] rounded-2xl p-6 lg:p-8">
                   <h3 className="text-lg font-bold mb-4 text-[var(--foreground)]">项目链接</h3>
@@ -304,8 +268,6 @@ export default function ProjectDetailPage() {
                   </a>
                 </div>
               )}
-
-              {/* 管理员反馈 - 需修改时特别高亮显示 */}
               {project.adminFeedback && (
                 <div className={`rounded-2xl p-6 lg:p-8 border ${
                   project.status === 'revision' 
@@ -355,8 +317,6 @@ export default function ProjectDetailPage() {
                   )}
                 </div>
               )}
-
-              {/* 项目检查清单 */}
               {project.status === 'approved' && (
                 <ProjectChecklistComponent
                   projectId={project.projectId}
@@ -367,10 +327,7 @@ export default function ProjectDetailPage() {
                 />
               )}
             </div>
-
-            {/* 右列 - 侧边栏 */}
             <div className="space-y-6">
-              {/* 团队信息 */}
               <div className="border border-[var(--border)] bg-[var(--surface)] rounded-2xl p-6">
                 <h3 className="text-lg font-bold mb-4 text-[var(--foreground)]">团队信息</h3>
                 <div className="space-y-3 mb-4">
@@ -384,8 +341,6 @@ export default function ProjectDetailPage() {
                   </div>
                 </div>
               </div>
-
-              {/* 团队成员 */}
               <div className="border border-[var(--border)] bg-[var(--surface)] rounded-2xl p-6">
                 <h3 className="text-lg font-bold mb-4 text-[var(--foreground)]">团队成员（{project.members.length} 人）</h3>
                 <div className="space-y-3">
@@ -409,8 +364,6 @@ export default function ProjectDetailPage() {
                   ))}
                 </div>
               </div>
-
-              {/* 项目状态 */}
               <div className="rounded-2xl p-6 border" style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}>
                 <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--foreground)' }}>状态</h3>
                 <div className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-bold ${getStatusColor(project.status)}`}>

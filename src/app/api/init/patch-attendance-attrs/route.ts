@@ -1,25 +1,13 @@
-/* eslint-disable prettier/prettier */
-/**
- * POST /api/init/patch-attendance-attrs
- * 为现有 clubSettings 集合添加缺失的验证码相关属性
- * attendanceCode1, attendanceCode2 (string), attendanceCodesWeek (integer)
- */
-
 import { NextResponse } from 'next/server';
 import { serverDatabases } from '@/services/appwrite-server';
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const COLLECTION_ID = 'clubSettings';
-
 export async function POST() {
   const results: { key: string; status: string }[] = [];
-
-  // Add new string attributes: attendanceCode1, attendanceCode2
   const newStringAttrs = [
     { key: 'attendanceCode1', size: 16 },
     { key: 'attendanceCode2', size: 16 },
   ];
-
   for (const attr of newStringAttrs) {
     try {
       await (serverDatabases as unknown as {
@@ -41,8 +29,6 @@ export async function POST() {
       }
     }
   }
-
-  // Add new integer attribute: attendanceCodesWeek
   try {
     await (serverDatabases as unknown as {
       createIntegerAttribute: (
@@ -61,9 +47,7 @@ export async function POST() {
       results.push({ key: 'attendanceCodesWeek', status: `error: ${err.message}` });
     }
   }
-
   const hasErrors = results.some(r => r.status.startsWith('error'));
-
   return NextResponse.json(
     {
       success: !hasErrors,
@@ -74,4 +58,4 @@ export async function POST() {
     },
     { status: hasErrors ? 500 : 200 }
   );
-}
+}

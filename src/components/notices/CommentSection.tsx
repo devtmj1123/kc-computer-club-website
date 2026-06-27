@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -37,7 +36,6 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
   const [editContent, setEditContent] = useState('');
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
-  // 当用户登录时，自动填充用户信息
   useEffect(() => {
     if (isStudent && user && !('role' in user)) {
       setAuthorName(user.name);
@@ -45,7 +43,6 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
     }
   }, [isStudent, user]);
 
-  // 加载评论
   useEffect(() => {
     const loadComments = async () => {
       try {
@@ -67,14 +64,12 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
     loadComments();
   }, [targetType, targetId]);
 
-  // 检查是否在5分钟内
   const isWithin5Minutes = (createdAt: string) => {
     const created = new Date(createdAt).getTime();
     const now = new Date().getTime();
-    return (now - created) < 5 * 60 * 1000; // 5 minutes in milliseconds
+    return (now - created) < 5 * 60 * 1000;
   };
 
-  // 检查是否是评论作者
   const isCommentAuthor = (comment: Comment) => {
     return isStudent && user && user.email === comment.authorEmail;
   };
@@ -100,7 +95,6 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
       if (data.success) {
         setEditingId(null);
         setEditContent('');
-        // 刷新评论列表
         const listResponse = await fetch(
           `/api/comments?targetType=${targetType}&targetId=${targetId}&onlyApproved=true`
         );
@@ -129,7 +123,6 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
       const data = await response.json();
 
       if (data.success) {
-        // 刷新评论列表
         const listResponse = await fetch(
           `/api/comments?targetType=${targetType}&targetId=${targetId}&onlyApproved=true`
         );
@@ -150,7 +143,6 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
     setError('');
     setSubmitSuccess(false);
 
-    // 验证
     if (!authorName.trim()) {
       setError('请输入昵称');
       return;
@@ -187,13 +179,11 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
       if (data.success) {
         setSubmitSuccess(true);
         setContent('');
-        // Keep authorName and authorEmail for next comment if user is logged in
         if (!isStudent || !user) {
           setAuthorName('');
           setAuthorEmail('');
         }
 
-        // 刷新评论列表
         const listResponse = await fetch(
           `/api/comments?targetType=${targetType}&targetId=${targetId}&onlyApproved=true`
         );
@@ -202,7 +192,6 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
           setComments(listData.comments || []);
         }
 
-        // 3秒后隐藏成功消息
         setTimeout(() => setSubmitSuccess(false), 3000);
       } else {
         setError(data.error || '发布评论失败');
@@ -216,16 +205,15 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
 
   return (
     <section className="mt-12 pt-8 border-t border-[#283930]">
-      {/* 折叠标题 */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full mb-6 group"
+        className="flex items-center justify-between w-full mb-6 group rounded-2xl px-1 py-1"
       >
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold text-black dark:text-white group-hover:text-[#13ec80] transition-colors">
             评论区
           </h2>
-          <span className="text-sm text-gray-600 dark:text-[#9db9ab] bg-white dark:bg-[#1a2c23] px-2 py-1 rounded-full">
+          <span className="text-sm text-[var(--text-secondary)] bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] px-2 py-1 rounded-full">
             {comments.length}
           </span>
         </div>
@@ -236,35 +224,33 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
         </span>
       </button>
 
-      {/* 评论表单 */}
       {isExpanded && (
         <>
-          <div className="bg-white dark:bg-[#1A2C23] rounded-xl border border-gray-200 dark:border-[#283930] p-6 mb-8 animate-in">
+          <div className="bg-[var(--nm-bg)] rounded-[28px] shadow-[var(--nm-raised)] p-6 mb-8 animate-in">
             <h3 className="text-lg font-bold text-black dark:text-white mb-4">发表评论</h3>
 
             {submitSuccess && (
-              <div className="bg-[#13ec80]/10 border border-[#13ec80] text-[#13ec80] px-4 py-3 rounded-lg mb-4">
+              <div className="bg-[#13ec80]/10 text-[#13ec80] px-4 py-3 rounded-2xl mb-4 shadow-[var(--nm-inset-sm)]">
                 <p className="text-sm font-medium">评论已发布</p>
               </div>
             )}
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg mb-4">
+              <div className="bg-red-500/10 text-red-500 px-4 py-3 rounded-2xl mb-4 shadow-[var(--nm-inset-sm)]">
                 <p className="text-sm font-medium">{error}</p>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* 如果用户未登录，显示登录提示 */}
               {!isStudent || !user ? (
-                <div className="bg-blue-500/10 border border-blue-500 text-blue-400 px-4 py-3 rounded-lg mb-4">
+                <div className="bg-blue-500/10 text-blue-400 px-4 py-3 rounded-2xl mb-4 shadow-[var(--nm-inset-sm)]">
                   <p className="text-sm font-medium">
                     <span className="material-symbols-outlined text-sm align-middle mr-1">info</span>
                     请先登录以发表评论
                   </p>
                 </div>
               ) : (
-                <div className="bg-[#13ec80]/10 border border-[#13ec80] text-[#13ec80] px-4 py-3 rounded-lg mb-4">
+                <div className="bg-[#13ec80]/10 text-[#13ec80] px-4 py-3 rounded-2xl mb-4 shadow-[var(--nm-inset-sm)]">
                   <p className="text-sm font-medium">
                     <span className="material-symbols-outlined text-sm align-middle mr-1">verified_user</span>
                     以 <span className="font-bold">{user.name}</span> ({user.email}) 的身份发表评论
@@ -272,7 +258,6 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
                 </div>
               )}
 
-              {/* 评论内容 */}
               <div>
                 <textarea
                   placeholder="写下你的评论... (最多500个字符)"
@@ -281,14 +266,13 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
                   disabled={isSubmitting || !isStudent || !user}
                   maxLength={500}
                   rows={4}
-                  className="w-full bg-white dark:bg-[#162a21] text-black dark:text-white rounded-lg border border-gray-300 dark:border-[#283930] px-4 py-3 placeholder-gray-500 dark:placeholder-[#9db9ab]/50 focus:outline-none focus:border-[#13ec80] focus:ring-1 focus:ring-[#13ec80]/20 resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[var(--nm-bg)] text-[var(--foreground)] rounded-2xl shadow-[var(--nm-inset)] px-4 py-3 placeholder:text-[var(--text-secondary)] focus:outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <p className="text-xs text-[#9db9ab] mt-2 text-right">
                   {content.length}/500
                 </p>
               </div>
 
-              {/* 提交按钮 */}
               <div className="flex justify-end">
                 <Button
                   type="submit"
@@ -301,7 +285,6 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
             </form>
           </div>
 
-          {/* 评论列表 */}
           {isLoading ? (
             <div className="flex justify-center py-12">
               <Loading size="sm" text="加载评论中..." />
@@ -313,7 +296,7 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
                 return (
                   <div
                     key={comment.$id}
-                    className="bg-white dark:bg-[#1A2C23] rounded-lg border border-gray-200 dark:border-[#283930] p-4"
+                    className="bg-[var(--nm-bg)] rounded-[24px] shadow-[var(--nm-raised-sm)] p-4"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <p className="font-bold text-black dark:text-white">{comment.authorName}</p>
@@ -328,13 +311,13 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
                                 setEditingId(comment.$id);
                                 setEditContent(comment.content);
                               }}
-                              className="text-xs px-2 py-1 text-[#13ec80] hover:bg-[#13ec80]/10 rounded transition-colors"
+                              className="text-xs px-2 py-1 text-[#13ec80] hover:bg-[#13ec80]/10 rounded-xl transition-colors"
                             >
                               编辑
                             </button>
                             <button
                               onClick={() => handleDeleteComment(comment.$id)}
-                              className="text-xs px-2 py-1 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                              className="text-xs px-2 py-1 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
                             >
                               删除
                             </button>
@@ -349,7 +332,7 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
                           onChange={(e) => setEditContent(e.target.value)}
                           maxLength={500}
                           rows={3}
-                          className="w-full bg-white dark:bg-[#162a21] text-black dark:text-white rounded-lg border border-gray-300 dark:border-[#283930] px-3 py-2 placeholder-gray-500 dark:placeholder-[#9db9ab]/50 focus:outline-none focus:border-[#13ec80] focus:ring-1 focus:ring-[#13ec80]/20 resize-none"
+                          className="w-full bg-[var(--nm-bg)] text-[var(--foreground)] rounded-2xl shadow-[var(--nm-inset)] px-3 py-2 placeholder:text-[var(--text-secondary)] focus:outline-none resize-none"
                         />
                         <div className="flex gap-2 justify-end">
                           <button
@@ -357,21 +340,21 @@ export const CommentSection = ({ targetType, targetId, targetTitle }: CommentSec
                               setEditingId(null);
                               setEditContent('');
                             }}
-                            className="text-xs px-3 py-1 text-gray-400 hover:text-white rounded transition-colors"
+                            className="text-xs px-3 py-1 text-[var(--text-secondary)] hover:text-[var(--foreground)] rounded-xl transition-colors"
                           >
                             取消
                           </button>
                           <button
                             onClick={() => handleEditComment(comment.$id, editContent)}
                             disabled={isEditSubmitting}
-                            className="text-xs px-3 py-1 bg-[#13ec80]/20 text-[#13ec80] hover:bg-[#13ec80]/30 rounded transition-colors disabled:opacity-50"
+                            className="text-xs px-3 py-1 bg-[#13ec80]/20 text-[#13ec80] hover:bg-[#13ec80]/30 rounded-xl transition-colors disabled:opacity-50"
                           >
                             {isEditSubmitting ? '保存中...' : '保存'}
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <p className="text-gray-800 dark:text-[#E0E0E0] leading-relaxed">
+                      <p className="text-[var(--foreground)] leading-relaxed">
                         {comment.content}
                       </p>
                     )}

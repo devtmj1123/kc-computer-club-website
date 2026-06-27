@@ -1,11 +1,8 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-
 export default function CreateAdminPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -17,56 +14,43 @@ export default function CreateAdminPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // 权限检查
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-
-    // 验证
     if (!username.trim()) {
       setError('用户名不能为空');
       return;
     }
-
     if (username.length < 3) {
       setError('用户名至少 3 个字符');
       return;
     }
-
     if (!password) {
       setError('密码不能为空');
       return;
     }
-
     if (password.length < 6) {
       setError('密码至少 6 个字符');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('密码不匹配');
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       const response = await fetch('/api/admin/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-
       const data = await response.json();
-
       if (data.success) {
         setSuccess('管理员创建成功！');
         setUsername('');
@@ -82,7 +66,6 @@ export default function CreateAdminPage() {
       setIsSubmitting(false);
     }
   };
-
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-[#0a1220] flex items-center justify-center">
@@ -97,11 +80,9 @@ export default function CreateAdminPage() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-[#0a1220] py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* 导航 */}
         <div className="mb-8">
           <Link
             href="/admin/manage"
@@ -110,7 +91,6 @@ export default function CreateAdminPage() {
             <span className="material-symbols-outlined">arrow_back</span>
             返回管理员列表
           </Link>
-
           <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-8">
             <div className="mb-6">
               <div className="w-16 h-16 rounded-full bg-[#137fec]/20 flex items-center justify-center mb-4">
@@ -121,24 +101,17 @@ export default function CreateAdminPage() {
               <h1 className="text-2xl font-bold text-white mb-2">添加新管理员</h1>
               <p className="text-[#7a8fa5]">创建新的管理员账户</p>
             </div>
-
-            {/* 错误提示 */}
             {error && (
               <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
                 {error}
               </div>
             )}
-
-            {/* 成功提示 */}
             {success && (
               <div className="mb-6 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
                 ✓ {success}
               </div>
             )}
-
-            {/* 表单 */}
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* 用户名 */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   管理员用户名
@@ -159,8 +132,6 @@ export default function CreateAdminPage() {
                 </div>
                 <p className="text-xs text-[#7a8fa5] mt-1">3-20 个字符</p>
               </div>
-
-              {/* 密码 */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   密码
@@ -190,8 +161,6 @@ export default function CreateAdminPage() {
                 </div>
                 <p className="text-xs text-[#7a8fa5] mt-1">至少 6 个字符</p>
               </div>
-
-              {/* 确认密码 */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">
                   确认密码
@@ -220,8 +189,6 @@ export default function CreateAdminPage() {
                   </button>
                 </div>
               </div>
-
-              {/* 操作按钮 */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"

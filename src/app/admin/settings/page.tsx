@@ -1,6 +1,4 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -8,66 +6,50 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { changeAdminPassword, getAdminSessions, logoutOtherSession } from '@/services/auth.service';
-
 interface ClubSettings {
-  // 关于我们页面信息
   aboutTitle?: string;
   aboutDescription?: string;
   aboutEmail?: string;
   aboutLocation?: string;
   aboutMeetingTime?: string;
-  // 网站外观
   website?: string;
   logoUrl?: string;
   heroImage?: string;
   heroImageAlt?: string;
-  // 统计数据
   activeMembers?: number;
   yearlyActivities?: number;
   awardProjects?: number;
   partners?: number;
-  // 社交媒体链接
   githubUrl?: string;
   discordUrl?: string;
   instagramUrl?: string;
   youtubeUrl?: string;
 }
-
 interface AttendanceConfig {
-  dayOfWeek: number; // 0 = 周日, 1 = 周一, ..., 6 = 周六
+  dayOfWeek: number; 
   session1Start: { hour: number; minute: number };
-  session1Duration: number; // 分钟
+  session1Duration: number; 
   session2Start: { hour: number; minute: number };
-  session2Duration: number; // 分钟
-  weekStartDate: string; // 第1周的开始日期
+  session2Duration: number; 
+  weekStartDate: string; 
 }
-
-// Default empty settings
 const DEFAULT_SETTINGS: ClubSettings = {};
-
 const DEFAULT_ATTENDANCE_CONFIG: AttendanceConfig = {
-  dayOfWeek: 2, // 周二
+  dayOfWeek: 2, 
   session1Start: { hour: 15, minute: 20 },
   session1Duration: 5,
   session2Start: { hour: 16, minute: 35 },
   session2Duration: 5,
-  weekStartDate: '2026-01-06', // 默认第1周开始日期
+  weekStartDate: '2026-01-06', 
 };
-
 const DAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-
-// No localStorage initialization - fetch from database
-
 export default function AdminSettings() {
   const { user, isAdmin, isLoading } = useAuth();
   const router = useRouter();
-
   const [settings, setSettings] = useState<ClubSettings>(DEFAULT_SETTINGS);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'about' | 'security' | 'api' | 'attendance'>('about');
-  
-  // 安全设置状态
   const [passwordForm, setPasswordForm] = useState({
     oldPassword: '',
     newPassword: '',
@@ -78,8 +60,6 @@ export default function AdminSettings() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [adminSessions, setAdminSessions] = useState<any[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
-
-  // API 设置状态
   const [apiKeys, setApiKeys] = useState<any[]>([
     {
       id: 'key_1',
@@ -97,42 +77,30 @@ export default function AdminSettings() {
   });
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
   const [webhookSuccess, setWebhookSuccess] = useState(false);
-
-  // 点名设置状态
   const [attendanceConfig, setAttendanceConfig] = useState<AttendanceConfig>(DEFAULT_ATTENDANCE_CONFIG);
   const [debugMode, setDebugMode] = useState(false);
   const [isSavingAttendance, setIsSavingAttendance] = useState(false);
   const [attendanceSuccess, setAttendanceSuccess] = useState(false);
-
-  // 检查管理员权限
   useEffect(() => {
     if (!isLoading && !isAdmin) {
-      // 重定向到管理员登录页面
       router.push('/admin/login');
     }
   }, [isAdmin, isLoading, router]);
-
-  // 加载活跃会话
   useEffect(() => {
     if (activeTab === 'security' && isAdmin && !isLoadingSessions) {
       loadSessions();
     }
   }, [activeTab, isAdmin]);
-
-  // 加载关于我们的数据
   useEffect(() => {
     if (activeTab === 'about' && isAdmin) {
       loadClubSettings();
     }
   }, [activeTab, isAdmin]);
-
-  // 加载点名设置
   useEffect(() => {
     if (activeTab === 'attendance' && isAdmin) {
       loadAttendanceConfig();
     }
   }, [activeTab, isAdmin]);
-
   const loadAttendanceConfig = async () => {
     try {
       const response = await fetch('/api/attendance?action=debug-status');
@@ -147,13 +115,11 @@ export default function AdminSettings() {
       console.error('加载点名设置失败:', error);
     }
   };
-
   const loadClubSettings = async () => {
     try {
       const response = await fetch('/api/club-settings');
       if (response.ok) {
         const data = await response.json();
-        // 只取存在的字段来设置 settings
         const clubSettings: ClubSettings = {};
         if (data.aboutTitle) clubSettings.aboutTitle = data.aboutTitle;
         if (data.aboutDescription) clubSettings.aboutDescription = data.aboutDescription;
@@ -172,15 +138,12 @@ export default function AdminSettings() {
         if (data.discordUrl) clubSettings.discordUrl = data.discordUrl;
         if (data.instagramUrl) clubSettings.instagramUrl = data.instagramUrl;
         if (data.youtubeUrl) clubSettings.youtubeUrl = data.youtubeUrl;
-        
         setSettings(clubSettings);
       }
     } catch (error) {
       console.error('加载社团设置失败:', error);
-      // Keep empty settings if fetch fails
     }
   };
-
   const loadSessions = async () => {
     try {
       setIsLoadingSessions(true);
@@ -192,8 +155,6 @@ export default function AdminSettings() {
       setIsLoadingSessions(false);
     }
   };
-
-  // 如果正在加载或没有权限，显示加载状态
   if (isLoading) {
     return (
       <AdminLayout adminName="管理员">
@@ -206,23 +167,18 @@ export default function AdminSettings() {
       </AdminLayout>
     );
   }
-
   if (!isAdmin) {
-    return null; // 路由器会重定向
+    return null; 
   }
-
   const handleSettingChange = (field: keyof ClubSettings, value: string | number) => {
     setSettings((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
-
   const handlePasswordChange = async () => {
     setPasswordError('');
     setPasswordSuccess(false);
-
-    // 验证表单
     if (!passwordForm.oldPassword) {
       setPasswordError('请输入当前密码');
       return;
@@ -247,30 +203,23 @@ export default function AdminSettings() {
       setPasswordError('新密码不能与当前密码相同');
       return;
     }
-
     setIsChangingPassword(true);
     try {
-      // 获取管理员用户名（从 user 对象）
       if (!user || !('role' in user)) {
         throw new Error('无法获取管理员信息');
       }
-
-      // 使用 username 查询（确保数据库字段存在）
       const adminUsername = user.username || user.email.split('@')[0];
       await changeAdminPassword(
         adminUsername,
         passwordForm.oldPassword,
         passwordForm.newPassword
       );
-
       setPasswordSuccess(true);
       setPasswordForm({
         oldPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
-
-      // 3 秒后隐藏成功提示
       setTimeout(() => setPasswordSuccess(false), 3000);
     } catch (error: unknown) {
       const err = error as Error & { message?: string };
@@ -279,18 +228,14 @@ export default function AdminSettings() {
       setIsChangingPassword(false);
     }
   };
-
   const handleLogoutSession = async (sessionId: string) => {
     try {
       await logoutOtherSession(sessionId);
-      // 重新加载会话列表
       await loadSessions();
     } catch (error) {
       console.error('登出会话失败:', error);
     }
   };
-
-  // API 密钥相关处理函数
   const generateNewApiKey = () => {
     const newKey = {
       id: 'key_' + Date.now(),
@@ -303,35 +248,28 @@ export default function AdminSettings() {
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
   };
-
   const deleteApiKey = (keyId: string) => {
     if (confirm('确定要删除此 API 密钥吗？')) {
       setApiKeys(apiKeys.filter(key => key.id !== keyId));
     }
   };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     alert('已复制到剪贴板！');
   };
-
   const handleSaveWebhook = async () => {
     if (!webhookUrl) {
       alert('请输入 Webhook URL');
       return;
     }
-
-    // URL 格式验证
     try {
       new URL(webhookUrl);
     } catch {
       alert('请输入有效的 Webhook URL');
       return;
     }
-
     setIsSavingWebhook(true);
     try {
-      // 模拟保存 Webhook
       await new Promise(resolve => setTimeout(resolve, 1000));
       setWebhookSuccess(true);
       setTimeout(() => setWebhookSuccess(false), 3000);
@@ -341,20 +279,16 @@ export default function AdminSettings() {
       setIsSavingWebhook(false);
     }
   };
-
   const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
-      // 保存到数据库
       const response = await fetch('/api/club-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       });
-
       if (!response.ok) {
         const data = await response.json();
-        // 如果是集合不存在错误，提示初始化
         if (data.initUrl) {
           alert(`需要初始化数据库。请访问: ${data.initUrl}`);
           window.open(data.initUrl, '_blank');
@@ -362,11 +296,7 @@ export default function AdminSettings() {
         }
         throw new Error(data.message || 'Failed to save settings');
       }
-
-      // 同时保存到 localStorage 作为备份
       localStorage.setItem('clubSettings', JSON.stringify(settings));
-      
-      // 显示成功提示
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error: unknown) {
@@ -377,8 +307,6 @@ export default function AdminSettings() {
       setIsSaving(false);
     }
   };
-
-  // 保存点名设置
   const handleSaveAttendanceConfig = async () => {
     setIsSavingAttendance(true);
     try {
@@ -390,11 +318,9 @@ export default function AdminSettings() {
           config: attendanceConfig,
         }),
       });
-
       if (!response.ok) {
         throw new Error('保存失败');
       }
-
       setAttendanceSuccess(true);
       setTimeout(() => setAttendanceSuccess(false), 3000);
     } catch (error) {
@@ -404,8 +330,6 @@ export default function AdminSettings() {
       setIsSavingAttendance(false);
     }
   };
-
-  // 切换调试模式
   const handleToggleDebugMode = async () => {
     try {
       const response = await fetch('/api/attendance', {
@@ -416,7 +340,6 @@ export default function AdminSettings() {
           enabled: !debugMode,
         }),
       });
-
       if (response.ok) {
         const data = await response.json();
         setDebugMode(data.debugMode);
@@ -425,16 +348,12 @@ export default function AdminSettings() {
       console.error('切换调试模式失败:', error);
     }
   };
-
   return (
     <AdminLayout adminName="管理员">
-      {/* 页面头部 */}
       <div className="mb-8">
         <h1 className="text-3xl font-black text-white mb-2">社团设置</h1>
         <p className="text-gray-400">管理社团信息、安全设置和 API 密钥。</p>
       </div>
-
-      {/* 标签栏 */}
       <div className="mb-6 flex gap-2 border-b border-[#283946]">
         <button
           onClick={() => setActiveTab('about')}
@@ -477,11 +396,8 @@ export default function AdminSettings() {
           点名设置
         </button>
       </div>
-
-      {/* 关于我们标签 */}
       {activeTab === 'about' && (
         <div className="space-y-6 max-w-3xl">
-          {/* 社团标题 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <label htmlFor="aboutTitle" className="block text-white font-semibold mb-3">
               社团标题
@@ -493,8 +409,6 @@ export default function AdminSettings() {
               placeholder="例如: 康中电脑学会"
             />
           </div>
-
-          {/* 社团介绍 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <label htmlFor="aboutDescription" className="block text-white font-semibold mb-3">
               社团介绍
@@ -508,8 +422,6 @@ export default function AdminSettings() {
               className="w-full bg-[#1f2d39] border border-[#283946] rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#137fec] transition-colors resize-none"
             />
           </div>
-
-          {/* 联系信息 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">联系信息</h3>
             <div className="space-y-4">
@@ -549,8 +461,6 @@ export default function AdminSettings() {
               </div>
             </div>
           </div>
-
-          {/* 网站外观 - 新增 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">网站外观</h3>
             <div className="space-y-4">
@@ -580,8 +490,6 @@ export default function AdminSettings() {
                 />
                 <p className="text-gray-500 text-xs mt-1">建议尺寸：200x200 像素，支持 PNG、SVG、JPG 格式</p>
               </div>
-
-              {/* Logo 预览 */}
               {settings.logoUrl && (
                 <div className="p-4 bg-[#1f2d39] rounded-lg border border-[#283946]">
                   <p className="text-gray-400 text-sm mb-3">Logo 预览</p>
@@ -602,8 +510,6 @@ export default function AdminSettings() {
                   </div>
                 </div>
               )}
-
-              {/* Hero 图片 */}
               <div>
                 <label htmlFor="heroImage" className="block text-gray-400 text-sm font-medium mb-2">
                   主页 Hero 背景图片 URL
@@ -617,7 +523,6 @@ export default function AdminSettings() {
                 />
                 <p className="text-gray-500 text-xs mt-1">建议尺寸：1200x800 像素，支持 PNG、JPG 格式</p>
               </div>
-
               <div>
                 <label htmlFor="heroImageAlt" className="block text-gray-400 text-sm font-medium mb-2">
                   Hero 图片描述文字（Alt Text）
@@ -630,8 +535,6 @@ export default function AdminSettings() {
                 />
                 <p className="text-gray-500 text-xs mt-1">用于图片无法加载时显示和辅助功能</p>
               </div>
-
-              {/* Hero 图片预览 */}
               {settings.heroImage && (
                 <div className="p-4 bg-[#1f2d39] rounded-lg border border-[#283946]">
                   <p className="text-gray-400 text-sm mb-3">Hero 图片预览</p>
@@ -652,8 +555,6 @@ export default function AdminSettings() {
               )}
             </div>
           </div>
-
-          {/* 统计数据 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">社团统计数据</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -703,8 +604,6 @@ export default function AdminSettings() {
               </div>
             </div>
           </div>
-
-          {/* 社交媒体链接 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">社交媒体链接</h3>
             <div className="space-y-4">
@@ -758,8 +657,6 @@ export default function AdminSettings() {
               </div>
             </div>
           </div>
-
-          {/* 保存按钮 */}
           <div className="flex gap-3">
             <Button
               onClick={handleSaveSettings}
@@ -773,28 +670,20 @@ export default function AdminSettings() {
           </div>
         </div>
       )}
-
-      {/* 安全设置标签 */}
       {activeTab === 'security' && (
         <div className="space-y-6 max-w-3xl">
-          {/* 修改密码 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">修改密码</h3>
-            
-            {/* 错误提示 */}
             {passwordError && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                 <p className="text-red-400 text-sm">{passwordError}</p>
               </div>
             )}
-
-            {/* 成功提示 */}
             {passwordSuccess && (
               <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                 <p className="text-green-400 text-sm">✓ 密码修改成功！</p>
               </div>
             )}
-
             <div className="space-y-4">
               <div>
                 <label htmlFor="oldPassword" className="block text-gray-400 text-sm font-medium mb-2">
@@ -845,8 +734,6 @@ export default function AdminSettings() {
               {isChangingPassword ? '修改中...' : '更新密码'}
             </Button>
           </div>
-
-          {/* 两步验证 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-white font-semibold">两步验证</h3>
@@ -859,8 +746,6 @@ export default function AdminSettings() {
             </p>
             <Button variant="secondary" disabled>暂未开放</Button>
           </div>
-
-          {/* 活跃会话 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">活跃会话</h3>
             {isLoadingSessions ? (
@@ -901,8 +786,6 @@ export default function AdminSettings() {
           </div>
         </div>
       )}
-
-      {/* API 设置标签 */}
       {activeTab === 'api' && (
         <div className="space-y-6 max-w-3xl">
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
@@ -910,8 +793,6 @@ export default function AdminSettings() {
             <p className="text-gray-400 text-sm mb-6">
               使用 API 密钥在程序中访问 API。请妥善保管密钥，不要在任何地方共享。
             </p>
-
-            {/* 密钥列表 */}
             <div className="space-y-3 mb-6">
               {apiKeys.length > 0 ? (
                 apiKeys.map((apiKey) => (
@@ -946,8 +827,6 @@ export default function AdminSettings() {
                 <p className="text-gray-400 text-sm py-4">暂无 API 密钥</p>
               )}
             </div>
-
-            {/* 生成新密钥 */}
             <Button 
               variant="primary"
               className="bg-[#137fec]! hover:bg-[#0f5fcc]"
@@ -956,17 +835,13 @@ export default function AdminSettings() {
               生成新密钥
             </Button>
           </div>
-
-          {/* Webhook 设置 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">Webhook 配置</h3>
-            
             {webhookSuccess && (
               <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                 <p className="text-green-400 text-sm">✓ Webhook 配置已保存！</p>
               </div>
             )}
-
             <div className="space-y-4">
               <div>
                 <label htmlFor="webhookUrl" className="block text-gray-400 text-sm font-medium mb-2">
@@ -1010,8 +885,6 @@ export default function AdminSettings() {
               {isSavingWebhook ? '保存中...' : '保存 Webhook'}
             </Button>
           </div>
-
-          {/* 文档链接 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <h3 className="text-white font-semibold mb-4">API 文档</h3>
             <p className="text-gray-400 text-sm mb-4">
@@ -1026,26 +899,20 @@ export default function AdminSettings() {
           </div>
         </div>
       )}
-
-      {/* 点名设置标签 */}
       {activeTab === 'attendance' && (
         <div className="space-y-6 max-w-3xl">
-          {/* 点名时间配置 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-6">
               <span className="material-symbols-outlined text-[#137fec] text-2xl">schedule</span>
               <h3 className="text-white font-semibold text-lg">点名时间配置</h3>
             </div>
-
             {attendanceSuccess && (
               <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2">
                 <span className="material-symbols-outlined text-green-400 text-sm">check_circle</span>
                 <p className="text-green-400 text-sm">点名设置已保存！</p>
               </div>
             )}
-
             <div className="space-y-6">
-              {/* 第1周开始日期 */}
               <div>
                 <label className="block text-gray-400 text-sm font-medium mb-2">
                   第1周开始日期（学期开始）
@@ -1063,8 +930,6 @@ export default function AdminSettings() {
                   系统将从此日期开始计算第1周、第2周...
                 </p>
               </div>
-
-              {/* 点名日期 */}
               <div>
                 <label className="block text-gray-400 text-sm font-medium mb-2">
                   每周点名日期
@@ -1082,8 +947,6 @@ export default function AdminSettings() {
                   ))}
                 </select>
               </div>
-
-              {/* 第一时段 */}
               <div className="p-4 bg-[#1f2d39] rounded-xl border border-[#283946]">
                 <h4 className="text-white font-medium mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined text-amber-400 text-sm">schedule</span>
@@ -1137,8 +1000,6 @@ export default function AdminSettings() {
                   开放时间：{String(attendanceConfig.session1Start.hour).padStart(2, '0')}:{String(attendanceConfig.session1Start.minute).padStart(2, '0')} - {String(attendanceConfig.session1Start.hour + Math.floor((attendanceConfig.session1Start.minute + attendanceConfig.session1Duration) / 60)).padStart(2, '0')}:{String((attendanceConfig.session1Start.minute + attendanceConfig.session1Duration) % 60).padStart(2, '0')}
                 </p>
               </div>
-
-              {/* 第二时段 */}
               <div className="p-4 bg-[#1f2d39] rounded-xl border border-[#283946]">
                 <h4 className="text-white font-medium mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined text-blue-400 text-sm">schedule</span>
@@ -1193,7 +1054,6 @@ export default function AdminSettings() {
                 </p>
               </div>
             </div>
-
             <Button
               onClick={handleSaveAttendanceConfig}
               variant="primary"
@@ -1203,18 +1063,14 @@ export default function AdminSettings() {
               {isSavingAttendance ? '保存中...' : '保存点名设置'}
             </Button>
           </div>
-
-          {/* 调试模式 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <span className="material-symbols-outlined text-amber-400 text-2xl">bug_report</span>
               <h3 className="text-white font-semibold text-lg">调试模式</h3>
             </div>
-            
             <p className="text-gray-400 text-sm mb-4">
               启用调试模式后，学生可以在任何时间进行点名测试，不受时间限制。
             </p>
-
             <div className="flex items-center justify-between p-4 bg-[#1f2d39] rounded-xl border border-[#283946]">
               <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${debugMode ? 'bg-amber-400 animate-pulse' : 'bg-gray-600'}`}></div>
@@ -1233,7 +1089,6 @@ export default function AdminSettings() {
                 {debugMode ? '关闭' : '开启'}
               </button>
             </div>
-
             {debugMode && (
               <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                 <p className="text-amber-400 text-sm flex items-center gap-2">
@@ -1243,14 +1098,11 @@ export default function AdminSettings() {
               </div>
             )}
           </div>
-
-          {/* 点名统计预览 */}
           <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <span className="material-symbols-outlined text-[#137fec] text-2xl">analytics</span>
               <h3 className="text-white font-semibold text-lg">当前配置预览</h3>
             </div>
-            
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-[#1f2d39] rounded-xl">
                 <p className="text-gray-400 text-sm mb-1">点名日期</p>
@@ -1276,8 +1128,6 @@ export default function AdminSettings() {
           </div>
         </div>
       )}
-
-      {/* 成功提示 */}
       {showSuccess && (
         <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-full duration-300">
           <div className="flex items-center gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-xl bg-green-500/20 border-green-500/30">

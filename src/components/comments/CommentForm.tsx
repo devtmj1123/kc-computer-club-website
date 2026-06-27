@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { useState } from 'react';
@@ -19,7 +18,6 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // 未登录提示
   if (!user) {
     return (
       <div className="border rounded-lg p-6 text-center" style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--foreground)' }}>
@@ -110,7 +108,6 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
         </div>
       </div>
 
-      {/* 成功消息 */}
       {successMessage && (
         <div className="bg-[#13ec80]/10 rounded p-2 flex items-center gap-2">
           <span className="material-symbols-outlined text-[#13ec80] text-lg">check_circle</span>
@@ -118,7 +115,6 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
         </div>
       )}
 
-      {/* 错误消息 */}
       {errorMessage && (
         <div className="bg-red-500/10 rounded p-2 flex items-center gap-2">
           <span className="material-symbols-outlined text-red-400 text-lg">error</span>
@@ -126,7 +122,6 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
         </div>
       )}
 
-      {/* 评论内容 */}
       <div>
         <label htmlFor="content" className="block text-[#9db9ab] text-sm font-medium mb-2">
           评论内容 <span className="text-red-400">*</span>
@@ -143,7 +138,6 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
         />
       </div>
 
-      {/* 提交按钮 */}
       <Button
         type="submit"
         variant="primary"

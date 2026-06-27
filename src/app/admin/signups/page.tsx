@@ -1,16 +1,9 @@
 'use client';
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
-
-// ========================================
-// Admin Signups 管理页
-// 显示所有活动的报名列表汇总
-// ========================================
-
 interface Signup {
   id: string;
   activityId: string;
@@ -22,7 +15,6 @@ interface Signup {
   status: 'confirmed' | 'pending' | 'cancelled';
   grade: string;
 }
-
 export default function AdminSignups() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -32,25 +24,18 @@ export default function AdminSignups() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'confirmed' | 'pending' | 'cancelled'>('all');
   const [selectedSignups, setSelectedSignups] = useState<Set<string>>(new Set());
-
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
-
-  // 加载所有报名数据
   useEffect(() => {
     if (user && 'role' in user && user.role === 'admin') {
       loadSignups();
     }
   }, [user]);
-
-  // 搜索和筛选
   useEffect(() => {
     let filtered = signups;
-
-    // 按搜索词筛选
     if (searchTerm) {
       filtered = filtered.filter(
         (s) =>
@@ -59,32 +44,22 @@ export default function AdminSignups() {
           s.activityTitle.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
-    // 按状态筛选
     if (filterStatus !== 'all') {
       filtered = filtered.filter((s) => s.status === filterStatus);
     }
-
     setFilteredSignups(filtered);
   }, [signups, searchTerm, filterStatus]);
-
   const loadSignups = async () => {
     try {
       setIsLoadingData(true);
-
-      // 获取所有活动
       const activitiesRes = await fetch('/api/activities');
       const activitiesData = await activitiesRes.json();
       const activities = activitiesData.success ? (activitiesData.activities || []) : [];
-
-      // 获取所有报名数据
       const allSignups: Signup[] = [];
-
       for (const activity of activities) {
         try {
           const signupsRes = await fetch(`/api/signups?activityId=${activity.$id}`);
           const signupsData = await signupsRes.json();
-
           if (signupsData.success && Array.isArray(signupsData.signups)) {
             signupsData.signups.forEach((signup: Record<string, unknown>) => {
               allSignups.push({
@@ -104,10 +79,7 @@ export default function AdminSignups() {
           console.error(`加载活动 ${activity.$id} 的报名失败:`, err);
         }
       }
-
-      // 按时间倒序排列
       allSignups.sort((a, b) => new Date(b.signupDate).getTime() - new Date(a.signupDate).getTime());
-
       setSignups(allSignups);
       setFilteredSignups(allSignups);
     } catch (err) {
@@ -116,7 +88,6 @@ export default function AdminSignups() {
       setIsLoadingData(false);
     }
   };
-
   const handleSelectSignup = (id: string) => {
     const newSelected = new Set(selectedSignups);
     if (newSelected.has(id)) {
@@ -126,7 +97,6 @@ export default function AdminSignups() {
     }
     setSelectedSignups(newSelected);
   };
-
   const handleSelectAll = () => {
     if (selectedSignups.size === filteredSignups.length) {
       setSelectedSignups(new Set());
@@ -134,7 +104,6 @@ export default function AdminSignups() {
       setSelectedSignups(new Set(filteredSignups.map((s) => s.id)));
     }
   };
-
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       const res = await fetch(`/api/signups/${id}`, {
@@ -142,9 +111,7 @@ export default function AdminSignups() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-
       if (res.ok) {
-        // 更新本地状态
         setSignups((prev) =>
           prev.map((s) =>
             s.id === id ? { ...s, status: newStatus as 'confirmed' | 'pending' | 'cancelled' } : s
@@ -155,7 +122,6 @@ export default function AdminSignups() {
       console.error('更新报名状态失败:', err);
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -168,7 +134,6 @@ export default function AdminSignups() {
         return 'bg-gray-500/10 text-gray-400';
     }
   };
-
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -181,7 +146,6 @@ export default function AdminSignups() {
         return '未知';
     }
   };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a1220]">
@@ -194,23 +158,17 @@ export default function AdminSignups() {
       </div>
     );
   }
-
   if (!user) {
     return null;
   }
-
   return (
     <AdminLayout adminName="管理员">
-      {/* 页面标题 */}
       <div className="mb-8">
         <h1 className="text-3xl font-black text-white mb-2">活动报名管理</h1>
         <p className="text-gray-400">管理所有学生的活动报名申请</p>
       </div>
-
-      {/* 搜索和筛选区域 */}
       <div className="mb-6 bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* 搜索框 */}
           <div className="lg:col-span-2">
             <label className="block text-sm font-medium text-gray-300 mb-2">搜索学生或活动</label>
             <input
@@ -221,8 +179,6 @@ export default function AdminSignups() {
               className="w-full px-4 py-2 bg-[#0f1a25] border border-[#283946] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#137fec]"
             />
           </div>
-
-          {/* 状态筛选 */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">状态</label>
             <select
@@ -236,8 +192,6 @@ export default function AdminSignups() {
               <option value="cancelled">已取消</option>
             </select>
           </div>
-
-          {/* 刷新按钮 */}
           <div className="flex items-end">
             <Button
               variant="primary"
@@ -250,8 +204,6 @@ export default function AdminSignups() {
           </div>
         </div>
       </div>
-
-      {/* 统计信息 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-[#1a2632] border border-[#283946] rounded-xl p-4">
           <p className="text-gray-400 text-sm mb-1">总报名数</p>
@@ -266,10 +218,7 @@ export default function AdminSignups() {
           <p className="text-3xl font-black text-green-400">{signups.filter((s) => s.status === 'confirmed').length}</p>
         </div>
       </div>
-
-      {/* 报名列表 */}
       <div className="bg-[#1a2632] border border-[#283946] rounded-2xl overflow-hidden">
-        {/* 表头 */}
         <div className="px-6 py-4 border-b border-[#283946] flex items-center gap-4">
           <input
             type="checkbox"
@@ -280,8 +229,6 @@ export default function AdminSignups() {
           <h2 className="text-lg font-bold text-white flex-1">报名列表</h2>
           <span className="text-gray-400 text-sm">{filteredSignups.length} 条结果</span>
         </div>
-
-        {/* 表格内容 */}
         <div className="divide-y divide-[#283946]">
           {filteredSignups.length === 0 ? (
             <div className="px-6 py-12 text-center">

@@ -1,11 +1,8 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-
 interface Attendee {
   id: string;
   name: string;
@@ -14,9 +11,8 @@ interface Attendee {
   avatar: string;
   status: 'present' | 'absent' | 'late' | 'pending';
   checkInTime?: string;
-  notes?: string; // 迟到原因备注
+  notes?: string; 
 }
-
 interface SessionInfo {
   id: string;
   title: string;
@@ -25,18 +21,13 @@ interface SessionInfo {
   location: string;
   totalRegistered: number;
 }
-
-// No mock data - this page should use real attendance API
-
 export default function TakeAttendancePage() {
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
   const params = useParams();
-  const [session/* , setSession */] = useState<SessionInfo | null>(null);
+  const [session, setSession] = useState<SessionInfo | null>(null);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [filter, setFilter] = useState<'all' | 'present' | 'absent' | 'late' | 'pending'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingNotes, setEditingNotes] = useState<{ attendeeId: string; notes: string } | null>(null);
-
   const filteredAttendees = attendees.filter((attendee) => {
     const matchesFilter = filter === 'all' || attendee.status === filter;
     const matchesSearch = 
@@ -44,28 +35,24 @@ export default function TakeAttendancePage() {
       attendee.studentId.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
-
   const stats = {
     present: attendees.filter((a) => a.status === 'present').length,
     absent: attendees.filter((a) => a.status === 'absent').length,
     late: attendees.filter((a) => a.status === 'late').length,
     pending: attendees.filter((a) => a.status === 'pending').length,
   };
-
   const statusLabels: Record<string, string> = {
     present: '出席',
     absent: '缺席',
     late: '迟到',
     pending: '未点名',
   };
-
   const statusColors: Record<string, string> = {
     present: 'bg-green-900/30 text-green-400',
     absent: 'bg-red-900/30 text-red-400',
     late: 'bg-amber-900/30 text-amber-400',
     pending: 'bg-gray-800 text-gray-400',
   };
-
   const handleStatusChange = (attendeeId: string, newStatus: Attendee['status']) => {
     setAttendees(attendees.map((a) => {
       if (a.id === attendeeId) {
@@ -80,7 +67,6 @@ export default function TakeAttendancePage() {
       return a;
     }));
   };
-
   const markAllPresent = () => {
     const currentTime = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     setAttendees(attendees.map((a) => ({
@@ -89,14 +75,12 @@ export default function TakeAttendancePage() {
       checkInTime: a.checkInTime || currentTime,
     })));
   };
-
   const markAllPendingAbsent = () => {
     setAttendees(attendees.map((a) => ({
       ...a,
       status: a.status === 'pending' ? 'absent' : a.status,
     })));
   };
-
   const handleSaveNotes = (attendeeId: string, notes: string) => {
     setAttendees(attendees.map((a) => {
       if (a.id === attendeeId) {
@@ -109,7 +93,6 @@ export default function TakeAttendancePage() {
     }));
     setEditingNotes(null);
   };
-
   if (!session) {
     return (
       <AdminLayout>
@@ -119,11 +102,9 @@ export default function TakeAttendancePage() {
       </AdminLayout>
     );
   }
-
   return (
     <AdminLayout>
       <div className="p-6 lg:p-8">
-        {/* 页面标题 */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <Link
@@ -167,8 +148,6 @@ export default function TakeAttendancePage() {
             </button>
           </div>
         </div>
-
-        {/* 统计卡片 */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           <div className="bg-[#1a2632] rounded-xl p-4 border border-[#2a3c54]">
             <div className="flex items-center justify-between">
@@ -181,7 +160,6 @@ export default function TakeAttendancePage() {
               </div>
             </div>
           </div>
-
           <div className="bg-[#1a2632] rounded-xl p-4 border border-[#2a3c54]">
             <div className="flex items-center justify-between">
               <div>
@@ -193,7 +171,6 @@ export default function TakeAttendancePage() {
               </div>
             </div>
           </div>
-
           <div className="bg-[#1a2632] rounded-xl p-4 border border-[#2a3c54]">
             <div className="flex items-center justify-between">
               <div>
@@ -205,7 +182,6 @@ export default function TakeAttendancePage() {
               </div>
             </div>
           </div>
-
           <div className="bg-[#1a2632] rounded-xl p-4 border border-[#2a3c54]">
             <div className="flex items-center justify-between">
               <div>
@@ -218,8 +194,6 @@ export default function TakeAttendancePage() {
             </div>
           </div>
         </div>
-
-        {/* 筛选和搜索 */}
         <div className="flex flex-wrap items-center gap-4 mb-6">
           <div className="flex items-center gap-2 p-1 bg-[#1a2632] rounded-xl border border-[#2a3c54]">
             {(['all', 'pending', 'present', 'late', 'absent'] as const).map((status) => (
@@ -236,7 +210,6 @@ export default function TakeAttendancePage() {
               </button>
             ))}
           </div>
-
           <div className="flex-1 min-w-50 max-w-md">
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6188a9]">search</span>
@@ -250,8 +223,6 @@ export default function TakeAttendancePage() {
             </div>
           </div>
         </div>
-
-        {/* 学生列表 */}
         <div className="bg-[#1a2632] rounded-xl border border-[#2a3c54] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -354,7 +325,6 @@ export default function TakeAttendancePage() {
               </tbody>
             </table>
           </div>
-
           {filteredAttendees.length === 0 && (
             <div className="p-12 text-center">
               <span className="material-symbols-outlined text-5xl text-[#2a3c54] mb-4">person_search</span>
@@ -362,8 +332,6 @@ export default function TakeAttendancePage() {
             </div>
           )}
         </div>
-
-        {/* 底部操作栏 */}
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4 p-4 bg-[#1a2632] rounded-xl border border-[#2a3c54]">
           <div className="text-sm text-[#8ba9c8]">
             共 {attendees.length} 名学生，已点名 {attendees.filter((a) => a.status !== 'pending').length} 人
@@ -379,8 +347,6 @@ export default function TakeAttendancePage() {
             </button>
           </div>
         </div>
-
-        {/* 编辑备注模态框 */}
         {editingNotes && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-[#1a2632] rounded-xl border border-[#2a3c54] max-w-md w-full p-6 shadow-2xl">
@@ -392,14 +358,12 @@ export default function TakeAttendancePage() {
                   学生：{attendees.find((a) => a.id === editingNotes.attendeeId)?.name}
                 </p>
               </div>
-
               <textarea
                 value={editingNotes.notes}
                 onChange={(e) => setEditingNotes({ ...editingNotes, notes: e.target.value })}
                 placeholder="请输入迟到原因...（如：车迟到、突发事件等）"
                 className="w-full h-24 p-3 rounded-lg bg-[#0d1f33] border border-[#2a3c54] text-sm text-white placeholder:text-[#6188a9] focus:outline-none focus:ring-2 focus:ring-[#137fec] resize-none"
               />
-
               <div className="mt-6 flex items-center gap-3">
                 <button
                   onClick={() => setEditingNotes(null)}

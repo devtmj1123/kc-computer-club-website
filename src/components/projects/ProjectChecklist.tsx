@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -28,33 +27,27 @@ export function ProjectChecklistComponent({
   const [newItemTitle, setNewItemTitle] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
 
-  // 检查当前用户是否是项目成员
   const isUserMember = (): boolean => {
     if (!user?.email) return false;
     const userEmail = user.email.toLowerCase().trim();
-    
-    // 检查是否是组长
+
     if (leaderEmail && leaderEmail.toLowerCase().trim() === userEmail) {
       return true;
     }
-    
-    // 检查是否是成员
-    return projectMembers.some(m => 
+
+    return projectMembers.some(m =>
       m.email && m.email.toLowerCase().trim() === userEmail
     );
   };
 
-  // 如果用户不是成员，强制只读
   const effectiveReadOnly = isReadOnly || !isUserMember();
 
-  // 计算进度百分比
   const calculateProgress = (items: ChecklistItem[]): number => {
     if (items.length === 0) return 0;
     const completed = items.filter(item => item.completed).length;
     return Math.round((completed / items.length) * 100);
   };
 
-  // 切换检查清单项目
   const handleToggleItem = async (itemId: string) => {
     if (effectiveReadOnly || !checklist || !user?.email) return;
 
@@ -76,7 +69,6 @@ export function ProjectChecklistComponent({
         updatedAt: new Date().toISOString(),
       };
 
-      // 调用 API 更新（发送用户邮箱进行权限验证）
       const response = await fetch(`/api/projects/${projectId}/checklist`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -98,7 +90,6 @@ export function ProjectChecklistComponent({
     }
   };
 
-  // 添加新项目
   const handleAddItem = async () => {
     if (!newItemTitle.trim() || !checklist || !user?.email) return;
 
@@ -118,7 +109,6 @@ export function ProjectChecklistComponent({
         updatedAt: new Date().toISOString(),
       };
 
-      // 调用 API 更新（发送用户邮箱进行权限验证）
       const response = await fetch(`/api/projects/${projectId}/checklist`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -142,7 +132,6 @@ export function ProjectChecklistComponent({
     }
   };
 
-  // 删除项目
   const handleDeleteItem = async (itemId: string) => {
     if (effectiveReadOnly || !checklist || !user?.email) return;
 
@@ -155,7 +144,6 @@ export function ProjectChecklistComponent({
         updatedAt: new Date().toISOString(),
       };
 
-      // 调用 API 更新（发送用户邮箱进行权限验证）
       const response = await fetch(`/api/projects/${projectId}/checklist`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -179,7 +167,7 @@ export function ProjectChecklistComponent({
 
   if (!checklist || !checklist.items || checklist.items.length === 0) {
     return (
-      <div className="bg-[#1a2c24] rounded-2xl p-6 lg:p-8 border border-white/10">
+      <div className="bg-[var(--nm-bg)] rounded-[28px] p-6 lg:p-8 shadow-[var(--nm-raised)]">
         <h3 className="text-lg font-bold mb-4">项目检查清单</h3>
         {effectiveReadOnly && !isUserMember() ? (
           <p className="text-gray-400 mb-6">你不是此项目的成员，无法编辑检查清单</p>
@@ -194,7 +182,7 @@ export function ProjectChecklistComponent({
               value={newItemTitle}
               onChange={(e) => setNewItemTitle(e.target.value)}
               placeholder="输入任务标题..."
-              className="w-full px-4 py-3 rounded-lg bg-[#101922] border border-[#2a3c34] text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#13ec80]"
+              className="w-full px-4 py-3 rounded-2xl bg-[var(--nm-bg)] shadow-[var(--nm-inset)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] focus:outline-none"
               disabled={isLoading}
             />
             <textarea
@@ -202,13 +190,13 @@ export function ProjectChecklistComponent({
               onChange={(e) => setNewItemDescription(e.target.value)}
               placeholder="输入任务描述（可选）..."
               rows={2}
-              className="w-full px-4 py-3 rounded-lg bg-[#101922] border border-[#2a3c34] text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#13ec80] resize-none"
+              className="w-full px-4 py-3 rounded-2xl bg-[var(--nm-bg)] shadow-[var(--nm-inset)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] focus:outline-none resize-none"
               disabled={isLoading}
             />
             <button
               onClick={handleAddItem}
               disabled={isLoading || !newItemTitle.trim()}
-              className="w-full px-4 py-2 bg-[#13ec80] hover:bg-[#0fd673] text-[#102219] font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 bg-[#13ec80] hover:bg-[#0fd673] text-[#102219] font-bold rounded-2xl shadow-[var(--nm-raised-sm)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? '添加中...' : '添加第一个任务'}
             </button>
@@ -221,7 +209,7 @@ export function ProjectChecklistComponent({
   const progress = calculateProgress(checklist.items);
 
   return (
-    <div className="bg-[#1a2c24] rounded-2xl p-6 lg:p-8 border border-white/10">
+    <div className="bg-[var(--nm-bg)] rounded-[28px] p-6 lg:p-8 shadow-[var(--nm-raised)]">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-bold">项目检查清单</h3>
         <div className="flex items-center gap-3">
@@ -232,9 +220,8 @@ export function ProjectChecklistComponent({
         </div>
       </div>
 
-      {/* 进度条 */}
       <div className="mb-6">
-        <div className="w-full h-2 bg-[#101922] rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-[var(--surface-hover)] rounded-full overflow-hidden shadow-[var(--nm-inset-sm)]">
           <div
             className="h-full bg-[#13ec80] transition-all"
             style={{ width: `${progress}%` }}
@@ -245,12 +232,11 @@ export function ProjectChecklistComponent({
         </p>
       </div>
 
-      {/* 检查清单项目 */}
       <div className="space-y-2 mb-6">
         {checklist.items.map((item, index) => (
           <div
             key={item.id}
-            className="flex items-start gap-3 p-3 rounded-lg bg-[#101922] hover:bg-[#1a2c24] transition-colors group"
+            className="flex items-start gap-3 p-3 rounded-2xl bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] group"
           >
             <input
               type="checkbox"
@@ -263,17 +249,17 @@ export function ProjectChecklistComponent({
               <p
                 className={`font-medium transition-all ${
                   item.completed
-                    ? 'text-gray-500 line-through'
-                    : 'text-white'
+                    ? 'text-[var(--text-secondary)] line-through'
+                    : 'text-[var(--foreground)]'
                 }`}
               >
                 {item.title}
               </p>
               {item.description && (
-                <p className="text-sm text-gray-400 mt-1">{item.description}</p>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">{item.description}</p>
               )}
               {item.completedAt && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">
                   ✓ 完成于 {new Date(item.completedAt).toLocaleDateString('zh-CN')}
                 </p>
               )}
@@ -282,7 +268,7 @@ export function ProjectChecklistComponent({
               <button
                 onClick={() => handleDeleteItem(item.id)}
                 disabled={isLoading}
-                className="shrink-0 p-1 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                className="shrink-0 p-1 text-[var(--text-secondary)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
               >
                 <span className="material-symbols-outlined text-lg">delete</span>
               </button>
@@ -291,15 +277,14 @@ export function ProjectChecklistComponent({
         ))}
       </div>
 
-      {/* 添加新项目表单 */}
       {!effectiveReadOnly && (
-        <div className="border-t border-[#2a3c34] pt-4 space-y-3">
+        <div className="pt-4 space-y-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <input
             type="text"
             value={newItemTitle}
             onChange={(e) => setNewItemTitle(e.target.value)}
             placeholder="输入新任务..."
-            className="w-full px-3 py-2 rounded-lg bg-[#101922] border border-[#2a3c34] text-white placeholder:text-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-[#13ec80]"
+            className="w-full px-3 py-2 rounded-2xl bg-[var(--nm-bg)] shadow-[var(--nm-inset)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] text-sm focus:outline-none"
             disabled={isLoading}
           />
           <textarea
@@ -307,13 +292,13 @@ export function ProjectChecklistComponent({
             onChange={(e) => setNewItemDescription(e.target.value)}
             placeholder="任务描述（可选）..."
             rows={2}
-            className="w-full px-3 py-2 rounded-lg bg-[#101922] border border-[#2a3c34] text-white placeholder:text-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-[#13ec80] resize-none"
+            className="w-full px-3 py-2 rounded-2xl bg-[var(--nm-bg)] shadow-[var(--nm-inset)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] text-sm focus:outline-none resize-none"
             disabled={isLoading}
           />
           <button
             onClick={handleAddItem}
             disabled={isLoading || !newItemTitle.trim()}
-            className="w-full px-3 py-2 bg-[#13ec80] hover:bg-[#0fd673] text-[#102219] font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            className="w-full px-3 py-2 bg-[#13ec80] hover:bg-[#0fd673] text-[#102219] font-bold rounded-2xl shadow-[var(--nm-raised-sm)] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             {isLoading ? '添加中...' : '添加任务'}
           </button>

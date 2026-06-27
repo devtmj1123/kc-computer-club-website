@@ -1,21 +1,12 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import Link from 'next/link';
-
-/**
- * 管理员编辑学生账户页面
- * 允许管理员修改学生信息
- */
-
-// 分组级别选项
 const groupLevelOptions = [
   { value: '', label: '选择分组级别' },
   { value: '初级组 \'1 学点\'', label: '初级组 (1学点)' },
@@ -24,15 +15,11 @@ const groupLevelOptions = [
   { value: '高级组 \'2 学点\'', label: '高级组 (2学点)' },
   { value: '服务组', label: '服务组' },
 ];
-
-// 级别选项
 const levelOptions = [
   { value: '', label: '选择级别' },
   { value: 'Advance \'高级\'', label: '高级 (Advance)' },
   { value: 'Beginner \'初级\'', label: '初级 (Beginner)' },
 ];
-
-// 职位选项
 const positionOptions = [
   { value: '', label: '选择职位（可选）' },
   { value: '主席', label: '主席' },
@@ -45,7 +32,6 @@ const positionOptions = [
   { value: '组长', label: '组长' },
   { value: '成员', label: '成员' },
 ];
-
 interface FormData {
   studentId: string;
   chineseName: string;
@@ -62,7 +48,6 @@ interface FormData {
   position: string;
   notes: string;
 }
-
 interface StudentInfo {
   $id: string;
   email: string;
@@ -81,12 +66,10 @@ interface StudentInfo {
   notes: string;
   role: string;
 }
-
 export default function EditStudentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
-  
   const [isLoading, setIsLoading] = useState(true);
   const [student, setStudent] = useState<StudentInfo | null>(null);
   const [formData, setFormData] = useState<FormData>({
@@ -105,24 +88,18 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
     position: '',
     notes: '',
   });
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-
-  // 权限检查
   if (!isAuthLoading && (!user || !('role' in user) || user.role !== 'admin')) {
     router.push('/admin/login');
     return null;
   }
-
-  // 加载学生数据
   useEffect(() => {
     const fetchStudent = async () => {
       try {
         const response = await fetch(`/api/admin/students/${id}`);
         const data = await response.json();
-        
         if (data.success && data.student) {
           setStudent(data.student);
           setFormData({
@@ -151,24 +128,19 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
         setIsLoading(false);
       }
     };
-
     if (id) {
       fetchStudent();
     }
   }, [id]);
-
   const handleChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError('');
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
-
     try {
-      // 验证必填字段
       if (!formData.studentId.trim()) {
         throw new Error('学号不能为空');
       }
@@ -184,13 +156,10 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
       if (!formData.email.trim()) {
         throw new Error('邮箱不能为空');
       }
-      // 验证邮箱格式
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
         throw new Error('请输入有效的邮箱地址');
       }
-
-      // 准备更新数据
       const updateData = {
         studentId: formData.studentId.trim(),
         chineseName: formData.chineseName.trim(),
@@ -207,34 +176,25 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
         position: formData.position,
         notes: formData.notes.trim(),
       };
-
-      // 调用 API 更新学生信息
       const response = await fetch(`/api/admin/students/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         throw new Error(result.error || '更新学生信息失败');
       }
-
       setSuccess(true);
-      
-      // 2秒后跳转到学生列表
       setTimeout(() => {
         router.push('/admin/students');
       }, 1500);
-      
     } catch (err) {
       setError(err instanceof Error ? err.message : '更新学生信息失败');
     } finally {
       setIsSubmitting(false);
     }
   };
-
   if (isAuthLoading || isLoading) {
     return (
       <AdminLayout adminName="">
@@ -248,7 +208,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
       </AdminLayout>
     );
   }
-
   if (!student && !isLoading) {
     return (
       <AdminLayout adminName={user?.name || '管理员'}>
@@ -269,11 +228,9 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
       </AdminLayout>
     );
   }
-
   return (
     <AdminLayout adminName={user?.name || '管理员'}>
       <div className="max-w-4xl">
-        {/* 页面标题 */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
             <Link href="/admin/students" className="hover:text-white transition-colors">
@@ -287,8 +244,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
             修改学生账户信息。当前邮箱: <code className="bg-[#283a4f] px-2 py-0.5 rounded text-[#137fec]">{formData.email}</code>
           </p>
         </div>
-
-        {/* 成功提示 */}
         {success && (
           <div className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-3">
             <span className="material-symbols-outlined text-green-400">check_circle</span>
@@ -298,24 +253,18 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
         )}
-
-        {/* 错误提示 */}
         {error && (
           <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3">
             <span className="material-symbols-outlined text-red-400">error</span>
             <p className="text-red-400">{error}</p>
           </div>
         )}
-
-        {/* 表单 */}
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* 基本信息 */}
           <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6">
             <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
               <span className="material-symbols-outlined text-[#137fec]">person</span>
               基本信息
             </h2>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 label="学号 *"
@@ -326,7 +275,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                 required
                 hint="学生的唯一识别码"
               />
-              
               <Input
                 label="邮箱 *"
                 placeholder="例如: 12345@kuencheng.edu.my"
@@ -336,7 +284,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                 required
                 hint="学生用于登录系统的邮箱地址"
               />
-              
               <Input
                 label="中文姓名 *"
                 placeholder="例如: 张三"
@@ -345,7 +292,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                 leftIcon="person"
                 required
               />
-              
               <Input
                 label="英文姓名"
                 placeholder="例如: Zhang San"
@@ -353,7 +299,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                 onChange={(e) => handleChange('englishName', e.target.value)}
                 leftIcon="translate"
               />
-              
               <Input
                 label="电话号码"
                 placeholder="例如: 012-3456789"
@@ -363,14 +308,11 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
               />
             </div>
           </div>
-
-          {/* 班级信息 */}
           <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6">
             <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
               <span className="material-symbols-outlined text-[#137fec]">school</span>
               班级信息
             </h2>
-            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Input
                 label="班级 (中文)"
@@ -379,7 +321,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                 onChange={(e) => handleChange('classNameCn', e.target.value)}
                 leftIcon="class"
               />
-              
               <Input
                 label="班级 (英文)"
                 placeholder="例如: Sr3ComC"
@@ -387,7 +328,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                 onChange={(e) => handleChange('classNameEn', e.target.value)}
                 leftIcon="class"
               />
-              
               <Input
                 label="班级代号"
                 placeholder="例如: A802"
@@ -397,29 +337,24 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
               />
             </div>
           </div>
-
-          {/* 社团信息 */}
           <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6">
             <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
               <span className="material-symbols-outlined text-[#137fec]">groups</span>
               社团信息
             </h2>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Select
+              <NeumorphicSelect
                 label="分组级别"
                 options={groupLevelOptions}
                 value={formData.groupLevel}
-                onChange={(e) => handleChange('groupLevel', e.target.value)}
+                onChange={(value) => handleChange('groupLevel', value)}
               />
-              
-              <Select
+              <NeumorphicSelect
                 label="级别"
                 options={levelOptions}
                 value={formData.level}
-                onChange={(e) => handleChange('level', e.target.value)}
+                onChange={(value) => handleChange('level', value)}
               />
-              
               <Input
                 label="分组"
                 placeholder="例如: C1 陈俊霖"
@@ -427,14 +362,12 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                 onChange={(e) => handleChange('group', e.target.value)}
                 leftIcon="group"
               />
-              
-              <Select
+              <NeumorphicSelect
                 label="职位"
                 options={positionOptions}
                 value={formData.position}
-                onChange={(e) => handleChange('position', e.target.value)}
+                onChange={(value) => handleChange('position', value)}
               />
-              
               <Input
                 label="Instagram"
                 placeholder="例如: @username"
@@ -442,7 +375,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
                 onChange={(e) => handleChange('instagram', e.target.value)}
                 leftIcon="photo_camera"
               />
-              
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-white mb-2">备注</label>
                 <textarea
@@ -455,8 +387,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
           </div>
-
-          {/* 提交按钮 */}
           <div className="flex items-center justify-between pt-4">
             <Link
               href="/admin/students"
@@ -465,7 +395,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
               <span className="material-symbols-outlined">arrow_back</span>
               返回列表
             </Link>
-            
             <div className="flex gap-4">
               <Button
                 type="button"
@@ -495,7 +424,6 @@ export default function EditStudentPage({ params }: { params: Promise<{ id: stri
               >
                 重置更改
               </Button>
-              
               <Button
                 type="submit"
                 variant="primary"

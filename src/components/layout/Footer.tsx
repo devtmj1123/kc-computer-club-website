@@ -1,15 +1,8 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-
-// ========================================
-// Footer 组件
-// 完整的页脚设计，支持浅色/深色主题
-// 自动从社团设置获取数据
-// ========================================
 
 interface FooterLink {
   label: string;
@@ -36,7 +29,6 @@ interface ClubSettings {
 }
 
 interface FooterProps {
-  /** 额外类名 */
   className?: string;
 }
 
@@ -51,10 +43,10 @@ const defaultResourceLinks: FooterLink[] = [
   { label: '签到系统', href: '/attendance', icon: 'event_available' },
   { label: '群聊讨论', href: '/chat', icon: 'chat' },
   { label: '提交项目', href: '/projects/submit', icon: 'lightbulb' },
+  { label: '开发者教程', href: '/tutorial', icon: 'school' },
   { label: '帮助中心', href: '/help', icon: 'help' },
 ];
 
-// 社交媒体图标
 const SocialIcon = ({ platform }: { platform: SocialLink['platform'] }) => {
   switch (platform) {
     case 'github':
@@ -84,7 +76,6 @@ export function Footer({ className }: FooterProps) {
   const [settings, setSettings] = useState<ClubSettings | null>(null);
   const currentYear = new Date().getFullYear();
 
-  // 从 API 获取社团设置
   useEffect(() => {
     async function fetchSettings() {
       try {
@@ -102,14 +93,12 @@ export function Footer({ className }: FooterProps) {
     fetchSettings();
   }, []);
 
-  // 使用设置或默认值
   const clubName = settings?.aboutTitle || '康中电脑学会';
   const description = settings?.aboutDescription || '培养学生编程能力和创新思维，推动校园信息技术教育。加入我们，一起探索技术的无限可能。';
   const email = settings?.aboutEmail || 'computerclub@kuencheng.edu.my';
   const address = settings?.aboutLocation || '电脑室 A304，科学楼三楼';
   const meetingTime = settings?.aboutMeetingTime || '每周五 16:00 - 18:00';
 
-  // 根据设置动态生成社交链接
   const socialLinks: SocialLink[] = [];
   if (settings?.githubUrl) {
     socialLinks.push({ platform: 'github', href: settings.githubUrl, label: 'GitHub' });
@@ -123,7 +112,6 @@ export function Footer({ className }: FooterProps) {
   if (settings?.youtubeUrl) {
     socialLinks.push({ platform: 'youtube', href: settings.youtubeUrl, label: 'YouTube' });
   }
-  // 如果没有任何社交链接，使用默认链接
   if (socialLinks.length === 0) {
     socialLinks.push(
       { platform: 'github', href: 'https://github.com', label: 'GitHub' },
@@ -142,10 +130,8 @@ export function Footer({ className }: FooterProps) {
         className
       )}
     >
-      {/* 主要内容区 */}
       <div className="mx-auto max-w-300 px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12">
-          {/* 社团信息 - 占 5 列 */}
           <div className="lg:col-span-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/20">
@@ -160,12 +146,11 @@ export function Footer({ className }: FooterProps) {
                 </p>
               </div>
             </div>
-            
+
             <p className="text-gray-600 dark:text-gray-400 text-sm max-w-sm mb-6 leading-relaxed">
               {description}
             </p>
 
-            {/* 社交媒体链接 */}
             <div className="flex flex-wrap gap-2">
               {socialLinks.map((link) => (
                 <a
@@ -189,7 +174,6 @@ export function Footer({ className }: FooterProps) {
             </div>
           </div>
 
-          {/* 快速链接 - 占 2 列 */}
           <div className="lg:col-span-2">
             <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">
               快速链接
@@ -213,7 +197,6 @@ export function Footer({ className }: FooterProps) {
             </ul>
           </div>
 
-          {/* 资源链接 - 占 2 列 */}
           <div className="lg:col-span-2">
             <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">
               资源
@@ -237,14 +220,13 @@ export function Footer({ className }: FooterProps) {
             </ul>
           </div>
 
-          {/* 联系信息 - 占 3 列 */}
           <div className="lg:col-span-3">
             <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">
               联系我们
             </h3>
             <ul className="space-y-4">
               <li>
-                <a 
+                <a
                   href={`mailto:${email}`}
                   className="flex items-start gap-3 text-gray-600 dark:text-gray-400 hover:text-primary transition-colors group"
                 >
@@ -280,7 +262,6 @@ export function Footer({ className }: FooterProps) {
         </div>
       </div>
 
-      {/* 版权信息 */}
       <div className="border-t border-gray-200 dark:border-[#283930]">
         <div className="mx-auto max-w-300 px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-500">

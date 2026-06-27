@@ -1,27 +1,10 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
-
-/**
- * GET /api/attendance/auto-mark-absent
- * 自动标记缺席的学生
- * 
- * 触发时机：
- * - 第一时段结束后 (15:25) → POST 到 /api/attendance/mark-absent
- * - 第二时段结束后 (16:40) → POST 到 /api/attendance/mark-absent
- * 
- * Query:
- * - sessionTime: '15:20' | '16:35'
- * - weekNumber: number
- * - trigger: 'session1-end' | 'session2-end'（用于日志）
- */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const sessionTime = searchParams.get('sessionTime') || '15:20';
     const weekNumber = parseInt(searchParams.get('weekNumber') || '1', 10);
     const trigger = searchParams.get('trigger') || '手动触发';
-
-    // 调用 mark-absent API
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const markAbsentResponse = await fetch(`${baseUrl}/api/attendance/mark-absent`, {
       method: 'POST',
@@ -31,12 +14,9 @@ export async function GET(request: NextRequest) {
         weekNumber,
       }),
     });
-
     const markAbsentData = await markAbsentResponse.json();
-
     console.log(`[AUTO-MARK-ABSENT] 触发条件: ${trigger}, 时段: ${sessionTime}, 周数: ${weekNumber}`);
     console.log('[AUTO-MARK-ABSENT] 标记完成:', markAbsentData);
-
     return NextResponse.json({
       success: true,
       trigger,

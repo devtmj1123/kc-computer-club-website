@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Client, Databases, Storage, Account } from 'appwrite';
 
 const client = new Client();

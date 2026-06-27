@@ -1,9 +1,5 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
-
-// 模拟通知数据库
 const notificationsStore: Map<string, Notification[]> = new Map();
-
 export interface Notification {
   id: string;
   userId: string;
@@ -14,30 +10,22 @@ export interface Notification {
   createdAt: string;
   relatedId?: string;
 }
-
-// GET 获取用户的通知
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
-
     if (!userId) {
       return NextResponse.json(
         { success: false, error: '缺少 userId 参数' },
         { status: 400 }
       );
     }
-
     let notifications = notificationsStore.get(userId) || [];
-
     if (unreadOnly) {
       notifications = notifications.filter((n) => !n.read);
     }
-
-    // 按创建时间倒序排列
     notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
     return NextResponse.json({
       success: true,
       notifications,
@@ -51,20 +39,16 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-// POST 创建通知
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { userId, title, message, type, relatedId } = body;
-
     if (!userId || !title || !message || !type) {
       return NextResponse.json(
         { success: false, error: '缺少必要参数' },
         { status: 400 }
       );
     }
-
     const notification: Notification = {
       id: Date.now().toString(),
       userId,
@@ -75,11 +59,9 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
       relatedId,
     };
-
     const userNotifications = notificationsStore.get(userId) || [];
     userNotifications.push(notification);
     notificationsStore.set(userId, userNotifications);
-
     return NextResponse.json({
       success: true,
       notification,
@@ -92,37 +74,28 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// PUT 标记通知为已读
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const { userId, notificationId, markAllAsRead } = body;
-
     if (!userId) {
       return NextResponse.json(
         { success: false, error: '缺少 userId 参数' },
         { status: 400 }
       );
     }
-
     const userNotifications = notificationsStore.get(userId) || [];
-
     if (markAllAsRead) {
-      // 标记所有为已读
       userNotifications.forEach((n) => {
         n.read = true;
       });
     } else if (notificationId) {
-      // 标记单个为已读
       const notification = userNotifications.find((n) => n.id === notificationId);
       if (notification) {
         notification.read = true;
       }
     }
-
     notificationsStore.set(userId, userNotifications);
-
     return NextResponse.json({
       success: true,
       unreadCount: userNotifications.filter((n) => !n.read).length,
@@ -135,24 +108,19 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
-
-// DELETE 删除通知
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
     const { userId, notificationId } = body;
-
     if (!userId || !notificationId) {
       return NextResponse.json(
         { success: false, error: '缺少必要参数' },
         { status: 400 }
       );
     }
-
     const userNotifications = notificationsStore.get(userId) || [];
     const filtered = userNotifications.filter((n) => n.id !== notificationId);
     notificationsStore.set(userId, filtered);
-
     return NextResponse.json({
       success: true,
       message: '通知已删除',

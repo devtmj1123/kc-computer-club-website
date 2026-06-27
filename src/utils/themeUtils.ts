@@ -1,26 +1,17 @@
-/**
- * Theme Utilities
- * Centralized theme color and styling classes for consistent UI across all components
- */
-
 export const THEME_COLORS = {
-  /* Primary Colors */
   primary: '#13ec80',
   primaryHover: '#0fd673',
   primaryLight: 'rgba(19, 236, 128, 0.1)',
   primaryGlow: 'rgba(19, 236, 128, 0.3)',
 
-  /* Admin Colors */
   admin: '#137fec',
   adminHover: '#0f5fcc',
 
-  /* Semantic Colors */
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#3b82f6',
 
-  /* Light Theme */
   light: {
     background: '#f8faf9',
     surface: '#ffffff',
@@ -29,7 +20,6 @@ export const THEME_COLORS = {
     border: '#e2e8e5',
   },
 
-  /* Dark Theme */
   dark: {
     background: '#0d1812',
     surface: '#162a21',
@@ -39,16 +29,10 @@ export const THEME_COLORS = {
   },
 };
 
-/**
- * Get CSS class string for background with theme support
- */
 export function getBgClass(isDark: boolean): string {
   return isDark ? 'bg-[#0d1812]' : 'bg-[#f8faf9]';
 }
 
-/**
- * Get CSS class string for text with theme support
- */
 export function getTextClass(isDark: boolean, type: 'primary' | 'secondary' = 'primary'): string {
   if (type === 'secondary') {
     return isDark ? 'text-[#9db9ab]' : 'text-[#618975]';
@@ -56,9 +40,6 @@ export function getTextClass(isDark: boolean, type: 'primary' | 'secondary' = 'p
   return isDark ? 'text-white' : 'text-black';
 }
 
-/**
- * Get CSS class string for card with theme support
- */
 export function getCardClass(isDark: boolean, hover = true): string {
   const baseClasses = isDark
     ? 'bg-[#162a21] border-[#283930]'
@@ -67,9 +48,6 @@ export function getCardClass(isDark: boolean, hover = true): string {
   return `${baseClasses} ${hoverClass} border rounded-lg transition-colors`;
 }
 
-/**
- * Get CSS class string for button based on variant
- */
 export function getButtonClass(
   variant: 'primary' | 'secondary' | 'danger' | 'success' = 'primary',
   isDark: boolean = false,
@@ -93,18 +71,12 @@ export function getButtonClass(
   return `${sizeClasses[size]} ${variantClasses[variant]} rounded-lg transition-colors cursor-pointer`;
 }
 
-/**
- * Get CSS class string for input fields
- */
 export function getInputClass(isDark: boolean): string {
   return isDark
     ? 'bg-[#102219] border-[#283930] text-white placeholder-[#7a9084] focus:border-[#13ec80] focus:ring-2 focus:ring-opacity-20 focus:ring-[#13ec80]'
     : 'bg-white border-[#d1d9d5] text-black placeholder-[#94a8a1] focus:border-[#13ec80] focus:ring-2 focus:ring-opacity-20 focus:ring-[#13ec80]';
 }
 
-/**
- * Get CSS class string for badge/tag
- */
 export function getBadgeClass(
   type: 'success' | 'warning' | 'error' | 'info' = 'info',
   isDark: boolean = false
@@ -127,9 +99,6 @@ export function getBadgeClass(
   return `${typeClasses[type]} px-2.5 py-1 rounded-full text-sm font-medium`;
 }
 
-/**
- * Get inline styles object for theme colors
- */
 export function getThemeStyles(isDark: boolean) {
   return {
     container: {
@@ -151,9 +120,6 @@ export function getThemeStyles(isDark: boolean) {
   };
 }
 
-/**
- * Tailwind class string generator for common patterns
- */
 export const THEME_CLASSES = {
   container: {
     light: 'bg-[#f8faf9] text-black min-h-screen',

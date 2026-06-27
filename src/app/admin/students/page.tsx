@@ -1,11 +1,8 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { SecureCache } from '@/lib/cache';
 import * as XLSX from 'xlsx';
-
 interface StudentFullInfo {
   $id: string;
   email: string;
@@ -39,7 +36,6 @@ interface StudentFullInfo {
     status: string;
   }>;
 }
-
 interface ImportPreview {
   headers: string[];
   rows: string[][];
@@ -60,43 +56,31 @@ interface ImportPreview {
     notes: string;
   }>;
 }
-
 export default function StudentsPage() {
   const [students, setStudents] = useState<StudentFullInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<StudentFullInfo | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-
-  // 密码重置
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [passwordResetLoading, setPasswordResetLoading] = useState(false);
   const [passwordResetMsg, setPasswordResetMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  
-  // Excel导入相关状态
   const [showImportModal, setShowImportModal] = useState(false);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: Array<{ email: string; error: string }> } | null>(null);
   const [defaultPassword, setDefaultPassword] = useState('Kc@12345');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // 删除确认
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
-
-  // 缓存配置
   const CACHE_KEY = 'admin_students_list';
-  const CACHE_TTL = 5 * 60 * 1000; // 5 分钟缓存
-
-  // 加载学生列表（带缓存）
+  const CACHE_TTL = 5 * 60 * 1000; 
   const fetchStudents = useCallback(async (forceRefresh = false) => {
     setLoading(true);
     try {
-      // 先检查缓存（除非强制刷新）
       if (!forceRefresh) {
         const cached = SecureCache.get<StudentFullInfo[]>(CACHE_KEY, { ttl: CACHE_TTL, encrypt: false });
         if (cached && cached.length > 0) {
@@ -105,13 +89,10 @@ export default function StudentsPage() {
           return;
         }
       }
-
-      // 从 API 获取数据
       const response = await fetch('/api/admin/students');
       const data = await response.json();
       if (data.success) {
         setStudents(data.students);
-        // 更新缓存
         SecureCache.set(CACHE_KEY, data.students, { ttl: CACHE_TTL, encrypt: false });
       }
     } catch (error) {
@@ -120,16 +101,12 @@ export default function StudentsPage() {
       setLoading(false);
     }
   }, []);
-
   useEffect(() => {
     fetchStudents();
   }, [fetchStudents]);
-
-  // 处理Excel文件上传
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -138,19 +115,13 @@ export default function StudentsPage() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
-
         if (jsonData.length < 2) {
           alert('Excel文件至少需要包含标题行和一行数据');
           return;
         }
-
         const headers = jsonData[0].map(h => String(h || '').trim());
         const rows = jsonData.slice(1).filter(row => row.some(cell => cell));
-
-        // 自动检测列映射
         const mapping = detectColumnMapping(headers);
-
-        // 解析学生数据
         const parsedStudents = rows.map(row => {
           const getCell = (colName: string) => {
             const headerName = mapping[colName];
@@ -158,7 +129,6 @@ export default function StudentsPage() {
             const idx = headers.indexOf(headerName);
             return idx >= 0 ? String(row[idx] || '').trim() : '';
           };
-
           return {
             studentId: getCell('studentId'),
             chineseName: getCell('chineseName'),
@@ -175,7 +145,6 @@ export default function StudentsPage() {
             notes: getCell('notes'),
           };
         }).filter(s => s.studentId && s.chineseName);
-
         setImportPreview({
           headers,
           rows,
@@ -189,17 +158,12 @@ export default function StudentsPage() {
       }
     };
     reader.readAsArrayBuffer(file);
-    
-    // 清空文件输入
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
-
-  // 自动检测列映射
   const detectColumnMapping = (headers: string[]): Record<string, string> => {
     const mapping: Record<string, string> = {};
-    
     const patterns: Record<string, string[]> = {
       studentId: ['学号', 'student id', 'id', '编号'],
       chineseName: ['中文姓名', '中文名', '姓名', 'chinese name', '名字'],
@@ -215,10 +179,8 @@ export default function StudentsPage() {
       position: ['职位', 'position', '职务', '岗位'],
       notes: ['备注', 'notes', 'remark', '说明'],
     };
-    
     headers.forEach((header) => {
       const lowerHeader = header.toLowerCase().trim();
-      
       for (const [field, fieldPatterns] of Object.entries(patterns)) {
         if (fieldPatterns.some(p => lowerHeader.includes(p.toLowerCase()) || lowerHeader === p.toLowerCase())) {
           if (!mapping[field]) {
@@ -228,23 +190,15 @@ export default function StudentsPage() {
         }
       }
     });
-    
     return mapping;
   };
-
-  // 从邮箱提取学号
   const extractStudentIdFromEmail = (email: string): string => {
     const match = email.match(/^(\d+)@/);
     return match ? match[1] : '';
   };
-
-  // 更新列映射
   const updateMapping = (field: string, headerName: string) => {
     if (!importPreview) return;
-    
     const newMapping = { ...importPreview.mapping, [field]: headerName };
-    
-    // 重新解析学生数据
     const parsedStudents = importPreview.rows.map(row => {
       const getCell = (colName: string) => {
         const hName = newMapping[colName];
@@ -252,7 +206,6 @@ export default function StudentsPage() {
         const idx = importPreview.headers.indexOf(hName);
         return idx >= 0 ? String(row[idx] || '').trim() : '';
       };
-
       return {
         studentId: getCell('studentId'),
         chineseName: getCell('chineseName'),
@@ -269,21 +222,17 @@ export default function StudentsPage() {
         notes: getCell('notes'),
       };
     }).filter(s => s.studentId && s.chineseName);
-
     setImportPreview({
       ...importPreview,
       mapping: newMapping,
       students: parsedStudents,
     });
   };
-
-  // 执行批量导入
   const handleImport = async () => {
     if (!importPreview || importPreview.students.length === 0) {
       alert('没有有效的学生数据可导入');
       return;
     }
-
     setImporting(true);
     try {
       const response = await fetch('/api/admin/students', {
@@ -293,12 +242,9 @@ export default function StudentsPage() {
           students: importPreview.students,
         }),
       });
-
       const result = await response.json();
       setImportResult(result);
-
       if (result.success > 0) {
-        // 清除缓存并重新获取
         SecureCache.remove(CACHE_KEY);
         fetchStudents(true);
       }
@@ -309,26 +255,21 @@ export default function StudentsPage() {
       setImporting(false);
     }
   };
-
-  // 删除所有学生
   const handleDeleteAll = async () => {
     if (deleteConfirmText !== '确认删除所有学生') {
       alert('请输入确认文本');
       return;
     }
-
     setDeleting(true);
     try {
       const response = await fetch('/api/admin/students', {
         method: 'DELETE',
       });
-
       const result = await response.json();
       if (result.success) {
         alert(`已删除 ${result.deleted} 名学生`);
         setShowDeleteAllModal(false);
         setDeleteConfirmText('');
-        // 清除缓存并重新获取
         SecureCache.remove(CACHE_KEY);
         fetchStudents(true);
       } else {
@@ -341,19 +282,14 @@ export default function StudentsPage() {
       setDeleting(false);
     }
   };
-
-  // 删除单个学生
   const handleDeleteStudent = async (studentId: string) => {
     if (!confirm('确定要删除这名学生吗？')) return;
-
     try {
       const response = await fetch(`/api/admin/students/${studentId}`, {
         method: 'DELETE',
       });
-
       const result = await response.json();
       if (result.success) {
-        // 清除缓存并重新获取
         SecureCache.remove(CACHE_KEY);
         fetchStudents(true);
         if (selectedStudent?.$id === studentId) {
@@ -368,8 +304,6 @@ export default function StudentsPage() {
       alert('删除失败');
     }
   };
-
-  // 管理员重置学生密码
   const handleResetPassword = async () => {
     if (!selectedStudent || !newPassword) return;
     if (newPassword.length < 6) {
@@ -389,7 +323,6 @@ export default function StudentsPage() {
         setPasswordResetMsg({ type: 'success', text: '密码已成功重置' });
         setNewPassword('');
         setShowPasswordReset(false);
-        // 更新本地状态
         setSelectedStudent({ ...selectedStudent, requirePasswordChange: false });
         setStudents(prev => prev.map(s =>
           s.$id === selectedStudent.$id ? { ...s, requirePasswordChange: false } : s
@@ -404,8 +337,6 @@ export default function StudentsPage() {
       setPasswordResetLoading(false);
     }
   };
-
-  // 过滤学生
   const filteredStudents = students.filter(s => 
     s.chineseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.englishName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -417,11 +348,9 @@ export default function StudentsPage() {
     s.group.includes(searchTerm) ||
     s.position.includes(searchTerm)
   );
-
   return (
     <AdminLayout>
       <div style={{ padding: '24px' }}>
-        {/* 页面标题和操作按钮 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'white', margin: 0 }}>
@@ -504,8 +433,6 @@ export default function StudentsPage() {
             </button>
           </div>
         </div>
-
-        {/* 统计卡片 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           <div style={{ background: 'linear-gradient(135deg, #137fec 0%, #0d5bc4 100%)', borderRadius: '16px', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -539,8 +466,6 @@ export default function StudentsPage() {
             </div>
           </div>
         </div>
-
-        {/* 搜索栏 */}
         <div style={{ marginBottom: '20px' }}>
           <div style={{ position: 'relative', maxWidth: '400px' }}>
             <span className="material-symbols-outlined" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#6189a5', fontSize: '20px' }}>search</span>
@@ -561,8 +486,6 @@ export default function StudentsPage() {
             />
           </div>
         </div>
-
-        {/* 学生列表 */}
         <div style={{ backgroundColor: '#1a2632', borderRadius: '16px', overflow: 'hidden' }}>
           {loading ? (
             <div style={{ padding: '60px', textAlign: 'center', color: '#6189a5' }}>
@@ -709,8 +632,6 @@ export default function StudentsPage() {
             </div>
           )}
         </div>
-
-        {/* Excel导入预览弹窗 */}
         {showImportModal && importPreview && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
             <div style={{ backgroundColor: '#1a2632', borderRadius: '20px', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -720,10 +641,8 @@ export default function StudentsPage() {
                   导入预览
                 </h2>
               </div>
-              
               <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
                 {importResult ? (
-                  // 导入结果
                   <div>
                     <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '64px', color: importResult.success > 0 ? '#10b981' : '#ef4444' }}>
@@ -748,9 +667,7 @@ export default function StudentsPage() {
                     )}
                   </div>
                 ) : (
-                  // 预览界面
                   <>
-                    {/* 列映射配置 */}
                     <div style={{ marginBottom: '24px' }}>
                       <h4 style={{ color: 'white', marginBottom: '12px' }}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px', marginRight: '8px', verticalAlign: 'middle' }}>tune</span>
@@ -798,8 +715,6 @@ export default function StudentsPage() {
                         ))}
                       </div>
                     </div>
-
-                    {/* 默认密码提示 */}
                     <div style={{ marginBottom: '24px', backgroundColor: '#101922', padding: '16px', borderRadius: '10px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px', marginRight: '8px', color: '#13ec80' }}>lock</span>
@@ -811,8 +726,6 @@ export default function StudentsPage() {
                         <p style={{ margin: '4px 0' }}>• 新密码不能与学号或默认密码相同</p>
                       </div>
                     </div>
-
-                    {/* 预览数据 */}
                     <div>
                       <h4 style={{ color: 'white', marginBottom: '12px' }}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px', marginRight: '8px', verticalAlign: 'middle' }}>preview</span>
@@ -853,7 +766,6 @@ export default function StudentsPage() {
                   </>
                 )}
               </div>
-
               <div style={{ padding: '20px 24px', borderTop: '1px solid #2a3c4a', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                 <button
                   onClick={() => { setShowImportModal(false); setImportPreview(null); setImportResult(null); }}
@@ -892,8 +804,6 @@ export default function StudentsPage() {
             </div>
           </div>
         )}
-
-        {/* 删除所有学生确认弹窗 */}
         {showDeleteAllModal && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div style={{ backgroundColor: '#1a2632', borderRadius: '20px', width: '100%', maxWidth: '450px', padding: '28px' }}>
@@ -962,8 +872,6 @@ export default function StudentsPage() {
             </div>
           </div>
         )}
-
-        {/* 学生详情弹窗 */}
         {showDetailModal && selectedStudent && (
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
             <div style={{ backgroundColor: '#1a2632', borderRadius: '20px', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -978,9 +886,7 @@ export default function StudentsPage() {
                   <span className="material-symbols-outlined">close</span>
                 </button>
                 </div>
-              
               <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
-                {/* 基本信息 */}
                 <div style={{ backgroundColor: '#101922', borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
                     <div style={{ width: '60px', height: '60px', backgroundColor: '#137fec', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1056,8 +962,6 @@ export default function StudentsPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* 出勤统计 */}
                 <div style={{ backgroundColor: '#101922', borderRadius: '12px', padding: '20px', marginBottom: '20px' }}>
                   <h4 style={{ color: 'white', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span className="material-symbols-outlined" style={{ color: '#137fec' }}>event_available</span>
@@ -1082,8 +986,6 @@ export default function StudentsPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* 项目参与 */}
                 <div style={{ backgroundColor: '#101922', borderRadius: '12px', padding: '20px' }}>
                   <h4 style={{ color: 'white', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span className="material-symbols-outlined" style={{ color: '#f59e0b' }}>folder</span>
@@ -1118,9 +1020,7 @@ export default function StudentsPage() {
                   )}
                 </div>
               </div>
-
               <div style={{ padding: '16px 24px', borderTop: '1px solid #2a3c4a', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* 重置密码区域 */}
                 {showPasswordReset && (
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {passwordResetMsg && (
@@ -1272,7 +1172,6 @@ export default function StudentsPage() {
         </div>
         )}
       </div>
-
       <style jsx>{`
         @keyframes spin {
           from { transform: rotate(0deg); }

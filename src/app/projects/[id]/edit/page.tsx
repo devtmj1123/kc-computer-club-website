@@ -1,19 +1,15 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StudentLayout } from '@/components/layout/StudentLayout';
 import { useAuth } from '@/contexts/AuthContext';
-
 interface TeamMember {
   userId: string;
   name: string;
   email: string;
   role: 'leader' | 'member' | 'tech_lead' | 'design_lead';
 }
-
 interface Project {
   projectId: string;
   teamName: string;
@@ -32,7 +28,6 @@ interface Project {
   createdAt: string;
   updatedAt: string;
 }
-
 export default function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -42,7 +37,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
   const [formData, setFormData] = useState({
     teamName: '',
     projectName: '',
@@ -53,26 +47,19 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
     resources: '',
     projectLink: '',
   });
-  
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [lookupLoading, setLookupLoading] = useState<Record<number, boolean>>({});
   const debounceTimers = useRef<Record<number, NodeJS.Timeout>>({});
-
-  // 查找用户信息
   const lookupUserByEmail = useCallback(async (email: string, memberIndex: number) => {
     if (!email || !email.includes('@')) return;
-    
     setLookupLoading(prev => ({ ...prev, [memberIndex]: true }));
-    
     try {
       const response = await fetch('/api/users/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),
       });
-      
       const data = await response.json();
-      
       if (data.exists && data.user) {
         setTeamMembers(prev => {
           const updated = [...prev];
@@ -92,7 +79,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
       setLookupLoading(prev => ({ ...prev, [memberIndex]: false }));
     }
   }, []);
-
   const categories = [
     { value: 'web', label: '网页应用开发' },
     { value: 'mobile', label: '移动应用开发' },
@@ -103,25 +89,20 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
     { value: 'data', label: '数据分析' },
     { value: 'other', label: '其他' },
   ];
-
   const roleOptions = [
     { value: 'leader', label: '组长' },
     { value: 'member', label: '成员' },
     { value: 'tech_lead', label: '技术负责' },
     { value: 'design_lead', label: '设计负责' },
   ];
-
-  // 加载项目数据
   useEffect(() => {
     const fetchProject = async () => {
       try {
         const response = await fetch(`/api/projects/${id}`);
         const data = await response.json();
-
         if (!response.ok) {
           throw new Error(data.error || '加载项目失败');
         }
-
         const proj = data.project;
         setProject(proj);
         setFormData({
@@ -142,73 +123,57 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
         setIsLoading(false);
       }
     };
-
     if (id) {
       fetchProject();
     }
   }, [id]);
-
-  // 检查用户权限
   useEffect(() => {
     if (!authLoading && !isLoading) {
       if (!user) {
         router.push('/auth/login?redirect=' + encodeURIComponent(`/projects/${id}/edit`));
         return;
       }
-
-      // 只有组长可以编辑
       if (project && project.leaderEmail.toLowerCase() !== user.email.toLowerCase()) {
         router.push(`/projects/${id}`);
         return;
       }
     }
   }, [user, authLoading, isLoading, project, id, router]);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     setError(null);
   };
-
   const handleMemberChange = (index: number, field: keyof TeamMember, value: string) => {
     const newMembers = [...teamMembers];
     newMembers[index] = { ...newMembers[index], [field]: value };
     setTeamMembers(newMembers);
     setError(null);
-    
-    // 当邮箱变化时，自动查找用户姓名
     if (field === 'email' && value.includes('@')) {
-      // 清除之前的定时器
       if (debounceTimers.current[index]) {
         clearTimeout(debounceTimers.current[index]);
       }
-      // 设置新的定时器（500ms 延迟）
       debounceTimers.current[index] = setTimeout(() => {
         lookupUserByEmail(value, index);
       }, 500);
     }
   };
-
   const addTeamMember = () => {
     setTeamMembers([
       ...teamMembers,
       { userId: '', name: '', email: '', role: 'member' },
     ]);
   };
-
   const removeTeamMember = (index: number) => {
-    if (index === 0) return; // 不能删除组长
+    if (index === 0) return; 
     setTeamMembers(teamMembers.filter((_, i) => i !== index));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setError(null);
     setSuccessMessage(null);
-
     try {
-      // 验证必填字段
       if (!formData.teamName.trim()) {
         throw new Error('请输入组名');
       }
@@ -221,8 +186,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
       if (!formData.description.trim()) {
         throw new Error('请输入项目描述');
       }
-
-      // 验证组员信息
       for (let i = 0; i < teamMembers.length; i++) {
         const member = teamMembers[i];
         if (!member.name.trim()) {
@@ -235,14 +198,11 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           throw new Error(`第 ${i + 1} 位组员的邮箱格式不正确`);
         }
       }
-
-      // 检查是否有重复邮箱
       const emails = teamMembers.map(m => m.email.toLowerCase());
       const uniqueEmails = new Set(emails);
       if (emails.length !== uniqueEmails.size) {
         throw new Error('组员邮箱不能重复');
       }
-
       const response = await fetch(`/api/projects/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -258,13 +218,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           members: teamMembers,
         }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || '保存失败');
       }
-
       setSuccessMessage('项目已更新成功！');
       setTimeout(() => {
         router.push(`/projects/${id}`);
@@ -276,8 +233,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
       setIsSaving(false);
     }
   };
-
-  // 加载中状态
   if (authLoading || isLoading) {
     return (
       <StudentLayout>
@@ -290,8 +245,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
       </StudentLayout>
     );
   }
-
-  // 错误状态
   if (error && !project) {
     return (
       <StudentLayout>
@@ -308,12 +261,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
       </StudentLayout>
     );
   }
-
   return (
     <StudentLayout>
       <main className="flex-1 p-4 py-8 lg:p-10" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
         <div className="max-w-3xl mx-auto">
-          {/* 管理员反馈 */}
           {project?.adminFeedback && (
             <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
               <div className="flex items-start gap-3">
@@ -325,26 +276,19 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
           )}
-
-          {/* 成功提示 */}
           {successMessage && (
             <div className="mb-6 p-4 rounded-xl flex items-center gap-3" style={{ backgroundColor: 'var(--success, #13ec80) / 10', borderColor: 'var(--success, #13ec80) / 30', borderWidth: '1px' }}>
               <span className="material-symbols-outlined" style={{ color: 'var(--success, #13ec80)' }}>check_circle</span>
               <p style={{ color: 'var(--success, #13ec80)' }}>{successMessage}</p>
             </div>
           )}
-
-          {/* 错误提示 */}
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3">
               <span className="material-symbols-outlined text-red-400">error</span>
               <p className="text-red-400">{error}</p>
             </div>
           )}
-
-          {/* 表单卡片 */}
           <form onSubmit={handleSubmit} className="rounded-2xl shadow-xl border overflow-hidden" style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}>
-            {/* 表单头部 */}
             <div className="p-6 border-b" style={{ borderColor: 'var(--border)', backgroundImage: 'linear-gradient(to right, var(--primary) / 10%, transparent)' }}>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--primary) / 20' }}>
@@ -356,15 +300,12 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
             </div>
-
             <div className="p-6 space-y-6">
-              {/* 组名 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-[#111814] dark:text-white flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#13ec80]">groups</span>
                   团队信息
                 </h3>
-                
                 <div>
                   <label className="block text-sm font-medium text-[#111814] dark:text-white mb-2">
                     组名 <span className="text-red-500">*</span>
@@ -380,14 +321,11 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                   />
                 </div>
               </div>
-
-              {/* 项目基本信息 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-[#111814] dark:text-white flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#13ec80]">description</span>
                   项目信息
                 </h3>
-                
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-[#111814] dark:text-white mb-2">
@@ -403,7 +341,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                       className="w-full h-12 px-4 rounded-xl bg-[#f0f4f2] dark:bg-[#102219] border border-[#e5e8e7] dark:border-[#2a3c34] text-[#111814] dark:text-white placeholder:text-[#618975] focus:outline-none focus:ring-2 focus:ring-[#13ec80]"
                     />
                   </div>
-                  
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-[#111814] dark:text-white mb-2">
                       项目类别 <span className="text-red-500">*</span>
@@ -423,14 +360,11 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                   </div>
                 </div>
               </div>
-
-              {/* 项目描述 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-[#111814] dark:text-white flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#13ec80]">article</span>
                   项目详情
                 </h3>
-                
                 <div>
                   <label className="block text-sm font-medium text-[#111814] dark:text-white mb-2">
                     项目描述 <span className="text-red-500">*</span>
@@ -445,7 +379,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     className="w-full px-4 py-3 rounded-xl bg-[#f0f4f2] dark:bg-[#102219] border border-[#e5e8e7] dark:border-[#2a3c34] text-[#111814] dark:text-white placeholder:text-[#618975] focus:outline-none focus:ring-2 focus:ring-[#13ec80] resize-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-[#111814] dark:text-white mb-2">
                     项目目标
@@ -459,7 +392,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     className="w-full px-4 py-3 rounded-xl bg-[#f0f4f2] dark:bg-[#102219] border border-[#e5e8e7] dark:border-[#2a3c34] text-[#111814] dark:text-white placeholder:text-[#618975] focus:outline-none focus:ring-2 focus:ring-[#13ec80] resize-none"
                   />
                 </div>
-
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-[#111814] dark:text-white mb-2">
@@ -488,7 +420,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     />
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-[#111814] dark:text-white mb-2">
                     项目链接（可选）
@@ -503,8 +434,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                   />
                 </div>
               </div>
-
-              {/* 团队成员 */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-[#111814] dark:text-white flex items-center gap-2">
@@ -520,7 +449,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     添加成员
                   </button>
                 </div>
-
                 <div className="space-y-3">
                   {teamMembers.map((member, index) => (
                     <div
@@ -587,8 +515,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 </p>
               </div>
             </div>
-
-            {/* 表单底部 */}
             <div className="p-6 border-t border-[#e5e8e7] dark:border-[#2a3c34] bg-[#f6f8f7] dark:bg-[#102219]">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <p className="text-sm text-[#618975]">

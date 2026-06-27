@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getProjectById,
@@ -9,10 +8,6 @@ import {
   requestRevision,
   revertProjectToPending,
 } from '@/services/project.service';
-
-/**
- * GET /api/projects/[id] - 获取单个项目
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,7 +15,6 @@ export async function GET(
   try {
     const { id } = await params;
     const project = await getProjectById(id);
-
     return NextResponse.json({
       success: true,
       project,
@@ -34,10 +28,6 @@ export async function GET(
     );
   }
 }
-
-/**
- * PUT /api/projects/[id] - 更新项目
- */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -46,10 +36,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     const { action, feedback, ...updateData } = body;
-
     let project;
-
-    // 处理特殊操作
     switch (action) {
       case 'approve':
         project = await approveProject(id, feedback);
@@ -70,10 +57,8 @@ export async function PUT(
         project = await revertProjectToPending(id);
         break;
       default:
-        // 普通更新
         project = await updateProject(id, updateData);
     }
-
     return NextResponse.json({
       success: true,
       message: '项目更新成功',
@@ -88,10 +73,6 @@ export async function PUT(
     );
   }
 }
-
-/**
- * DELETE /api/projects/[id] - 删除项目
- */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -99,7 +80,6 @@ export async function DELETE(
   try {
     const { id } = await params;
     await deleteProject(id);
-
     return NextResponse.json({
       success: true,
       message: '项目删除成功',

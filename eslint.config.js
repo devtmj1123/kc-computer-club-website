@@ -1,4 +1,8 @@
 const tsParser = require('@typescript-eslint/parser');
+const eslintPluginPrettier = require('eslint-plugin-prettier');
+const eslintConfigPrettier = require('eslint-config-prettier');
+const nextPlugin = require('@next/eslint-plugin-next');
+const tsPlugin = require('@typescript-eslint/eslint-plugin');
 
 module.exports = [
   {
@@ -16,6 +20,21 @@ module.exports = [
       'coverage/',
     ],
   },
+  {
+    files: ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx'],
+    plugins: {
+      prettier: eslintPluginPrettier,
+      '@next/next': nextPlugin,
+      '@typescript-eslint': tsPlugin,
+    },
+    rules: {
+      'prettier/prettier': 'off',
+      '@next/next/no-img-element': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
+  eslintConfigPrettier,
   {
     files: ['**/*.js', '**/*.jsx'],
     languageOptions: {

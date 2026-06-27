@@ -1,26 +1,21 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { StudentLayout } from '@/components/layout/StudentLayout';
 import { useAuth } from '@/contexts/AuthContext';
-
 interface TeamMember {
   userId: string;
   name: string;
   email: string;
   role: 'leader' | 'member' | 'tech_lead' | 'design_lead';
 }
-
 interface ExistingProject {
   projectId: string;
   title: string;
   teamName: string;
   isLeader: boolean;
 }
-
 export default function ProjectSubmitPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
@@ -28,7 +23,6 @@ export default function ProjectSubmitPage() {
   const [isChecking, setIsChecking] = useState(true);
   const [existingProject, setExistingProject] = useState<ExistingProject | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
   const [formData, setFormData] = useState({
     teamName: '',
     projectName: '',
@@ -39,47 +33,35 @@ export default function ProjectSubmitPage() {
     resources: '',
     projectLink: '',
   });
-  
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  
   const roleOptions = [
     { value: 'leader', label: '组长' },
     { value: 'member', label: '成员' },
     { value: 'tech_lead', label: '技术负责' },
     { value: 'design_lead', label: '设计负责' },
   ];
-
-  // 检查用户是否已登录且是否已在某个项目中
   useEffect(() => {
     const checkUserProject = async () => {
       if (authLoading) return;
-      
       if (!user) {
-        // 未登录，跳转到登录页
         router.push('/auth/login?redirect=/projects/submit');
         return;
       }
-
       try {
         const response = await fetch(`/api/projects?checkUser=${encodeURIComponent(user.email)}`);
         const data = await response.json();
-
         if (data.success && data.hasProject) {
-          // 用户已在项目中
           setExistingProject({
             projectId: data.project.projectId,
             title: data.project.title,
             teamName: data.project.teamName,
             isLeader: data.isLeader,
           });
-          
-          // 如果不是组长，直接跳转到项目页面
           if (!data.isLeader) {
             router.push(`/projects/${data.project.projectId}`);
             return;
           }
         } else {
-          // 用户未在任何项目中，初始化组长信息
           setTeamMembers([
             {
               userId: user.id,
@@ -95,10 +77,8 @@ export default function ProjectSubmitPage() {
         setIsChecking(false);
       }
     };
-
     checkUserProject();
   }, [user, authLoading, router]);
-
   const categories = [
     { value: 'web', label: '网页应用开发' },
     { value: 'mobile', label: '移动应用开发' },
@@ -109,51 +89,36 @@ export default function ProjectSubmitPage() {
     { value: 'data', label: '数据分析' },
     { value: 'other', label: '其他' },
   ];
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     setError(null);
   };
-
   const [memberValidation, setMemberValidation] = useState<Record<number, { valid: boolean; message?: string; loading?: boolean }>>({});
   const [debounceTimers, setDebounceTimers] = useState<Record<number, NodeJS.Timeout>>({});
-
   const handleMemberChange = (index: number, field: keyof TeamMember, value: string) => {
     const newMembers = [...teamMembers];
     newMembers[index] = { ...newMembers[index], [field]: value };
     setTeamMembers(newMembers);
     setError(null);
-    
-    // 当邮箱改变时，自动触发验证（使用 debounce）
     if (field === 'email') {
-      // 清除之前的验证状态
       setMemberValidation((prev) => ({
         ...prev,
         [index]: { valid: false, message: undefined, loading: false },
       }));
-      
-      // 清除之前的定时器
       if (debounceTimers[index]) {
         clearTimeout(debounceTimers[index]);
       }
-      
-      // 如果邮箱为空，不验证
       if (!value.trim()) return;
-      
-      // 设置新的定时器（800ms 后自动验证）
       const timer = setTimeout(() => {
         validateMemberEmail(index, value);
       }, 800);
-      
       setDebounceTimers((prev) => ({
         ...prev,
         [index]: timer,
       }));
     }
   };
-
-  // 验证组员邮箱是否在数据库中注册
   const validateMemberEmail = async (index: number, email: string) => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setMemberValidation((prev) => ({
@@ -162,23 +127,18 @@ export default function ProjectSubmitPage() {
       }));
       return false;
     }
-
     setMemberValidation((prev) => ({
       ...prev,
       [index]: { valid: false, loading: true },
     }));
-
     try {
       const response = await fetch('/api/users/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      
       const data = await response.json();
-      
       if (data.exists) {
-        // 用户存在，自动填充姓名和 userId
         const newMembers = [...teamMembers];
         newMembers[index] = {
           ...newMembers[index],
@@ -186,7 +146,6 @@ export default function ProjectSubmitPage() {
           name: data.user.name,
         };
         setTeamMembers(newMembers);
-        
         setMemberValidation((prev) => ({
           ...prev,
           [index]: { valid: true, message: `已验证: ${data.user.name}` },
@@ -207,28 +166,21 @@ export default function ProjectSubmitPage() {
       return false;
     }
   };
-
   const addTeamMember = () => {
-    // 无限制组员数量
     setTeamMembers([
       ...teamMembers,
       { userId: '', name: '', email: '', role: 'member' },
     ]);
   };
-
   const removeTeamMember = (index: number) => {
-    // 不能删除组长（第一个成员）
     if (index === 0) return;
     setTeamMembers(teamMembers.filter((_, i) => i !== index));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-
     try {
-      // 验证必填字段
       if (!formData.teamName.trim()) {
         throw new Error('请输入组名');
       }
@@ -241,8 +193,6 @@ export default function ProjectSubmitPage() {
       if (!formData.description.trim()) {
         throw new Error('请输入项目描述');
       }
-
-      // 验证组员信息
       for (let i = 0; i < teamMembers.length; i++) {
         const member = teamMembers[i];
         if (!member.name.trim()) {
@@ -251,11 +201,9 @@ export default function ProjectSubmitPage() {
         if (!member.email.trim()) {
           throw new Error(`请输入第 ${i + 1} 位组员的邮箱`);
         }
-        // 验证邮箱格式
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email)) {
           throw new Error(`第 ${i + 1} 位组员的邮箱格式不正确`);
         }
-        // 验证非组长成员是否已在数据库注册
         if (i > 0) {
           const validation = memberValidation[i];
           if (!validation?.valid) {
@@ -263,14 +211,11 @@ export default function ProjectSubmitPage() {
           }
         }
       }
-
-      // 检查是否有重复邮箱
       const emails = teamMembers.map(m => m.email.toLowerCase());
       const uniqueEmails = new Set(emails);
       if (emails.length !== uniqueEmails.size) {
         throw new Error('组员邮箱不能重复');
       }
-
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -288,14 +233,10 @@ export default function ProjectSubmitPage() {
           leaderEmail: user?.email || '',
         }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || '提交失败');
       }
-
-      // 提交成功，跳转到项目详情页
       router.push(`/projects/${data.project.projectId}?submitted=true`);
     } catch (err) {
       const error = err as Error;
@@ -304,8 +245,6 @@ export default function ProjectSubmitPage() {
       setIsSubmitting(false);
     }
   };
-
-  // 加载中状态
   if (authLoading || isChecking) {
     return (
       <StudentLayout>
@@ -318,8 +257,6 @@ export default function ProjectSubmitPage() {
       </StudentLayout>
     );
   }
-
-  // 如果用户已有项目且是组长，显示提示
   if (existingProject && existingProject.isLeader) {
     return (
       <StudentLayout>
@@ -359,23 +296,17 @@ export default function ProjectSubmitPage() {
       </StudentLayout>
     );
   }
-
   return (
     <StudentLayout>
-      {/* 主要内容区 */}
       <main className="flex-1 p-4 py-8 lg:p-10">
         <div className="max-w-3xl mx-auto">
-          {/* 错误提示 */}
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3">
               <span className="material-symbols-outlined text-red-400">error</span>
               <p className="text-red-400">{error}</p>
             </div>
           )}
-
-          {/* 表单卡片 */}
           <form onSubmit={handleSubmit} className="bg-[var(--surface)] rounded-2xl shadow-xl border border-[var(--border)] overflow-hidden">
-            {/* 表单头部 */}
             <div className="p-6 border-b border-[var(--border)] bg-linear-to-r from-primary/10 to-transparent">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -387,15 +318,12 @@ export default function ProjectSubmitPage() {
                 </div>
               </div>
             </div>
-
             <div className="p-6 space-y-6">
-              {/* 组名 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-[var(--foreground)] flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">groups</span>
                   团队信息
                 </h3>
-                
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                     组名 <span className="text-red-500">*</span>
@@ -411,14 +339,11 @@ export default function ProjectSubmitPage() {
                   />
                 </div>
               </div>
-
-              {/* 项目基本信息 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-[var(--foreground)] flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">description</span>
                   项目信息
                 </h3>
-                
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
@@ -434,7 +359,6 @@ export default function ProjectSubmitPage() {
                       className="w-full h-12 px-4 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
-                  
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                       项目类别 <span className="text-red-500">*</span>
@@ -454,14 +378,11 @@ export default function ProjectSubmitPage() {
                   </div>
                 </div>
               </div>
-
-              {/* 项目描述 */}
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-[var(--foreground)] flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary">article</span>
                   项目详情
                 </h3>
-                
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                     项目描述 <span className="text-red-500">*</span>
@@ -476,7 +397,6 @@ export default function ProjectSubmitPage() {
                     className="w-full px-4 py-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                     项目目标
@@ -490,7 +410,6 @@ export default function ProjectSubmitPage() {
                     className="w-full px-4 py-3 rounded-xl bg-[var(--input-bg)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   />
                 </div>
-
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
@@ -519,7 +438,6 @@ export default function ProjectSubmitPage() {
                     />
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                     项目链接（可选）
@@ -534,8 +452,6 @@ export default function ProjectSubmitPage() {
                   />
                 </div>
               </div>
-
-              {/* 团队成员 */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-[var(--foreground)] flex items-center gap-2">
@@ -551,7 +467,6 @@ export default function ProjectSubmitPage() {
                     添加成员
                   </button>
                 </div>
-
                 <div className="space-y-3">
                   {teamMembers.map((member, index) => (
                     <div
@@ -564,7 +479,6 @@ export default function ProjectSubmitPage() {
                         </div>
                         <div className="flex-1 grid gap-3 sm:grid-cols-3">
                           {index === 0 ? (
-                            // 组长 - 只显示信息，不能编辑
                             <>
                               <input
                                 type="text"
@@ -589,7 +503,6 @@ export default function ProjectSubmitPage() {
                               </select>
                             </>
                           ) : (
-                            // 其他成员 - 先输入邮箱验证，再填充信息
                             <>
                               <div className="relative">
                                 <input
@@ -647,8 +560,6 @@ export default function ProjectSubmitPage() {
                           </div>
                         )}
                       </div>
-                      
-                      {/* 验证状态显示（自动验证） */}
                       {index > 0 && memberValidation[index] && (
                         <div className="flex items-center gap-3 pl-13">
                           {memberValidation[index]?.loading ? (
@@ -677,8 +588,6 @@ export default function ProjectSubmitPage() {
                 </p>
               </div>
             </div>
-
-            {/* 表单底部 */}
             <div className="p-6 border-t border-[var(--border)] bg-[var(--surface)]">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <p className="text-sm text-[var(--text-secondary)]">

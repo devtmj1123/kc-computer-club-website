@@ -1,33 +1,18 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 
-// ========================================
-// Modal 组件
-// 参考设计：各种管理员页面的模态框
-// ========================================
-
 interface ModalProps {
-  /** 是否打开 */
   isOpen: boolean;
-  /** 关闭回调 */
   onClose: () => void;
-  /** 标题 */
   title?: string;
-  /** 描述文字 */
   description?: string;
-  /** 子内容 */
   children?: React.ReactNode;
-  /** 宽度 */
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  /** 是否显示关闭按钮 */
   showCloseButton?: boolean;
-  /** 点击遮罩层是否关闭 */
   closeOnOverlayClick?: boolean;
-  /** 额外类名 */
   className?: string;
 }
 
@@ -51,7 +36,6 @@ export function Modal({
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // ESC 键关闭
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -62,7 +46,6 @@ export function Modal({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
-  // 防止滚动
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -74,7 +57,6 @@ export function Modal({
     };
   }, [isOpen]);
 
-  // 点击遮罩层关闭
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent) => {
       if (closeOnOverlayClick && e.target === overlayRef.current) {
@@ -93,32 +75,29 @@ export function Modal({
       className={cn(
         'fixed inset-0 z-50',
         'flex items-center justify-center p-4',
-        'bg-black/60 backdrop-blur-sm',
+        'bg-[rgba(16,22,18,0.55)] backdrop-blur-md',
         'animate-in fade-in duration-200'
       )}
     >
       <div
         className={cn(
-          'w-full rounded-2xl',
-          'bg-white dark:bg-[#1c3128]',
-          'border border-gray-200 dark:border-[#283930]',
-          'shadow-xl shadow-black/20',
+          'w-full rounded-[30px]',
+          'bg-[var(--nm-bg)] shadow-[var(--nm-raised-lg)]',
           'animate-in zoom-in-95 duration-200',
           sizeClasses[size],
           className
         )}
       >
-        {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#283930]">
+          <div className="flex items-center justify-between p-6 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
             <div>
               {title && (
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                <h2 className="text-lg font-bold text-[var(--foreground)]">
                   {title}
                 </h2>
               )}
               {description && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-sm text-[var(--text-secondary)] mt-1">
                   {description}
                 </p>
               )}
@@ -127,12 +106,11 @@ export function Modal({
               <button
                 onClick={onClose}
                 className={cn(
-                  'size-8 rounded-lg',
+                    'size-8 rounded-2xl',
                   'flex items-center justify-center',
-                  'text-gray-500 hover:text-gray-700',
-                  'dark:text-gray-400 dark:hover:text-white',
-                  'hover:bg-gray-100 dark:hover:bg-[#283930]',
-                  'transition-colors'
+                    'text-[var(--text-secondary)] hover:text-[var(--foreground)]',
+                    'shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)]',
+                    'transition-all'
                 )}
               >
                 <span className="material-symbols-outlined">close</span>
@@ -141,36 +119,21 @@ export function Modal({
           </div>
         )}
 
-        {/* Content */}
         <div className="p-6">{children}</div>
       </div>
     </div>
   );
 }
 
-// ========================================
-// ConfirmModal 组件
-// 确认对话框（二次确认）
-// ========================================
-
 interface ConfirmModalProps {
-  /** 是否打开 */
   isOpen: boolean;
-  /** 关闭回调 */
   onClose: () => void;
-  /** 确认回调 */
   onConfirm: () => void | Promise<void>;
-  /** 标题 */
   title: string;
-  /** 描述 */
   description?: string;
-  /** 确认按钮文字 */
   confirmText?: string;
-  /** 取消按钮文字 */
   cancelText?: string;
-  /** 类型 */
   variant?: 'danger' | 'warning' | 'info';
-  /** 是否正在加载 */
   loading?: boolean;
 }
 
@@ -196,7 +159,6 @@ export function ConfirmModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="sm" showCloseButton={false}>
       <div className="text-center">
-        {/* 图标 */}
         <div
           className={cn(
             'mx-auto size-14 rounded-full',
@@ -210,7 +172,6 @@ export function ConfirmModal({
           </span>
         </div>
 
-        {/* 标题和描述 */}
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
           {title}
         </h3>
@@ -220,7 +181,6 @@ export function ConfirmModal({
           </p>
         )}
 
-        {/* 按钮 */}
         <div className="flex gap-3">
           <Button
             variant="secondary"

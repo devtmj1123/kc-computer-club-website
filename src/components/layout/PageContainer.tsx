@@ -1,16 +1,11 @@
-/**
- * Page Container Component with unified theme support
- * Use this component to wrap all page content for consistent theme colors
- */
-
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface PageContainerProps {
   children: ReactNode;
   className?: string;
-  light?: boolean; // Force light theme (default false = auto with CSS variables)
-  dark?: boolean; // Force dark theme (default false = auto with CSS variables)
+  light?: boolean;
+  dark?: boolean;
 }
 
 export function PageContainer({
@@ -39,11 +34,6 @@ export function PageContainer({
     </div>
   );
 }
-
-/**
- * Card Container Component with unified theme support
- * Use this for all cards throughout the application
- */
 
 interface CardContainerProps {
   children: ReactNode;
@@ -77,10 +67,6 @@ export function CardContainer({
     </div>
   );
 }
-
-/**
- * Text Components with unified theme support
- */
 
 export function Text({
   children,
@@ -154,10 +140,6 @@ export function TextHeading({
   return headings[level];
 }
 
-/**
- * Section Container with unified theme support
- */
-
 export function Section({
   children,
   className,
@@ -186,10 +168,6 @@ export function Section({
   );
 }
 
-/**
- * Grid Container for responsive layouts
- */
-
 export function CardGrid({
   children,
   className,
@@ -209,10 +187,6 @@ export function CardGrid({
   );
 }
 
-/**
- * Divider Component with theme support
- */
-
 export function Divider({ className }: { className?: string }) {
   const dividerStyle: React.CSSProperties = {
     borderColor: 'var(--border)',
@@ -220,10 +194,6 @@ export function Divider({ className }: { className?: string }) {
 
   return <div style={dividerStyle} className={cn('border-t', className)} />;
 }
-
-/**
- * Status Badge with semantic colors
- */
 
 export function StatusBadge({
   status,

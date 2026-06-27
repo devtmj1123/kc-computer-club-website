@@ -1,6 +1,4 @@
-/* eslint-disable prettier/prettier */
 'use client';
-
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +7,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
 import { useRouter } from 'next/navigation';
-
 interface ClubSettings {
   clubName: string;
   description: string;
@@ -29,7 +26,6 @@ interface ClubSettings {
   projectCardLogoUrl: string;
   cardLogoLink: string;
 }
-
 const defaultSettings: ClubSettings = {
   clubName: '康中电脑学会',
   description: '我们是一群热爱科技的学生，致力于探索编程、人工智能、网络安全等领域。',
@@ -49,7 +45,6 @@ const defaultSettings: ClubSettings = {
   projectCardLogoUrl: '',
   cardLogoLink: '/club-settings',
 };
-
 export default function ClubSettings() {
   const { user, isLoading } = useAuth();
   const { updateClubInfo } = useClub();
@@ -59,37 +54,30 @@ export default function ClubSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'social' | 'appearance' | 'advanced'>('basic');
-
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/');
     }
   }, [user, isLoading, router]);
-
   const handleInputChange = (field: keyof ClubSettings, value: string) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
-
   const handleSave = async () => {
     setIsSaving(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    
     updateClubInfo({
       logoUrl: settings.logoUrl,
       clubName: settings.clubName,
     });
-    
     setIsSaving(false);
     setIsEditing(false);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
   };
-
   const handleCancel = () => {
     setSettings(defaultSettings);
     setIsEditing(false);
   };
-
   if (isLoading) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
@@ -103,34 +91,25 @@ export default function ClubSettings() {
       </div>
     );
   }
-
   if (!user || !('role' in user) || user.role !== 'admin') {
     return null;
   }
-
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
       <Header />
-
       <main className="grow py-8 px-4 md:px-10 lg:px-20">
         <div className="max-w-300 mx-auto">
-          {/* 页面头部 */}
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-black mb-2" style={{ color: 'var(--foreground)' }}>社团设置</h1>
             <p style={{ color: 'var(--text-secondary)' }}>管理社团信息和联系方式</p>
           </div>
-
-          {/* 成功提示 */}
           {showSuccess && (
             <div className="mb-6 p-4 rounded-xl flex items-center gap-3" style={{ backgroundColor: 'var(--success)', color: 'white' }}>
               <span className="material-symbols-outlined">check_circle</span>
               <p className="text-sm">设置已成功保存！</p>
             </div>
           )}
-
-          {/* 主要内容 */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* 左侧 - 选项卡导航 */}
             <div className="lg:col-span-1">
               <div className="rounded-xl border p-4 sticky top-24" style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}>
                 <div className="space-y-2">
@@ -156,12 +135,8 @@ export default function ClubSettings() {
                 </div>
               </div>
             </div>
-
-            {/* 右侧 - 内容区域 */}
             <div className="lg:col-span-3">
               <div className="rounded-xl border p-6 md:p-8" style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}>
-                
-                {/* 基本信息 */}
                 {activeTab === 'basic' && (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between mb-6">
@@ -178,7 +153,6 @@ export default function ClubSettings() {
                         {isEditing ? '取消' : '编辑'}
                       </Button>
                     </div>
-
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>社团名称</label>
@@ -189,7 +163,6 @@ export default function ClubSettings() {
                           leftIcon="groups"
                         />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>社团描述</label>
                         <textarea
@@ -206,28 +179,23 @@ export default function ClubSettings() {
                           disabled={!isEditing}
                         />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>邮箱地址</label>
                         <Input type="email" value={settings.email} onChange={(e) => handleInputChange('email', e.target.value)} disabled={!isEditing} leftIcon="mail" />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>电话号码</label>
                         <Input type="tel" value={settings.phone} onChange={(e) => handleInputChange('phone', e.target.value)} disabled={!isEditing} leftIcon="phone" />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>社团地点</label>
                         <Input value={settings.location} onChange={(e) => handleInputChange('location', e.target.value)} disabled={!isEditing} leftIcon="location_on" />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>活动时间</label>
                         <Input value={settings.meetingTime} onChange={(e) => handleInputChange('meetingTime', e.target.value)} disabled={!isEditing} leftIcon="schedule" />
                       </div>
                     </div>
-
                     {isEditing && (
                       <div className="flex gap-3 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
                         <Button variant="secondary" onClick={handleCancel} className="flex-1">取消</Button>
@@ -236,8 +204,6 @@ export default function ClubSettings() {
                     )}
                   </div>
                 )}
-
-                {/* 社交媒体 */}
                 {activeTab === 'social' && (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between mb-6">
@@ -249,7 +215,6 @@ export default function ClubSettings() {
                         {isEditing ? '取消' : '编辑'}
                       </Button>
                     </div>
-
                     <div className="space-y-4">
                       {[
                         { field: 'website', label: '官方网站', icon: 'language' },
@@ -270,7 +235,6 @@ export default function ClubSettings() {
                         </div>
                       ))}
                     </div>
-
                     {isEditing && (
                       <div className="flex gap-3 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
                         <Button variant="secondary" onClick={handleCancel} className="flex-1">取消</Button>
@@ -279,8 +243,6 @@ export default function ClubSettings() {
                     )}
                   </div>
                 )}
-
-                {/* 网站外观 */}
                 {activeTab === 'appearance' && (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between mb-6">
@@ -292,20 +254,17 @@ export default function ClubSettings() {
                         {isEditing ? '取消' : '编辑'}
                       </Button>
                     </div>
-
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>官方网站</label>
                         <Input type="url" value={settings.website} onChange={(e) => handleInputChange('website', e.target.value)} disabled={!isEditing} leftIcon="language" placeholder="https://example.com" />
                         <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>社团官方网站 URL</p>
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>网站 Logo 链接</label>
                         <Input type="url" value={settings.logoUrl} onChange={(e) => handleInputChange('logoUrl', e.target.value)} disabled={!isEditing} leftIcon="image" placeholder="https://example.com/logo.png" />
                         <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>建议尺寸：200x200 像素，支持 PNG、SVG、JPG 格式</p>
                       </div>
-
                       {settings.logoUrl && (
                         <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--card-hover)', borderColor: 'var(--border)' }}>
                           <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Logo 预览</p>
@@ -319,7 +278,6 @@ export default function ClubSettings() {
                           </div>
                         </div>
                       )}
-
                       <div className="p-4 rounded-lg border" style={{ backgroundColor: 'var(--info)', opacity: 0.15, borderColor: 'var(--info)' }}>
                         <div className="flex items-start gap-3">
                           <span className="material-symbols-outlined" style={{ color: 'var(--info)' }}>info</span>
@@ -330,7 +288,6 @@ export default function ClubSettings() {
                         </div>
                       </div>
                     </div>
-
                     {isEditing && (
                       <div className="flex gap-3 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
                         <Button variant="secondary" onClick={handleCancel} className="flex-1">取消</Button>
@@ -339,15 +296,12 @@ export default function ClubSettings() {
                     )}
                   </div>
                 )}
-
-                {/* 高级选项 */}
                 {activeTab === 'advanced' && (
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>高级选项</h3>
                       <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>更多社团管理功能</p>
                     </div>
-
                     <div className="space-y-4">
                       {[
                         { title: '导入/导出社团数据', desc: '备份或导出社团的所有信息', icon: 'download', action: '导出' },
@@ -368,13 +322,11 @@ export default function ClubSettings() {
                     </div>
                   </div>
                 )}
-
               </div>
             </div>
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );

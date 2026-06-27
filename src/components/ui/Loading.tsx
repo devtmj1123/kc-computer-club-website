@@ -1,21 +1,11 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import { cn } from '@/lib/utils';
 
-// ========================================
-// Loading 组件
-// 加载动画
-// ========================================
-
 interface LoadingProps {
-  /** 大小 */
   size?: 'sm' | 'md' | 'lg';
-  /** 文字提示 */
   text?: string;
-  /** 是否全屏 */
   fullScreen?: boolean;
-  /** 额外类名 */
   className?: string;
 }
 
@@ -47,7 +37,7 @@ export function Loading({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-[#111814]/80 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(223,229,225,0.74)] dark:bg-[rgba(17,24,20,0.74)] backdrop-blur-md">
         {spinner}
       </div>
     );
@@ -56,19 +46,10 @@ export function Loading({
   return spinner;
 }
 
-// ========================================
-// Skeleton 组件
-// 骨架屏加载
-// ========================================
-
 interface SkeletonProps {
-  /** 宽度 */
   width?: string | number;
-  /** 高度 */
   height?: string | number;
-  /** 是否圆形 */
   circle?: boolean;
-  /** 额外类名 */
   className?: string;
 }
 
@@ -81,7 +62,7 @@ export function Skeleton({
   return (
     <div
       className={cn(
-        'animate-pulse bg-gray-200 dark:bg-[#283930]',
+        'animate-pulse bg-[var(--surface-hover)] dark:bg-[#283930]',
         circle ? 'rounded-full' : 'rounded-lg',
         className
       )}
@@ -93,16 +74,11 @@ export function Skeleton({
   );
 }
 
-// ========================================
-// SkeletonCard 组件
-// 卡片骨架屏
-// ========================================
-
 export function SkeletonCard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'rounded-xl p-4 bg-gray-50 dark:bg-[#1c3128]',
+        'rounded-[24px] p-4 bg-[var(--nm-bg)] shadow-[var(--nm-raised-sm)]',
         className
       )}
     >
@@ -120,11 +96,6 @@ export function SkeletonCard({ className }: { className?: string }) {
   );
 }
 
-// ========================================
-// SkeletonList 组件
-// 列表骨架屏
-// ========================================
-
 interface SkeletonListProps {
   count?: number;
   className?: string;
@@ -136,7 +107,7 @@ export function SkeletonList({ count = 3, className }: SkeletonListProps) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-4 p-4 rounded-lg bg-gray-50 dark:bg-[#1c3128]"
+          className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--nm-bg)] shadow-[var(--nm-raised-sm)]"
         >
           <Skeleton width={40} height={40} circle />
           <div className="flex-1">

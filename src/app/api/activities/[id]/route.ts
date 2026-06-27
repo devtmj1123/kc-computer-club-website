@@ -1,10 +1,5 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import { activityService, UpdateActivityInput } from '@/services/activity.service';
-
-/**
- * GET /api/activities/[id] - 获取单个活动
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,7 +7,6 @@ export async function GET(
   try {
     const { id } = await params;
     const activity = await activityService.getActivityById(id);
-
     return NextResponse.json({
       success: true,
       activity,
@@ -26,10 +20,6 @@ export async function GET(
     );
   }
 }
-
-/**
- * PUT /api/activities/[id] - 更新活动
- */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -41,24 +31,21 @@ export async function PUT(
       title, 
       description, 
       category, 
-      date, // 格式: YYYY-MM-DD
-      startTime, // 格式: HH:mm
-      endDate, // 格式: YYYY-MM-DD
-      endTime, // 格式: HH:mm
+      date, 
+      startTime, 
+      endDate, 
+      endTime, 
       location, 
       maxAttendees,
-      registrationDeadline, // 格式: YYYY-MM-DD
-      registrationDeadlineTime, // 格式: HH:mm
+      registrationDeadline, 
+      registrationDeadlineTime, 
       organizer, 
       organizerId, 
       status,
       coverImage,
       allowedGrades,
     } = body;
-
-    // 构建更新对象，只包含提供的字段
     const updateData: UpdateActivityInput = {};
-
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (category !== undefined) updateData.category = category;
@@ -69,8 +56,6 @@ export async function PUT(
     if (status !== undefined) updateData.status = status as any;
     if (coverImage !== undefined) updateData.coverImage = coverImage || undefined;
     if (allowedGrades !== undefined) updateData.allowedGrades = allowedGrades && allowedGrades.length > 0 ? JSON.stringify(allowedGrades) : undefined;
-
-    // 如果提供了日期和时间，则组合成 ISO datetime
     if (date && startTime) {
       updateData.startTime = `${date}T${startTime}:00Z`;
     }
@@ -80,9 +65,7 @@ export async function PUT(
     if (registrationDeadline && registrationDeadlineTime) {
       updateData.signupDeadline = `${registrationDeadline}T${registrationDeadlineTime}:00Z`;
     }
-
     const activity = await activityService.updateActivity(id, updateData);
-
     return NextResponse.json({
       success: true,
       message: '活动更新成功',
@@ -97,10 +80,6 @@ export async function PUT(
     );
   }
 }
-
-/**
- * DELETE /api/activities/[id] - 删除活动
- */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -108,7 +87,6 @@ export async function DELETE(
   try {
     const { id } = await params;
     await activityService.deleteActivity(id);
-
     return NextResponse.json({
       success: true,
       message: '活动删除成功',

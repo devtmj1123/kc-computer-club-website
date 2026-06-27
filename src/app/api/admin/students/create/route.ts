@@ -1,22 +1,12 @@
-/* eslint-disable prettier/prettier */
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDatabases, ID, Query } from '@/services/appwrite-server';
 import bcrypt from 'bcryptjs';
-
-/**
- * POST /api/admin/students/create
- * 管理员手动创建单个学生账户
- */
-
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
-
 const DEFAULT_STUDENT_PASSWORD = '11111111';
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
     const {
       studentId,
       chineseName,
@@ -33,45 +23,33 @@ export async function POST(request: NextRequest) {
       notes,
       password,
     } = body;
-
-    // 验证必填字段
     if (!studentId || studentId.trim().length < 3) {
       return NextResponse.json(
         { error: '学号必填且至少3位' },
         { status: 400 }
       );
     }
-
     if (!chineseName || chineseName.trim().length < 2) {
       return NextResponse.json(
         { error: '中文姓名至少需要2个字符' },
         { status: 400 }
       );
     }
-
-    // 生成邮箱
     const email = `${studentId.trim()}@kuencheng.edu.my`.toLowerCase();
-
-    // 检查邮箱是否已存在
     const existing = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       USERS_COLLECTION_ID,
       [Query.equal('email', email)]
     );
-
     if (existing.documents.length > 0) {
       return NextResponse.json(
         { error: '该学号已注册' },
         { status: 400 }
       );
     }
-
-    // 创建用户记录
     const now = new Date().toISOString();
-    // 默认密码：使用学号作为初始密码
     const studentIdTrimmed = studentId.trim();
     const actualPassword = password || studentIdTrimmed;
-    
     console.log('=== Student Creation Debug ===');
     console.log('Original studentId:', studentId);
     console.log('Trimmed studentId:', studentIdTrimmed);
@@ -79,11 +57,8 @@ export async function POST(request: NextRequest) {
     console.log('Actual password to hash:', actualPassword);
     console.log('Password type:', typeof actualPassword);
     console.log('Password length:', actualPassword?.length);
-    
     const passwordHash = await bcrypt.hash(actualPassword, 10);
-    // 如果使用学号作为密码，标记为需要修改密码
     const requirePasswordChange = (actualPassword === studentIdTrimmed || actualPassword === DEFAULT_STUDENT_PASSWORD);
-
     const newStudent = await serverDatabases.createDocument(
       APPWRITE_DATABASE_ID,
       USERS_COLLECTION_ID,
@@ -112,7 +87,6 @@ export async function POST(request: NextRequest) {
         updatedAt: now,
       }
     );
-
     return NextResponse.json({
       success: true,
       message: '学生账户创建成功',

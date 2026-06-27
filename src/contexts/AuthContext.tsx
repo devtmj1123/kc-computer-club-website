@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -59,28 +58,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [requirePasswordChange, setRequirePasswordChange] = useState(false);
   const pathname = usePathname();
 
-  // Check for existing session on mount
   useEffect(() => {
     const checkExistingSession = async () => {
       if (isLoggedOut) {
         setIsLoading(false);
         return;
       }
-      
+
       try {
         const isAdminPath = pathname?.startsWith('/admin');
         const preferredType: 'student' | 'admin' = isAdminPath ? 'admin' : 'student';
-        
+
         const sessionInfo = await checkSession(preferredType);
-        
+
         if (sessionInfo.user) {
           setUser(sessionInfo.user);
-          
-          // 检查是否需要修改密码
+
           if (sessionInfo.type === 'student' && 'requirePasswordChange' in sessionInfo.user) {
             setRequirePasswordChange(sessionInfo.user.requirePasswordChange === true);
           }
-          
+
           if (sessionInfo.type === 'student') {
             localStorage.setItem('studentSession', JSON.stringify(sessionInfo.user));
           } else if (sessionInfo.type === 'admin') {
@@ -136,12 +133,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user || !('studentId' in user)) {
       throw new Error('请先登录');
     }
-    
+
     try {
       await changeStudentPassword(user.id, currentPassword, newPassword);
       setRequirePasswordChange(false);
-      
-      // 更新 user 状态
+
       const updatedUser = { ...user, requirePasswordChange: false };
       setUser(updatedUser);
       localStorage.setItem('studentSession', JSON.stringify(updatedUser));
