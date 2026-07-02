@@ -86,7 +86,7 @@ export function HeroSection({
               letterSpacing: '0.05em',
             }}
           >
-            成立于1983年
+            成立于1983年 · 我们现在有111团员
           </p>
 
           <p
