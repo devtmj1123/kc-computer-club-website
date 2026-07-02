@@ -42,3 +42,5 @@ next-env.d.ts
 /design
 .github/copilot-instructions.md
 C:\Users\mjtan\Desktop\kccompt\.github\copilot-instructions.md
+.vercel
+.env*

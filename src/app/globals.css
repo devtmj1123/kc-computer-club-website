@@ -17,66 +17,6 @@
   --admin-primary-light: rgba(59, 130, 246, 0.12);
   --admin-primary-glow: rgba(59, 130, 246, 0.35);
 
-  --nm-bg: #e8ece9;
-  --nm-shadow-light: rgba(255, 255, 255, 0.9);
-  --nm-shadow-dark: rgba(0, 0, 0, 0.1);
-
-  --nm-raised: -6px -6px 14px var(--nm-shadow-light), 6px 6px 14px var(--nm-shadow-dark);
-  --nm-raised-sm: -3px -3px 8px var(--nm-shadow-light), 3px 3px 8px var(--nm-shadow-dark);
-  --nm-raised-lg: -10px -10px 22px var(--nm-shadow-light), 10px 10px 22px var(--nm-shadow-dark);
-  --nm-inset: inset -4px -4px 10px var(--nm-shadow-light), inset 4px 4px 10px var(--nm-shadow-dark);
-  --nm-inset-sm: inset -2px -2px 5px var(--nm-shadow-light), inset 2px 2px 5px var(--nm-shadow-dark);
-  --nm-pressed: inset -2px -2px 4px var(--nm-shadow-light), inset 2px 2px 6px var(--nm-shadow-dark);
-
-  --background: var(--nm-bg);
-  --surface: var(--nm-bg);
-  --surface-hover: #dde2df;
-  --foreground: #1a2e23;
-  --text-primary: #1a2e23;
-  --text-secondary: #4a6e58;
-  --text-tertiary: #7a9e8c;
-
-  --border: rgba(0, 0, 0, 0.06);
-  --border-light: rgba(0, 0, 0, 0.03);
-
-  --card-bg: var(--nm-bg);
-  --card-border: transparent;
-  --card-hover: #dde2df;
-  --card-shadow: var(--nm-raised);
-
-  --input-bg: var(--nm-bg);
-  --input-border: transparent;
-  --input-text: #1a2e23;
-  --input-focus: var(--primary);
-  --input-placeholder: #7a9e8c;
-  --select-option-bg: #eef3ef;
-  --select-option-text: #1a2e23;
-  --select-option-hover: #dde2df;
-  --select-option-disabled: #9cb3a4;
-
-  --nav-bg: var(--nm-bg);
-  --nav-border: transparent;
-  --nav-text: #1a2e23;
-
-  --btn-bg: var(--nm-bg);
-  --btn-bg-hover: #dde2df;
-  --btn-text: #1a2e23;
-  --btn-primary-bg: var(--primary);
-  --btn-primary-bg-hover: var(--primary-hover);
-  --btn-primary-text: #ffffff;
-
-  --nm-transition: 0.25s ease;
-  --nm-radius-sm: 10px;
-  --nm-radius: 18px;
-  --nm-radius-lg: 26px;
-  --nm-radius-xl: 34px;
-  --nm-radius-full: 999px;
-
-  --tag-bg: rgba(0, 0, 0, 0.05);
-  --tag-border: rgba(0, 0, 0, 0.08);
-}
-
-:root.dark {
   --nm-bg: #1a1f1c;
   --nm-shadow-light: rgba(255, 255, 255, 0.07);
   --nm-shadow-dark: rgba(0, 0, 0, 0.6);
@@ -118,6 +58,13 @@
 
   --btn-bg: var(--nm-bg);
   --btn-text: #e5efe8;
+
+  --nm-transition: 0.25s ease;
+  --nm-radius-sm: 10px;
+  --nm-radius: 18px;
+  --nm-radius-lg: 26px;
+  --nm-radius-xl: 34px;
+  --nm-radius-full: 999px;
 
   --tag-bg: rgba(255, 255, 255, 0.06);
   --tag-border: rgba(255, 255, 255, 0.1);

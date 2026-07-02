@@ -8,8 +8,6 @@ interface HeroSectionProps {
   headline?: string;
   subheadline?: string;
   statusText?: string;
-  activeUsers?: number;
-  capacityPercent?: number;
   heroImage?: string;
   heroImageAlt?: string;
   className?: string;
@@ -20,8 +18,6 @@ export function HeroSection({
   headline: _headline = '创造未来，加入社团。',
   subheadline = '与志同道合的开发者交流，参与开源项目，在校园中引领技术前沿。',
   statusText = '正在招收新成员',
-  activeUsers = 24,
-  capacityPercent = 45,
   heroImage,
   heroImageAlt = 'Hero Image',
   className,
@@ -84,6 +80,17 @@ export function HeroSection({
 
           <p
             style={{
+              color: 'var(--text-tertiary)',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              letterSpacing: '0.05em',
+            }}
+          >
+            成立于1983年
+          </p>
+
+          <p
+            style={{
               color: 'var(--text-secondary)',
               fontSize: '1.05rem',
               maxWidth: 420,
@@ -132,44 +139,6 @@ export function HeroSection({
             </Link>
           </div>
 
-          <div className="flex flex-wrap gap-4 pt-4">
-            <div
-              style={{
-                background: 'var(--nm-bg)',
-                boxShadow: 'var(--nm-inset)',
-                borderRadius: 18,
-                padding: '0.85rem 1.3rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 2,
-              }}
-            >
-              <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>
-                {activeUsers}
-              </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-                活跃成员
-              </span>
-            </div>
-            <div
-              style={{
-                background: 'var(--nm-bg)',
-                boxShadow: 'var(--nm-inset)',
-                borderRadius: 18,
-                padding: '0.85rem 1.3rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 2,
-              }}
-            >
-              <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>
-                {capacityPercent}%
-              </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-                满载率
-              </span>
-            </div>
-          </div>
         </div>
 
         {heroImage && (

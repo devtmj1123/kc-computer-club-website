@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = 'dark';
 
 interface ThemeColors {
   primary: string;
@@ -75,22 +75,18 @@ const STORAGE_KEY_COLORS = 'theme-colors';
 const STORAGE_KEY_BREATHING = 'breathing-effect-enabled';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>('system');
-  const [resolvedMode, setResolvedMode] = useState<'light' | 'dark'>('dark');
+  const [mode] = useState<ThemeMode>('dark');
+  const [resolvedMode] = useState<'light' | 'dark'>('dark');
   const [colors, setColorsState] = useState<ThemeColors>(DEFAULT_COLORS);
   const [breathingEffectEnabled, setBreathingEffectEnabledState] = useState(true);
   const [mounted, setMounted] = useState(false);
 
-  const applyTheme = useCallback((isDark: boolean, themeColors: ThemeColors, breathingEnabled: boolean) => {
+  const applyTheme = useCallback((themeColors: ThemeColors, breathingEnabled: boolean) => {
     const root = document.documentElement;
 
-    if (isDark) {
-      root.classList.add('dark');
-      root.classList.remove('light');
-    } else {
-      root.classList.remove('dark');
-      root.classList.add('light');
-    }
+    // Always use dark mode
+    root.classList.add('dark');
+    root.classList.remove('light');
 
     root.style.setProperty('--primary', themeColors.primary);
     root.style.setProperty('--primary-hover', themeColors.primaryHover);
@@ -108,13 +104,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const storedMode = localStorage.getItem(STORAGE_KEY_MODE) as ThemeMode | null;
     const storedColors = localStorage.getItem(STORAGE_KEY_COLORS);
     const storedBreathing = localStorage.getItem(STORAGE_KEY_BREATHING);
-
-    if (storedMode) {
-      setModeState(storedMode);
-    }
 
     if (storedColors) {
       try {
@@ -133,33 +124,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!mounted) return;
+    applyTheme(colors, breathingEffectEnabled);
+  }, [colors, breathingEffectEnabled, mounted, applyTheme]);
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (mode === 'system') {
-        setResolvedMode(e.matches ? 'dark' : 'light');
-      }
-    };
-
-    if (mode === 'system') {
-      setResolvedMode(mediaQuery.matches ? 'dark' : 'light');
-    } else {
-      setResolvedMode(mode);
-    }
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [mode, mounted]);
-
-  useEffect(() => {
-    if (!mounted) return;
-    applyTheme(resolvedMode === 'dark', colors, breathingEffectEnabled);
-  }, [resolvedMode, colors, breathingEffectEnabled, mounted, applyTheme]);
-
-  const setMode = useCallback((newMode: ThemeMode) => {
-    setModeState(newMode);
-    localStorage.setItem(STORAGE_KEY_MODE, newMode);
+  const setMode = useCallback((_newMode: ThemeMode) => {
+    // No-op: always dark mode
   }, []);
 
   const setColors = useCallback((newColors: Partial<ThemeColors>) => {
@@ -181,10 +150,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [setColors]);
 
   const resetTheme = useCallback(() => {
-    setModeState('system');
     setColorsState(DEFAULT_COLORS);
     setBreathingEffectEnabledState(true);
-    localStorage.removeItem(STORAGE_KEY_MODE);
     localStorage.removeItem(STORAGE_KEY_COLORS);
     localStorage.removeItem(STORAGE_KEY_BREATHING);
   }, []);

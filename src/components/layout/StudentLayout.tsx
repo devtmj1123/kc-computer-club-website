@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { StudentSidebar } from '@/components/layout/StudentSidebar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useClub } from '@/contexts/ClubContext';
 import { ClubLogo } from '@/components/ui/ClubLogo';
@@ -19,7 +19,12 @@ export function StudentLayout({
 }: StudentLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const { clubInfo } = useClub();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   return (
     <div className={cn('student-layout min-h-screen bg-[var(--background)]', className)}>
@@ -31,9 +36,15 @@ export function StudentLayout({
 
       <div
         className={cn(
-          'flex flex-col min-h-screen transition-all duration-300',
+          'flex flex-col min-h-screen',
+          'transition-[margin] duration-300 ease-in-out',
+          'will-change-[margin]',
           sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'
         )}
+        style={{
+          // Reserve space for sidebar to prevent CLS
+          marginLeft: isMounted ? undefined : '16rem',
+        }}
       >
         <header
           className={cn(

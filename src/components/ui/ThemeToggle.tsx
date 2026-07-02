@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useTheme, ThemeMode } from '@/contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 
 interface ThemeToggleProps {
@@ -15,7 +15,7 @@ export function ThemeToggle({
   compact = false,
   className
 }: ThemeToggleProps) {
-  const { mode, setMode, resolvedMode, colors, presetColors, applyPreset } = useTheme();
+  const { colors, presetColors, applyPreset } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -35,18 +35,6 @@ export function ThemeToggle({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const modeOptions: { value: ThemeMode; label: string; icon: string }[] = [
-    { value: 'light', label: '浅色', icon: 'light_mode' },
-    { value: 'dark', label: '深色', icon: 'dark_mode' },
-    { value: 'system', label: '跟随系统', icon: 'settings_brightness' },
-  ];
-
-  const currentModeIcon = mode === 'system'
-    ? 'settings_brightness'
-    : resolvedMode === 'dark'
-      ? 'dark_mode'
-      : 'light_mode';
-
   if (!mounted) {
     return (
       <div className={cn(
@@ -60,19 +48,16 @@ export function ThemeToggle({
   if (compact) {
     return (
       <button
-        onClick={() => {
-          const nextMode = mode === 'light' ? 'dark' : mode === 'dark' ? 'system' : 'light';
-          setMode(nextMode);
-        }}
+        onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'p-2 rounded-2xl transition-all',
           'bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)] text-[var(--foreground)]',
           className
         )}
-        title={`当前: ${modeOptions.find(m => m.value === mode)?.label}`}
+        title="主题颜色"
       >
         <span className="material-symbols-outlined text-[20px]">
-          {currentModeIcon}
+          palette
         </span>
       </button>
     );
@@ -90,9 +75,9 @@ export function ThemeToggle({
         )}
       >
         <span className="material-symbols-outlined text-[20px]">
-          {currentModeIcon}
+          palette
         </span>
-        <span className="hidden sm:inline">主题</span>
+        <span className="hidden sm:inline">主题颜色</span>
         <span className="material-symbols-outlined text-[16px]">
           {isOpen ? 'expand_less' : 'expand_more'}
         </span>
@@ -104,31 +89,6 @@ export function ThemeToggle({
           'bg-[var(--nm-bg)] rounded-[28px] shadow-[var(--nm-raised-lg)]',
           'overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200'
         )}>
-          <div className="p-3 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
-            <p className="text-xs text-[var(--text-secondary)] font-medium mb-2 uppercase tracking-wider px-1">
-              外观模式
-            </p>
-            <div className="flex gap-1">
-              {modeOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setMode(option.value)}
-                  className={cn(
-                    'flex-1 flex flex-col items-center gap-1 p-2 rounded-2xl transition-all',
-                    mode === option.value
-                      ? 'bg-primary/18 text-primary shadow-[var(--nm-inset-sm)]'
-                      : 'hover:shadow-[var(--nm-inset-sm)] text-[var(--text-secondary)]'
-                  )}
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {option.icon}
-                  </span>
-                  <span className="text-xs font-medium">{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {showColorPicker && (
             <div className="p-3">
               <p className="text-xs text-[var(--text-secondary)] font-medium mb-2 uppercase tracking-wider px-1">

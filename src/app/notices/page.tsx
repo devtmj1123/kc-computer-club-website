@@ -8,6 +8,7 @@ import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/contexts/AuthContext';
+import { decodeHtmlEntities } from '@/lib/utils';
 interface NormalizedNotice {
   id: string;
   title: string;
@@ -277,21 +278,6 @@ export default function NoticesPage() {
 interface NoticeCardProps {
   notice: NormalizedNotice;
   featured?: boolean;
-}
-function decodeHtmlEntities(str: string): string {
-  if (!str) return '';
-  return str
-    .replace(/&#x([0-9a-fA-F]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#34;/g, '"')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/​/g, '')
-    .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
 }
 
 function NoticeCard({ notice, featured = false }: NoticeCardProps) {

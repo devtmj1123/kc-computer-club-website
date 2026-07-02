@@ -10,6 +10,7 @@ import { CommentForm } from '@/components/comments/CommentForm';
 import { CommentList } from '@/components/comments/CommentList';
 import { Comment } from '@/services/comment.service';
 import { Notice } from '@/services/notice.service';
+import { decodeHtmlEntities } from '@/lib/utils';
 const TAG_STYLES: Record<string, { bg: string; text: string }> = {
   公告: { bg: 'bg-primary/10', text: 'text-primary' },
   比赛: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
@@ -195,7 +196,7 @@ export default function NoticeDetailPage() {
                 </Link>
                 <span className="mx-2">/</span>
                 <span style={{ color: 'var(--foreground)' }} className="truncate max-w-50">
-                  {notice.title}
+                  {decodeHtmlEntities(notice.title)}
                 </span>
               </nav>
               <header className="mb-8">
@@ -220,7 +221,7 @@ export default function NoticeDetailPage() {
                   className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight mb-4 tracking-[-0.02em]"
                   style={{ color: 'var(--foreground)' }}
                 >
-                  {notice.title}
+                  {decodeHtmlEntities(notice.title)}
                 </h1>
                 <div
                   className="flex items-center gap-4 text-sm flex-wrap"

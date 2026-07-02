@@ -512,46 +512,16 @@ export default function ProfilePage() {
                     <span className="material-symbols-outlined">contrast</span>
                     外观模式
                   </h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <button
-                      onClick={() => setMode('light')}
-                      className={`flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                        mode === 'light'
-                          ? 'border-primary bg-primary/10'
-                          : 'border-[var(--border)] hover:border-primary/50'
-                      }`}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-[var(--surface-hover)] flex items-center justify-center">
-                        <span className="material-symbols-outlined text-2xl text-yellow-500">light_mode</span>
-                      </div>
-                      <span className="font-medium text-[var(--foreground)]">浅色</span>
-                    </button>
-                    <button
-                      onClick={() => setMode('dark')}
-                      className={`flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                        mode === 'dark'
-                          ? 'border-primary bg-primary/10'
-                          : 'border-[var(--border)] hover:border-primary/50'
-                      }`}
-                    >
+                  <div className="p-4 rounded-xl border-2 border-primary bg-primary/10">
+                    <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-[var(--surface-hover)] flex items-center justify-center">
                         <span className="material-symbols-outlined text-2xl text-blue-400">dark_mode</span>
                       </div>
-                      <span className="font-medium text-[var(--foreground)]">深色</span>
-                    </button>
-                    <button
-                      onClick={() => setMode('system')}
-                      className={`flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                        mode === 'system'
-                          ? 'border-primary bg-primary/10'
-                          : 'border-[var(--border)] hover:border-primary/50'
-                      }`}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-[var(--surface-hover)] flex items-center justify-center">
-                        <span className="material-symbols-outlined text-2xl text-purple-400">settings_brightness</span>
+                      <div>
+                        <span className="font-medium text-[var(--foreground)]">深色模式</span>
+                        <p className="text-sm text-[var(--text-secondary)]">当前网站仅支持深色模式</p>
                       </div>
-                      <span className="font-medium text-[var(--foreground)]">跟随系统</span>
-                    </button>
+                    </div>
                   </div>
                 </div>
                 <div>

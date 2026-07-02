@@ -5,6 +5,7 @@ import { StudentLayout } from '@/components/layout/StudentLayout';
 import { HeroSection } from '@/components/sections/HeroSection';
 import { NoticesSection, EventsSection } from '@/components/sections/NoticesSection';
 import AttendanceWidget from '@/components/attendance/AttendanceWidget';
+import { decodeHtmlEntities } from '@/lib/utils';
 interface Notice {
   id: string;
   title: string;
@@ -34,7 +35,6 @@ export default function HomePage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [clubStats, setClubStats] = useState<{ activeUsers: number; capacityPercent: number } | null>(null);
   const [featuredProject, setFeaturedProject] = useState<{ title: string; contributors: number } | null>(null);
   const [clubStatus, setClubStatus] = useState<string>('正在招收新成员');
   const [clubSettings, setClubSettings] = useState<{ heroImage?: string; heroImageAlt?: string } | null>(null);
@@ -48,6 +48,9 @@ export default function HomePage() {
             heroImage: data.heroImage,
             heroImageAlt: data.heroImageAlt,
           });
+          if (data.recruitmentStatus) {
+            setClubStatus(data.recruitmentStatus);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch club settings:', error);
@@ -67,8 +70,8 @@ export default function HomePage() {
               .slice(0, 3)
               .map((notice: Record<string, unknown>) => ({
                 id: (notice.$id || notice.id) as string,
-                title: notice.title as string,
-                summary: ((notice.content as string)?.substring(0, 100) || '') as string,
+                title: decodeHtmlEntities(notice.title as string),
+                summary: decodeHtmlEntities(((notice.content as string)?.substring(0, 100) || '') as string),
                 category: (notice.category || '其他') as string,
                 icon: mapCategoryToIcon((notice.category || '其他') as string),
                 iconColor: mapCategoryToColor((notice.category || '其他') as string),
@@ -144,36 +147,12 @@ export default function HomePage() {
     };
     fetchProjects();
   }, []);
-  useEffect(() => {
-    const fetchClubStats = async () => {
-      try {
-        const response = await fetch('/api/club-settings');
-        if (response.ok) {
-          const data = await response.json();
-          if (data && !data.error) {
-            setClubStats({
-              activeUsers: data.activeMembers || 24,
-              capacityPercent: Math.min(Math.round((data.activeMembers || 24) / 50 * 100), 100),
-            });
-            if (data.recruitmentStatus) {
-              setClubStatus(data.recruitmentStatus);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch club stats:', error);
-      }
-    };
-    fetchClubStats();
-  }, []);
   return (
     <StudentLayout>
       <main className="flex-1 w-full max-w-300 mx-auto px-4 py-12 sm:px-6 lg:px-8 space-y-12">
         <HeroSection
           clubName="电脑学会"
           statusText={clubStatus}
-          activeUsers={clubStats?.activeUsers || 24}
-          capacityPercent={clubStats?.capacityPercent || 45}
           heroImage={clubSettings?.heroImage || "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&h=400&fit=crop"}
           heroImageAlt={clubSettings?.heroImageAlt || "Tech Club Hero"}
         />

@@ -34,12 +34,8 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var mode = localStorage.getItem('theme-mode') || 'system';
-                  var theme = mode;
-                  if (mode === 'system') {
-                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  }
-                  document.documentElement.classList.add(theme);
+                  // Always use dark mode
+                  document.documentElement.classList.add('dark');
                   // 加载自定义主题色
                   var colors = localStorage.getItem('theme-colors');
                   if (colors) {
