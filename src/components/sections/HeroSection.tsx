@@ -78,16 +78,38 @@ export function HeroSection({
             加入社团。
           </h1>
 
-          <p
-            style={{
-              color: 'var(--text-tertiary)',
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              letterSpacing: '0.05em',
-            }}
-          >
-            成立于1983年 · 我们现在有111团员
-          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div
+              style={{
+                background: 'var(--nm-bg)',
+                boxShadow: 'var(--nm-inset)',
+                borderRadius: 18,
+                padding: '1.1rem 1.3rem',
+              }}
+            >
+              <p style={{ color: 'var(--primary)', fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>
+                1983
+              </p>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', fontWeight: 600, margin: 0, marginTop: 2 }}>
+                年成立
+              </p>
+            </div>
+            <div
+              style={{
+                background: 'var(--nm-bg)',
+                boxShadow: 'var(--nm-inset)',
+                borderRadius: 18,
+                padding: '1.1rem 1.3rem',
+              }}
+            >
+              <p style={{ color: 'var(--primary)', fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>
+                111
+              </p>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', fontWeight: 600, margin: 0, marginTop: 2 }}>
+                团员
+              </p>
+            </div>
+          </div>
 
           <p
             style={{
