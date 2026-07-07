@@ -69,11 +69,84 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({ success: false, error: '无法连接到 Instagram，请检查网络' }, { status: 502 });
     }
-    const image = extractMeta(html, 'og:image');
+    // Try to extract all images from embedded JSON data (handles carousels + full resolution)
+    const images: string[] = [];
+    let caption = '';
+    let title = '';
+
+    // Method 1: Parse Instagram's embedded JSON for full-res carousel images
+    try {
+      // Look for the shared data script or ld+json
+      const jsonLdMatches = html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi);
+      for (const match of jsonLdMatches) {
+        try {
+          const data = JSON.parse(match[1]);
+          // Extract images from various JSON-LD structures
+          const extractImages = (obj: unknown): void => {
+            if (!obj || typeof obj !== 'object') return;
+            const record = obj as Record<string, unknown>;
+            if (typeof record.contentUrl === 'string' && record.contentUrl.includes('cdninstagram.com')) {
+              images.push(record.contentUrl);
+            }
+            if (typeof record.url === 'string' && record.url.includes('cdninstagram.com') && /\.(jpg|jpeg|png|webp)/i.test(record.url)) {
+              images.push(record.url);
+            }
+            if (Array.isArray(record)) {
+              for (const item of record) extractImages(item);
+            } else {
+              for (const val of Object.values(record)) extractImages(val);
+            }
+          };
+          extractImages(data);
+          // Extract caption from JSON-LD
+          if (!caption && typeof data.articleBody === 'string') {
+            caption = data.articleBody;
+          }
+          if (!title && typeof data.headline === 'string') {
+            title = data.headline;
+          }
+        } catch { /* ignore parse errors */ }
+      }
+    } catch { /* ignore */ }
+
+    // Method 2: Extract from Instagram's _sharedData / additional_data script blocks
+    if (images.length === 0) {
+      try {
+        // Instagram sometimes embeds carousel data in window.__additionalDataLoaded or window._sharedData
+        const scriptBlocks = html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi);
+        for (const match of scriptBlocks) {
+          const block = match[1];
+          // Look for image URLs in cdninstagram patterns within the script
+          const urlPattern = /https?:\/\/(?:scontent|scontent[\w.-]*)\.cdninstagram\.com\/[^"'\\]+\.(?:jpg|jpeg|png|webp)[^"'\\]*/gi;
+          const found = block.match(urlPattern);
+          if (found) {
+            // Deduplicate and filter for actual post images (not profile pics etc.)
+            const unique = [...new Set(found)];
+            for (const url of unique) {
+              // Filter for likely post images (larger dimensions in URL, or carousel items)
+              if (/\/e\d+\//i.test(url) || /\/s\d+x\d+\//i.test(url) || /\/v\/t\d+\./i.test(url)) {
+                // Clean up escaped characters
+                const cleanUrl = url.replace(/\\u0026/g, '&').replace(/\\/g, '');
+                if (!images.includes(cleanUrl)) {
+                  images.push(cleanUrl);
+                }
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Method 3: Fallback - extract og:image (single image, may be cropped)
+    const ogImage = extractMeta(html, 'og:image');
+    if (images.length === 0 && ogImage) {
+      images.push(ogImage);
+    }
+
+    // Extract caption/title from og tags if not found in JSON
     const rawDescription = extractMeta(html, 'og:description');
     const rawTitle = extractMeta(html, 'og:title');
-    let caption = '';
-    if (rawDescription) {
+    if (!caption && rawDescription) {
       const colonIdx = rawDescription.indexOf(': "');
       if (colonIdx !== -1) {
         caption = rawDescription.slice(colonIdx + 3).replace(/"\s*$/, '').trim();
@@ -81,11 +154,11 @@ export async function POST(request: NextRequest) {
         caption = rawDescription.trim();
       }
     }
-    let title = '';
-    if (rawTitle) {
+    if (!title && rawTitle) {
       title = rawTitle.replace(/^Photo (shared )?by /, '').replace(/ on Instagram.*$/, '').trim();
     }
-    if (!image && !caption) {
+
+    if (images.length === 0 && !caption) {
       return NextResponse.json(
         {
           success: false,
@@ -95,9 +168,14 @@ export async function POST(request: NextRequest) {
         { status: 422 }
       );
     }
+
+    // Deduplicate final image list
+    const uniqueImages = [...new Set(images)];
+
     return NextResponse.json({
       success: true,
-      image: image ?? null,
+      image: uniqueImages[0] ?? null,     // backward compat: first image
+      images: uniqueImages,                // all images for carousel support
       caption,
       title,
       sourceUrl: trimmedUrl,

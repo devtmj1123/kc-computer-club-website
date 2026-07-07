@@ -33,7 +33,7 @@ export default function CreateNotice() {
   const [instagramUrl, setInstagramUrl] = useState('');
   const [instagramImporting, setInstagramImporting] = useState(false);
   const [instagramError, setInstagramError] = useState('');
-  const [instagramPreview, setInstagramPreview] = useState<{ image?: string | null; caption?: string; sourceUrl?: string } | null>(null);
+  const [instagramPreview, setInstagramPreview] = useState<{ image?: string | null; images?: string[]; caption?: string; sourceUrl?: string } | null>(null);
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
@@ -143,7 +143,7 @@ export default function CreateNotice() {
       });
       const data = await res.json();
       if (data.success) {
-        setInstagramPreview({ image: data.image, caption: data.caption, sourceUrl: data.sourceUrl });
+        setInstagramPreview({ image: data.image, images: data.images, caption: data.caption, sourceUrl: data.sourceUrl });
       } else {
         setInstagramError(data.error || '导入失败');
       }
@@ -155,8 +155,14 @@ export default function CreateNotice() {
   };
   const handleApplyInstagram = () => {
     if (!instagramPreview) return;
-    if (instagramPreview.image && formData.images.length < 5) {
-      setFormData((prev) => ({ ...prev, images: [...prev.images, instagramPreview.image!] }));
+    // Add all images from the Instagram post (carousel support), respecting the 5-image limit
+    const imgsToAdd = (instagramPreview.images && instagramPreview.images.length > 0)
+      ? instagramPreview.images
+      : (instagramPreview.image ? [instagramPreview.image] : []);
+    if (imgsToAdd.length > 0) {
+      const remaining = 5 - formData.images.length;
+      const toAdd = imgsToAdd.slice(0, remaining);
+      setFormData((prev) => ({ ...prev, images: [...prev.images, ...toAdd] }));
     }
     if (instagramPreview.caption) {
       setFormData((prev) => ({ ...prev, content: prev.content ? prev.content + '\n\n' + instagramPreview.caption : instagramPreview.caption! }));
@@ -288,15 +294,29 @@ export default function CreateNotice() {
               )}
               {instagramPreview && (
                 <div className="border border-[#e1306c]/30 rounded-xl p-4 space-y-3">
-                  <p className="text-[#e1306c] text-xs font-semibold uppercase tracking-wide">预览</p>
-                  {instagramPreview.image && (
+                  <p className="text-[#e1306c] text-xs font-semibold uppercase tracking-wide">
+                    预览 {instagramPreview.images && instagramPreview.images.length > 1 && `(${instagramPreview.images.length} 张图片)`}
+                  </p>
+                  {instagramPreview.images && instagramPreview.images.length > 0 ? (
+                    <div className={instagramPreview.images.length > 1 ? "grid grid-cols-2 gap-2" : ""}>
+                      {instagramPreview.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`Instagram 图片 ${idx + 1}`}
+                          className="w-full max-h-48 object-cover rounded-lg border border-[#283946]"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ))}
+                    </div>
+                  ) : instagramPreview.image ? (
                     <img
                       src={instagramPreview.image}
                       alt="Instagram 图片"
                       className="w-full max-h-48 object-cover rounded-lg border border-[#283946]"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
-                  )}
+                  ) : null}
                   {instagramPreview.caption && (
                     <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">{instagramPreview.caption}</p>
                   )}
@@ -305,7 +325,7 @@ export default function CreateNotice() {
                     onClick={handleApplyInstagram}
                     className="w-full py-2 bg-[#e1306c] hover:bg-[#c62a60] text-white rounded-lg text-sm font-medium transition-colors"
                   >
-                    应用到公告（添加图片 + 说明文字）
+                    应用到公告（添加 {instagramPreview.images?.length || 1} 张图片 + 说明文字）
                   </button>
                 </div>
               )}
