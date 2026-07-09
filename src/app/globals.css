@@ -73,6 +73,115 @@
   --admin-surface: #151b1f;
 }
 
+/* ── Light theme ── */
+.light {
+  --nm-bg: #f0f4f3;
+  --nm-shadow-light: rgba(255, 255, 255, 0.85);
+  --nm-shadow-dark: rgba(163, 177, 198, 0.45);
+
+  --background: #eef2f0;
+  --surface: #f0f4f3;
+  --surface-hover: #e6ebe9;
+  --foreground: #1a2e23;
+  --text-primary: #1a2e23;
+  --text-secondary: #4a6b57;
+  --text-tertiary: #7a9c88;
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.04);
+
+  --card-bg: #f0f4f3;
+  --card-hover: #e6ebe9;
+
+  --input-bg: #f0f4f3;
+  --input-text: #1a2e23;
+  --input-placeholder: #7a9c88;
+  --select-option-bg: #e8edeb;
+  --select-option-text: #1a2e23;
+  --select-option-hover: #dde4e1;
+  --select-option-disabled: #9ab5a5;
+
+  --nav-bg: #f0f4f3;
+  --nav-text: #1a2e23;
+
+  --btn-bg: #f0f4f3;
+  --btn-text: #1a2e23;
+
+  --tag-bg: rgba(0, 0, 0, 0.05);
+  --tag-border: rgba(0, 0, 0, 0.1);
+
+  --admin-bg: #e8edeb;
+  --admin-surface: #eef2f0;
+}
+
+.light .nm-panel {
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.light body::selection {
+  background: rgba(16, 185, 129, 0.2);
+  color: #1a2e23;
+}
+
+.light .admin-layout {
+  --nm-bg: #e8edeb;
+  --nm-shadow-light: rgba(255, 255, 255, 0.85);
+  --nm-shadow-dark: rgba(163, 177, 198, 0.45);
+
+  --background: #e8edeb;
+  --surface: #e8edeb;
+  --surface-hover: #dde4e1;
+  --foreground: #1a2e23;
+  --text-primary: #1a2e23;
+  --text-secondary: #4a6b57;
+  --text-tertiary: #7a9c88;
+
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.04);
+
+  --input-bg: #e8edeb;
+  --input-text: #1a2e23;
+  --input-placeholder: #7a9c88;
+
+  background-color: #e8edeb;
+  color: #1a2e23;
+}
+
+.light .admin-layout input,
+.light .admin-layout textarea,
+.light .admin-layout select {
+  background: #e8edeb;
+  box-shadow: inset -3px -3px 7px rgba(255, 255, 255, 0.85), inset 3px 3px 9px rgba(163, 177, 198, 0.45);
+  color: #1a2e23;
+}
+
+.light .admin-layout select option {
+  background: #e8edeb;
+  color: #1a2e23;
+}
+
+.light .admin-layout input::placeholder,
+.light .admin-layout textarea::placeholder {
+  color: #7a9c88;
+}
+
+.light .admin-layout input:focus,
+.light .admin-layout textarea:focus,
+.light .admin-layout select:focus {
+  box-shadow: inset -3px -3px 7px rgba(255, 255, 255, 0.85), inset 3px 3px 9px rgba(163, 177, 198, 0.45), 0 0 0 2px var(--admin-primary-light);
+}
+
+.light .admin-layout label {
+  color: #4a6b57;
+}
+
+.light .admin-layout [role='dialog'],
+.light .admin-layout .modal {
+  background: #e8edeb;
+  box-shadow: var(--nm-raised-lg);
+  color: #1a2e23;
+}
+
 .admin-layout {
   --primary: var(--admin-primary);
   --primary-hover: var(--admin-primary-hover);
@@ -194,9 +303,22 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.light body {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.06), transparent 30%),
+    radial-gradient(circle at 90% 0%, rgba(59, 130, 246, 0.04), transparent 25%),
+    radial-gradient(circle at 50% 100%, rgba(0, 0, 0, 0.03), transparent 30%),
+    #eef2f0;
+}
+
 body::selection {
   background: rgba(16, 185, 129, 0.2);
   color: var(--foreground);
+}
+
+.light body::selection {
+  background: rgba(16, 185, 129, 0.2);
+  color: #1a2e23;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -541,7 +663,7 @@ select option:disabled {
   background: var(--nm-bg);
   box-shadow: var(--nm-raised-lg);
   border-radius: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-light);
 }
 
 .nm-chip {

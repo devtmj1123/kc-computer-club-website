@@ -135,7 +135,7 @@ export default function AdminLoginPage() {
             团员登录
           </Link>
           <p className="text-center text-[var(--text-secondary)] text-xs">
-            非管理员用户请使用学生账号登录
+            非管理员用户请使用团员账号登录
           </p>
         </div>
         <div className="text-center mt-6">

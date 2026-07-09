@@ -29,12 +29,12 @@ export const ImageCarousel = ({ images, title, showThumbnails = true }: ImageCar
 
   return (
     <div className="space-y-3">
-      <div className="relative bg-gray-200 dark:bg-[#1a2632] rounded-xl overflow-hidden flex items-center justify-center">
+      <div className="relative bg-gray-200 dark:bg-[#1a2632] rounded-xl overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={images[currentIndex]}
           alt={`${title || '图片'} ${currentIndex + 1}`}
-          className="w-full max-h-[520px] object-contain"
+          className="w-full h-auto"
           onError={(e) => {
             (e.target as HTMLImageElement).src =
               'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23333" width="400" height="300"/%3E%3Ctext x="200" y="150" dominant-baseline="middle" text-anchor="middle" font-size="16" fill="%23999"%3E图片加载失败%3C/text%3E%3C/svg%3E';

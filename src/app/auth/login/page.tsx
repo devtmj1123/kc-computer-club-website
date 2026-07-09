@@ -153,7 +153,7 @@ export default function StudentLoginPage() {
             </div>
             <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">团员登录</h1>
             <p className="text-[var(--text-secondary)] text-sm">
-              登录后可浏览公告、活动和参加报名
+              团员登录后可浏览公告、活动和参加报名
             </p>
           </div>
           {error && (
