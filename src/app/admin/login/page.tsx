@@ -132,7 +132,7 @@ export default function AdminLoginPage() {
             <span className="material-symbols-outlined inline mr-2 align-middle">
               school
             </span>
-            学生登录
+            团员登录
           </Link>
           <p className="text-center text-[var(--text-secondary)] text-xs">
             非管理员用户请使用学生账号登录

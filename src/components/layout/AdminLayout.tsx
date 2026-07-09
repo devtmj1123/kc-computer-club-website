@@ -210,23 +210,6 @@ export function AdminLayout({
           </div>
 
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              className="px-3 py-2 text-[var(--text-secondary)] hover:text-[var(--admin-primary)]"
-              leftIcon="notifications"
-            >
-              通知
-            </Button>
-            <button
-              className={cn(
-                'size-10 rounded-2xl shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)]',
-                'flex items-center justify-center',
-                'text-[var(--text-secondary)] hover:text-[var(--admin-primary)]',
-                'transition-all relative'
-              )}
-            >
-              <span className="material-symbols-outlined">settings</span>
-            </button>
           </div>
         </header>
 

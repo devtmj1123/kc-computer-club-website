@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 export default function StudentLoginPage() {
   const router = useRouter();
-  const { login, user, isLoading, requirePasswordChange, changePassword } = useAuth();
+  const { login, user, isLoading, requirePasswordChange, changePassword, logout } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -17,11 +17,6 @@ export default function StudentLoginPage() {
   const [currentPasswordForChange, setCurrentPasswordForChange] = useState('');
   const [changePasswordError, setChangePasswordError] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  useEffect(() => {
-    if (!isLoading && user && !requirePasswordChange) {
-      router.push('/');
-    }
-  }, [user, isLoading, requirePasswordChange, router]);
   useEffect(() => {
     if (user && requirePasswordChange) {
       setShowChangePasswordModal(true);
@@ -100,6 +95,48 @@ export default function StudentLoginPage() {
       </div>
     );
   }
+  if (user && !requirePasswordChange) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-12 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 right-20 size-72 rounded-full bg-primary blur-3xl"></div>
+          <div className="absolute bottom-20 left-20 size-72 rounded-full bg-primary blur-3xl"></div>
+        </div>
+        <div className="w-full max-w-md relative z-10">
+          <div className="nm-panel p-8 sm:p-10 text-center">
+            <div className="inline-flex items-center justify-center size-16 rounded-2xl nm-raised-sm mb-4 text-primary">
+              <span className="material-symbols-outlined text-3xl">
+                check_circle
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">已登录</h1>
+            <p className="text-[var(--text-secondary)] text-sm mb-6">
+              您已以 <span className="font-semibold text-[var(--foreground)]">{user.name}</span> 的身份登录
+            </p>
+            <div className="space-y-3">
+              <Link
+                href="/"
+                className="btn btn-primary w-full justify-center"
+              >
+                <span className="material-symbols-outlined inline mr-2 align-middle">home</span>
+                进入首页
+              </Link>
+              <button
+                onClick={async () => {
+                  await logout();
+                  window.location.reload();
+                }}
+                className="btn w-full justify-center text-[var(--foreground)]"
+              >
+                <span className="material-symbols-outlined inline mr-2 align-middle">logout</span>
+                退出登录
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-12 relative overflow-hidden">
       <div className="absolute inset-0 opacity-10">
@@ -114,7 +151,7 @@ export default function StudentLoginPage() {
                 account_circle
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">学生登录</h1>
+            <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">团员登录</h1>
             <p className="text-[var(--text-secondary)] text-sm">
               登录后可浏览公告、活动和参加报名
             </p>

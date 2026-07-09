@@ -141,10 +141,6 @@ export default function AboutPage() {
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      router.push('/auth/login?redirect=/about');
-      return;
-    }
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
     setIsSubmitting(false);
@@ -264,29 +260,9 @@ export default function AboutPage() {
                   </div>
                 )}
                 {!user && (
-                  <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-xl flex items-center gap-3">
+                  <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center gap-3">
                     <span className="material-symbols-outlined text-blue-400">info</span>
-                    <div className="flex-1">
-                      <p className="text-sm text-blue-400 font-medium mb-2">需要登录才能发送消息</p>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => router.push('/auth/login?redirect=/about')}
-                          variant="primary"
-                          size="sm"
-                          leftIcon="login"
-                        >
-                          登录
-                        </Button>
-                        <Button
-                          onClick={() => router.push('/auth/signup?redirect=/about')}
-                          variant="secondary"
-                          size="sm"
-                          leftIcon="person_add"
-                        >
-                          注册
-                        </Button>
-                      </div>
-                    </div>
+                    <p className="text-sm text-blue-400">您正在以访客身份发送消息，无需登录。</p>
                   </div>
                 )}
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -298,7 +274,6 @@ export default function AboutPage() {
                       onChange={(e) => handleInputChange('name', e.target.value)}
                       leftIcon="badge"
                       required
-                      disabled={!user}
                     />
                     <Input
                       label="学号（选填）"
@@ -306,7 +281,6 @@ export default function AboutPage() {
                       value={formData.studentId}
                       onChange={(e) => handleInputChange('studentId', e.target.value)}
                       leftIcon="numbers"
-                      disabled={!user}
                     />
                   </div>
                   <Input
@@ -317,25 +291,22 @@ export default function AboutPage() {
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     leftIcon="mail"
                     required
-                    disabled={!user}
                   />
                   <NeumorphicSelect
                     label="主题"
                     options={subjectOptions}
                     value={formData.subject}
                     onChange={(value) => handleInputChange('subject', value)}
-                    disabled={!user}
                   />
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium text-[var(--foreground)]">您的消息</label>
                     <textarea
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--input-bg)] p-4 text-[var(--foreground)] placeholder-[var(--text-secondary)] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--input-bg)] p-4 text-[var(--foreground)] placeholder-[var(--text-secondary)] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
                       placeholder="请输入您想说的话..."
                       rows={5}
                       value={formData.message}
                       onChange={(e) => handleInputChange('message', e.target.value)}
                       required
-                      disabled={!user}
                     />
                   </div>
                   <div className="pt-2">
@@ -345,9 +316,9 @@ export default function AboutPage() {
                       className="w-full"
                       rightIcon="send"
                       isLoading={isSubmitting}
-                      disabled={!user || isSubmitting}
+                      disabled={isSubmitting}
                     >
-                      {!user ? '请先登录' : '发送消息'}
+                      发送消息
                     </Button>
                   </div>
                 </form>

@@ -14,10 +14,10 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({
-  clubName: _clubName = '电脑学会',
-  headline: _headline = '创造未来，加入社团。',
+  clubName: _clubName = '坤中电脑学会',
+  headline: _headline = '创造未来。加入坤成中学电脑学会。',
   subheadline = '与志同道合的开发者交流，参与开源项目，在校园中引领技术前沿。',
-  statusText = '正在招收新成员',
+  statusText = '正在时刻运行中',
   heroImage,
   heroImageAlt = 'Hero Image',
   className,
@@ -75,7 +75,7 @@ export function HeroSection({
             style={{ color: 'var(--foreground)', lineHeight: 1.1 }}
           >
             创造 <span style={{ color: 'var(--primary)' }}>未来</span>。<br />
-            加入社团。
+            加入坤成中学电脑学会。
           </h1>
 
           <div className="grid grid-cols-2 gap-4">

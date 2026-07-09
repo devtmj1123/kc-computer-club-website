@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 
@@ -14,37 +13,11 @@ interface CommentFormProps {
 export function CommentForm({ contentType, contentId, onCommentSubmitted }: CommentFormProps) {
   const { user } = useAuth();
   const [content, setContent] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
-  if (!user) {
-    return (
-      <div className="border rounded-lg p-6 text-center" style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--foreground)' }}>
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#13ec80]/10 mb-4">
-          <span className="material-symbols-outlined text-[#13ec80] text-2xl">lock</span>
-        </div>
-        <p className="text-white font-semibold mb-2">需要登录才能评论</p>
-        <p className="text-[#9db9ab] text-sm mb-4">请先登录账号，然后就可以分享您的看法</p>
-        <div className="flex gap-3 justify-center flex-wrap">
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#13ec80] px-6 py-2 text-black font-medium hover:bg-[#0fd673] transition-colors"
-          >
-            <span className="material-symbols-outlined text-lg">login</span>
-            登录
-          </Link>
-          <Link
-            href="/auth/signup"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#13ec80]/10 px-6 py-2 text-[#13ec80] font-medium hover:bg-[#13ec80]/20 transition-colors"
-          >
-            <span className="material-symbols-outlined text-lg">person_add</span>
-            注册
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +27,23 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
       return;
     }
 
-    if (!user) {
-      setErrorMessage('请先登录');
+    // If not logged in, require name and email
+    const nickname = user ? user.name : guestName.trim();
+    const email = user ? user.email : guestEmail.trim();
+
+    if (!nickname) {
+      setErrorMessage('请输入您的名字');
+      return;
+    }
+    if (!email) {
+      setErrorMessage('请输入您的邮箱');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrorMessage('请输入有效的邮箱地址');
       return;
     }
 
@@ -72,8 +60,8 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
         body: JSON.stringify({
           contentType,
           contentId,
-          nickname: user.name,
-          email: user.email,
+          nickname,
+          email,
           content: content.trim(),
         }),
       });
@@ -83,6 +71,8 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
       if (response.ok && result.success) {
         setSuccessMessage('评论已提交！');
         setContent('');
+        setGuestName('');
+        setGuestEmail('');
         setTimeout(() => {
           onCommentSubmitted();
         }, 800);
@@ -98,15 +88,53 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="flex items-center gap-3 pb-3">
-        <div className="size-8 rounded-full bg-[#13ec80]/10 flex items-center justify-center text-[#13ec80]">
-          <span className="material-symbols-outlined text-lg">person</span>
+      {/* Show logged-in user info, or guest name/email fields */}
+      {user ? (
+        <div className="flex items-center gap-3 pb-3">
+          <div className="size-8 rounded-full bg-[#13ec80]/10 flex items-center justify-center text-[#13ec80]">
+            <span className="material-symbols-outlined text-lg">person</span>
+          </div>
+          <div>
+            <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{user.name}</p>
+            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+          </div>
         </div>
-        <div>
-          <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>{user.name}</p>
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="guestName" className="block text-[#9db9ab] text-sm font-medium mb-2">
+              您的名字 <span className="text-red-400">*</span>
+            </label>
+            <input
+              id="guestName"
+              type="text"
+              placeholder="输入您的名字"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              disabled={isSubmitting}
+              required
+              className="w-full rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#13ec80]/50 transition-colors text-sm"
+              style={{ backgroundColor: 'var(--surface)', color: 'var(--foreground)', borderColor: 'var(--border)', borderWidth: '1px' }}
+            />
+          </div>
+          <div>
+            <label htmlFor="guestEmail" className="block text-[#9db9ab] text-sm font-medium mb-2">
+              您的邮箱 <span className="text-red-400">*</span>
+            </label>
+            <input
+              id="guestEmail"
+              type="email"
+              placeholder="your@email.com"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+              disabled={isSubmitting}
+              required
+              className="w-full rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#13ec80]/50 transition-colors text-sm"
+              style={{ backgroundColor: 'var(--surface)', color: 'var(--foreground)', borderColor: 'var(--border)', borderWidth: '1px' }}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {successMessage && (
         <div className="bg-[#13ec80]/10 rounded p-2 flex items-center gap-2">
@@ -146,6 +174,12 @@ export function CommentForm({ contentType, contentId, onCommentSubmitted }: Comm
       >
         {isSubmitting ? '提交中...' : '提交评论'}
       </Button>
+
+      {!user && (
+        <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>
+          评论会经过审核后显示
+        </p>
+      )}
     </form>
   );
 }

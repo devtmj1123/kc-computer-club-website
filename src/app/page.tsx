@@ -36,7 +36,7 @@ export default function HomePage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [featuredProject, setFeaturedProject] = useState<{ title: string; contributors: number } | null>(null);
-  const [clubStatus, setClubStatus] = useState<string>('正在招收新成员');
+  const [clubStatus, setClubStatus] = useState<string>('正在时刻运行中');
   const [clubSettings, setClubSettings] = useState<{ heroImage?: string; heroImageAlt?: string } | null>(null);
   useEffect(() => {
     const fetchClubSettings = async () => {

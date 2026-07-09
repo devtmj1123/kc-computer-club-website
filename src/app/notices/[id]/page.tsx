@@ -399,29 +399,9 @@ export default function NoticeDetailPage() {
                     近期活动
                   </h3>
                   <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{ backgroundColor: 'var(--primary) / 0.2', color: 'var(--primary)' }}
-                      >
-                        <span className="material-symbols-outlined">code</span>
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>
-                          代码之夜
-                        </p>
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                          每周例会
-                        </p>
-                      </div>
-                    </div>
-                    <div
-                      className="flex items-center gap-2 text-xs mb-4"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      <span className="material-symbols-outlined text-[16px]">event</span>
-                      <span>周五 • 下午 6:00</span>
-                    </div>
+                    <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
+                      查看最新活动和报名信息
+                    </p>
                     <Link href="/activities">
                       <Button variant="secondary" size="sm" className="w-full">
                         查看活动详情

@@ -14,8 +14,8 @@ const spaceGrotesk = Space_Grotesk({
   weight: ["300", "400", "500", "600", "700"],
 });
 export const metadata: Metadata = {
-  title: "电脑学会 - Tech & Code Society",
-  description: "学校电脑学会官网 - 培养编程能力，探索技术无限可能",
+  title: "坤中电脑学会 - KC Computer Club",
+  description: "坤成中学电脑学会官网 - 培养编程能力，探索技术无限可能",
 };
 export default function RootLayout({
   children,
@@ -34,8 +34,15 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  // Always use dark mode
-                  document.documentElement.classList.add('dark');
+                  // Apply theme mode from localStorage (default: dark)
+                  var mode = localStorage.getItem('theme-mode') || 'dark';
+                  if (mode === 'light') {
+                    document.documentElement.classList.add('light');
+                    document.documentElement.classList.remove('dark');
+                  } else {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
+                  }
                   // 加载自定义主题色
                   var colors = localStorage.getItem('theme-colors');
                   if (colors) {

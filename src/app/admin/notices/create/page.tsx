@@ -33,6 +33,7 @@ export default function CreateNotice() {
   const [instagramUrl, setInstagramUrl] = useState('');
   const [instagramImporting, setInstagramImporting] = useState(false);
   const [instagramError, setInstagramError] = useState('');
+  const [instagramHint, setInstagramHint] = useState<string | null>(null);
   const [instagramPreview, setInstagramPreview] = useState<{ image?: string | null; images?: string[]; caption?: string; sourceUrl?: string } | null>(null);
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
@@ -134,6 +135,7 @@ export default function CreateNotice() {
     if (!instagramUrl.trim()) return;
     setInstagramImporting(true);
     setInstagramError('');
+    setInstagramHint(null);
     setInstagramPreview(null);
     try {
       const res = await fetch('/api/notices/import-instagram', {
@@ -146,6 +148,7 @@ export default function CreateNotice() {
         setInstagramPreview({ image: data.image, images: data.images, caption: data.caption, sourceUrl: data.sourceUrl });
       } else {
         setInstagramError(data.error || '导入失败');
+        setInstagramHint(data.hint || null);
       }
     } catch {
       setInstagramError('网络错误，请重试');
@@ -290,6 +293,15 @@ export default function CreateNotice() {
               {instagramError && (
                 <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-sm mb-3">
                   {instagramError}
+                  {instagramHint === 'setup_required' && (
+                    <div className="mt-2 pt-2 border-t border-red-500/20 text-gray-400 text-xs space-y-1">
+                      <p className="font-semibold text-gray-300">手动导入方法：</p>
+                      <p>1. 在 Instagram 打开帖子，右键点击图片 → "复制图片地址"</p>
+                      <p>2. 点击下方「图片链接」标签，粘贴图片 URL 并添加</p>
+                      <p>3. 复制帖子说明文字粘贴到「公告内容」</p>
+                      <p>4. 轮播帖子请逐张复制每张图片的地址</p>
+                    </div>
+                  )}
                 </div>
               )}
               {instagramPreview && (
