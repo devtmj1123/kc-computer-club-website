@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const DEFAULT_CLUB_INFO = {
   name: '康中电脑学会',
   description:
-    '我们是一群热爱科技的学生，致力于探索编程、人工智能、网络安全等领域。无论你是编程新手还是技术大神，都欢迎加入我们！',
+    '电脑学会成立于1983年，至今已有44年历史。我们致力于让团员们能够跟进这个科技时代的步伐，并提高团员们对电脑的认识以及提升团员们资讯工艺方面的能力。',
   email: 'computerclub@school.edu.my',
   location: '电脑室 A304，科学楼三楼',
   meetingTime: '每周五 下午 4:00 - 6:00',

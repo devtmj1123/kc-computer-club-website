@@ -15,7 +15,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 export const metadata: Metadata = {
   title: "坤中电脑学会 - KC Computer Club",
-  description: "坤成中学电脑学会官网 - 培养编程能力，探索技术无限可能",
+  description: "坤成中学电脑学会官网 - 成立于1983年，致力于让团员们跟进科技时代的步伐，提高对电脑的认识以及资讯工艺方面的能力",
 };
 export default function RootLayout({
   children,

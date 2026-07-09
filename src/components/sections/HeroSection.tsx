@@ -16,7 +16,7 @@ interface HeroSectionProps {
 export function HeroSection({
   clubName: _clubName = '坤中电脑学会',
   headline: _headline = '创造未来。加入坤成中学电脑学会。',
-  subheadline = '与志同道合的开发者交流，参与开源项目，在校园中引领技术前沿。',
+  subheadline = '电脑学会成立于1983年，至今已有44年历史。我们致力于让团员们能够跟进这个科技时代的步伐，并提高团员们对电脑的认识以及提升团员们资讯工艺方面的能力。',
   statusText = '正在时刻运行中',
   heroImage,
   heroImageAlt = 'Hero Image',
