@@ -74,7 +74,8 @@ export function HeroSection({
             className="text-4xl md:text-6xl font-black tracking-tight"
             style={{ color: 'var(--foreground)', lineHeight: 1.1 }}
           >
-            创造<span style={{ color: 'var(--primary)' }}>未来</span>。加入坤成中学电脑学会。
+            创造<span style={{ color: 'var(--primary)' }}>未来</span>。<br />
+            加入坤成中学电脑学会。
           </h1>
 
           <div className="grid grid-cols-2 gap-4">

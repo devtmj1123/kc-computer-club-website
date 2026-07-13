@@ -24,26 +24,33 @@ const faqs = [
   {
     icon: 'help',
     question: '如何成为团员？',
-    answer:
-      '坤成初一新生：可以在新生营招生展来我们的摊位了解详情，之后在校务系统记得选取我们就可以了😊\n坤成其他年级学生：可以转进，在年尾转换社团时候，来我们的摊位了解详情，在面试获得录取后填转换社团表格，交给联课处',
+    answerLines: [
+      '坤成初一新生：可以在新生营招生展来我们的摊位了解详情，之后在校务系统记得选取我们就可以了😊',
+      '坤成其他年级学生：可以转进，在年尾转换社团时候，来我们的摊位了解详情，在面试获得录取后填转换社团表格，交给联课处',
+    ],
   },
   {
     icon: 'layers',
     question: '是有分高级组和初级组吗？',
-    answer:
-      '有，高级组为2学点，初级组为1学点，初级组团员仅需认真上课与交功课。高级组则除了上课也有时需要服务，团员有机会学习于学校各种活动如演奏会，周会，多元学习日，在学校礼堂与讲堂的控制室控制led屏幕。',
+    answerLines: [
+      '有，高级组为2学点，初级组为1学点，初级组团员仅需认真上课与交功课。',
+      '高级组则除了上课也有时需要服务，团员有机会学习于学校各种活动如演奏会，周会，多元学习日，在学校礼堂与讲堂的控制室控制led屏幕。',
+    ],
   },
   {
     icon: 'event',
     question: '活动信息在哪里发布？',
-    answer:
+    answerLines: [
       '请查看本网站社团简介与公告了解我们，实时跟进我们的动态，或关注我们的Instagram，了解我们有趣的社团日常吧！',
+    ],
   },
   {
     icon: 'groups',
     question: '在电脑方面完全没有经验的学生可以加入吗？',
-    answer:
-      '当然可以！科技影响着每一个领域。无论你学的是理科、文科还是商科，只要对电脑有兴趣，都欢迎加入我们！',
+    answerLines: [
+      '当然可以！科技影响着每一个领域。',
+      '无论你学的是理科、文科还是商科，只要对电脑有兴趣，都欢迎加入我们！',
+    ],
   },
 ];
 const subjectOptions = [
@@ -351,7 +358,11 @@ export default function AboutPage() {
                     </div>
                     <div>
                       <h4 className="font-bold text-lg mb-2">{faq.question}</h4>
-                      <p className="text-[var(--text-secondary)] leading-relaxed text-sm">{faq.answer}</p>
+                      <div className="text-[var(--text-secondary)] leading-relaxed text-sm space-y-2">
+                        {faq.answerLines.map((line: string, i: number) => (
+                          <p key={i}>{line}</p>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
