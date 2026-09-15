@@ -1,10 +1,32 @@
 import { NextResponse } from 'next/server';
 import { serverDatabases } from '@/services/appwrite-server';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
-const RESET_TOKEN_EXPIRY = 24 * 60 * 60 * 1000; 
+const RESET_TOKEN_EXPIRY = 24 * 60 * 60 * 1000;
+const RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || process.env.ADMIN_SESSION_SECRET || '';
 const DEFAULT_STUDENT_PASSWORD = '11111111';
+function verifyResetTokenSignature(token: string): { userId: string; email: string; timestamp: number } | null {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const parsed = JSON.parse(decoded);
+    const { data, signature } = parsed;
+    if (!data || !signature) return null;
+    const expectedSignature = crypto
+      .createHmac('sha256', RESET_TOKEN_SECRET)
+      .update(data)
+      .digest('hex');
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+      return null;
+    }
+    const payload = JSON.parse(data) as { userId: string; email: string; timestamp: number };
+    if (!payload.userId || !payload.email || !payload.timestamp) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -15,27 +37,20 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    let tokenData: any;
-    try {
-      const decoded = Buffer.from(token, 'base64').toString('utf-8');
-      tokenData = JSON.parse(decoded);
-      const { userId, email, timestamp } = tokenData;
-      if (!userId || !email || !timestamp) {
-        throw new Error('Invalid token format');
-      }
-      const currentTime = Date.now();
-      const tokenAge = currentTime - timestamp;
-      if (tokenAge > RESET_TOKEN_EXPIRY) {
-        return NextResponse.json(
-          { error: '重置链接已过期。请重新申请。' },
-          { status: 401 }
-        );
-      }
-    } catch (err) {
-      console.error('令牌解析失败:', err);
+    const tokenData = verifyResetTokenSignature(token);
+    if (!tokenData) {
       return NextResponse.json(
         { error: '无效的重置链接' },
         { status: 400 }
+      );
+    }
+    const { userId, email, timestamp } = tokenData;
+    const currentTime = Date.now();
+    const tokenAge = currentTime - timestamp;
+    if (tokenAge > RESET_TOKEN_EXPIRY) {
+      return NextResponse.json(
+        { error: '重置链接已过期。请重新申请。' },
+        { status: 401 }
       );
     }
     try {

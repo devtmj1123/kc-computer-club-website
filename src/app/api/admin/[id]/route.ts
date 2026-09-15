@@ -1,4 +1,4 @@
-import { databases } from '@/services/appwrite';
+import { serverDatabases } from '@/services/appwrite-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/admin-session';
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
@@ -12,7 +12,7 @@ export async function GET(
 
   try {
     const { id: adminId } = await params;
-    const admin = await databases.getDocument(
+    const admin = await serverDatabases.getDocument(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       adminId
@@ -53,7 +53,7 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const updatedAdmin = await databases.updateDocument(
+    const updatedAdmin = await serverDatabases.updateDocument(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       adminId,
@@ -86,12 +86,12 @@ export async function DELETE(
 
   try {
     const { id: adminId } = await params;
-    const admin = await databases.getDocument(
+    const admin = await serverDatabases.getDocument(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       adminId
     );
-    const allAdmins = await databases.listDocuments(
+    const allAdmins = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID
     );
@@ -101,7 +101,7 @@ export async function DELETE(
         { status: 400 }
       );
     }
-    await databases.deleteDocument(
+    await serverDatabases.deleteDocument(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       adminId

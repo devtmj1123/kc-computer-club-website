@@ -1,10 +1,4 @@
-import { Client, Databases, Query } from 'appwrite';
-
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-
-const databases = new Databases(client);
+import { serverDatabases, Query } from '@/services/appwrite-server';
 
 export interface Comment {
   $id: string;
@@ -59,7 +53,7 @@ export const commentService = {
   async getAllComments(onlyApproved: boolean = false): Promise<Comment[]> {
     try {
       const queries = onlyApproved ? [Query.equal('status', 'approved')] : [];
-      const response = await databases.listDocuments(
+      const response = await serverDatabases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'comments',
         queries
@@ -74,7 +68,7 @@ export const commentService = {
 
   async getCommentById(id: string): Promise<Comment> {
     try {
-      const response = await databases.getDocument(
+      const response = await serverDatabases.getDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'comments',
         id
@@ -88,7 +82,7 @@ export const commentService = {
 
   async createComment(input: CreateCommentInput): Promise<Comment> {
     try {
-      const response = await databases.createDocument(
+      const response = await serverDatabases.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'comments',
         'unique()',
@@ -111,7 +105,7 @@ export const commentService = {
 
   async updateComment(id: string, input: Partial<Comment>): Promise<Comment> {
     try {
-      const response = await databases.updateDocument(
+      const response = await serverDatabases.updateDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'comments',
         id,
@@ -128,7 +122,7 @@ export const commentService = {
 
   async replyToComment(id: string, input: ReplyCommentInput): Promise<Comment> {
     try {
-      const response = await databases.updateDocument(
+      const response = await serverDatabases.updateDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'comments',
         id,
@@ -157,7 +151,7 @@ export const commentService = {
 
   async deleteComment(id: string): Promise<void> {
     try {
-      await databases.deleteDocument(
+      await serverDatabases.deleteDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'comments',
         id
@@ -178,7 +172,7 @@ export const commentService = {
       if (onlyApproved) {
         queries.push(Query.equal('status', 'approved'));
       }
-      const response = await databases.listDocuments(
+      const response = await serverDatabases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'comments',
         queries
@@ -196,7 +190,7 @@ export const commentService = {
 
   async getCommentsByStatus(status: string): Promise<Comment[]> {
     try {
-      const response = await databases.listDocuments(
+      const response = await serverDatabases.listDocuments(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'comments',
         [Query.equal('status', status)]

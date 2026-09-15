@@ -5,6 +5,7 @@ import {
   getCurrentWeekNumberWithConfig,
   AttendanceConfig,
 } from '@/services/attendance.service';
+import { requireAdminSession } from '@/lib/admin-session';
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const ATTENDANCE_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_ATTENDANCE_COLLECTION || 'attendance';
 const SETTINGS_COLLECTION_ID = 'clubSettings';
@@ -231,6 +232,9 @@ export async function GET(request: NextRequest) {
   }
 }
 export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { config: currentConfig, attendanceCode1: currentCode1, attendanceCode2: currentCode2, codeEnabled: currentCodeEnabled } = await getAttendanceConfigFromDB();

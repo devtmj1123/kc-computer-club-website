@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { commentService } from '@/services/comment.service';
+import { requireAdminSession } from '@/lib/admin-session';
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -24,6 +25,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -46,6 +50,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
+
   try {
     const { id } = await params;
     await commentService.deleteComment(id);

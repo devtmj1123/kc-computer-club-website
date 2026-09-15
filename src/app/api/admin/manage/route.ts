@@ -1,4 +1,4 @@
-import { databases } from '@/services/appwrite';
+import { serverDatabases } from '@/services/appwrite-server';
 import { ID, Query } from 'appwrite';
 import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   if (authError) return authError;
 
   try {
-    const response = await databases.listDocuments(
+    const response = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID
     );
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const existing = await databases.listDocuments(
+    const existing = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       [Query.equal('username', username)]
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
     const now = new Date().toISOString();
-    const adminRecord = await databases.createDocument(
+    const adminRecord = await serverDatabases.createDocument(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       ID.unique(),
@@ -113,14 +113,14 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
-    const admin = await databases.getDocument(
+    const admin = await serverDatabases.getDocument(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       adminId
     );
     const updateData: Record<string, unknown> = {};
     if (username && username !== admin.username) {
-      const existing = await databases.listDocuments(
+      const existing = await serverDatabases.listDocuments(
         APPWRITE_DATABASE_ID,
         ADMINS_COLLECTION_ID,
         [Query.equal('username', username)]
@@ -146,7 +146,7 @@ export async function PUT(request: NextRequest) {
       const salt = await bcrypt.genSalt(10);
       updateData.passwordHash = await bcrypt.hash(newPassword, salt);
     }
-    const updated = await databases.updateDocument(
+    const updated = await serverDatabases.updateDocument(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       adminId,
@@ -185,7 +185,7 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
-    const allAdmins = await databases.listDocuments(
+    const allAdmins = await serverDatabases.listDocuments(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID
     );
@@ -195,7 +195,7 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
-    await databases.deleteDocument(
+    await serverDatabases.deleteDocument(
       APPWRITE_DATABASE_ID,
       ADMINS_COLLECTION_ID,
       adminId

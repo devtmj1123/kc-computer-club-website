@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { serverDatabases, Query } from '@/services/appwrite-server';
 import { Resend } from 'resend';
+import crypto from 'crypto';
 const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
 const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || process.env.ADMIN_SESSION_SECRET || '';
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 export async function POST(request: Request) {
   try {
@@ -36,12 +38,17 @@ export async function POST(request: Request) {
     }
     const user = userRecords.documents[0];
     const userId = user.$id;
+    const payload = JSON.stringify({
+      userId,
+      email: email.toLowerCase(),
+      timestamp: Date.now(),
+    });
+    const signature = crypto
+      .createHmac('sha256', RESET_TOKEN_SECRET)
+      .update(payload)
+      .digest('hex');
     const resetToken = Buffer.from(
-      JSON.stringify({
-        userId,
-        email: email.toLowerCase(),
-        timestamp: Date.now(),
-      })
+      JSON.stringify({ data: payload, signature })
     ).toString('base64');
     const resetLink = `${APP_URL}/auth/reset-password?token=${resetToken}`;
     if (resend) {

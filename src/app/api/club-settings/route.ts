@@ -1,8 +1,6 @@
-import { Client, Databases } from 'appwrite';
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-const databases = new Databases(client);
+import { NextRequest, NextResponse } from 'next/server';
+import { serverDatabases } from '@/services/appwrite-server';
+import { requireAdminSession } from '@/lib/admin-session';
 export interface ClubSettings {
   id: string;
   aboutTitle: string;
@@ -25,7 +23,7 @@ export interface ClubSettings {
 }
 export async function GET() {
   try {
-    const response = await databases.listDocuments(
+    const response = await serverDatabases.listDocuments(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
       'clubSettings'
     );
@@ -55,10 +53,13 @@ export async function GET() {
     );
   }
 }
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
+
   try {
     const settings: Partial<ClubSettings> = await request.json();
-    const existing = await databases.listDocuments(
+    const existing = await serverDatabases.listDocuments(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
       'clubSettings'
     );
@@ -67,14 +68,14 @@ export async function POST(request: Request) {
     );
     let result;
     if (existing.documents && existing.documents.length > 0) {
-      result = await databases.updateDocument(
+      result = await serverDatabases.updateDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'clubSettings',
         existing.documents[0].$id,
         sanitizedSettings
       );
     } else {
-      result = await databases.createDocument(
+      result = await serverDatabases.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         'clubSettings',
         'unique()',

@@ -68,12 +68,6 @@ export default function StudentLoginPage() {
     }
     setIsChangingPassword(true);
     try {
-      console.log('=== Login Page Password Change ===');
-      console.log('Current password for change:', currentPasswordForChange);
-      console.log('Current password type:', typeof currentPasswordForChange);
-      console.log('Current password length:', currentPasswordForChange?.length);
-      console.log('Email:', email);
-      console.log('Student ID extracted:', email.replace(/@kuencheng\.edu\.my$/, ''));
       await changePassword(currentPasswordForChange, newPassword);
       setShowChangePasswordModal(false);
       router.push('/');
