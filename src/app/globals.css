@@ -45,7 +45,7 @@
   --foreground: #e8f0ea;
   --text-primary: #e8f0ea;
   --text-secondary: #96a89b;
-  --text-tertiary: #62736a;
+  --text-tertiary: #7f9287;
 
   --border: #1b2920;
   --border-light: #16211a;
@@ -59,7 +59,7 @@
   --input-bg: #0a0f0b;
   --input-border: #2b4032;
   --input-text: #e8f0ea;
-  --input-placeholder: #62736a;
+  --input-placeholder: #7f9287;
   --select-option-bg: #0b110d;
   --select-option-text: #e8f0ea;
   --select-option-hover: #0e1510;
@@ -129,16 +129,16 @@
 
   /* Status — light theme */
   --success: #0a6638;
-  --warning: #8a5a00;
-  --error: #b42318;
+  --warning: #7a4f00;
+  --error: #a11d13;
   --info: #1f4e8c;
   --success-contrast: #ffffff;
   --warning-contrast: #ffffff;
   --error-contrast: #ffffff;
   --info-contrast: #ffffff;
   --success-light: rgba(10, 102, 56, 0.08);
-  --warning-light: rgba(138, 90, 0, 0.08);
-  --error-light: rgba(180, 35, 24, 0.08);
+  --warning-light: rgba(122, 79, 0, 0.08);
+  --error-light: rgba(161, 29, 19, 0.08);
   --info-light: rgba(31, 78, 140, 0.08);
 
   /* Neutral surfaces — light theme */
@@ -149,7 +149,7 @@
   --foreground: #0c1410;
   --text-primary: #0c1410;
   --text-secondary: #4f5f54;
-  --text-tertiary: #7a8a7e;
+  --text-tertiary: #5b6a5f;
 
   --border: #ccd7cb;
   --border-light: #dbe4d8;
@@ -163,7 +163,7 @@
   --input-bg: #f7faf2;
   --input-border: #b9c7ba;
   --input-text: #0c1410;
-  --input-placeholder: #7a8a7e;
+  --input-placeholder: #5b6a5f;
   --select-option-bg: #f7faf2;
   --select-option-text: #0c1410;
   --select-option-hover: #eff4ea;
@@ -332,9 +332,11 @@ body {
   color: var(--primary-contrast);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 button {

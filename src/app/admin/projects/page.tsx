@@ -94,10 +94,10 @@ export default function AdminProjectsPage() {
     revision: '需修改',
   };
   const statusColors: Record<string, string> = {
-    pending: 'bg-[var(--warning)]/30 text-[var(--warning)]',
-    approved: 'bg-[var(--primary)]/30 text-[var(--primary)]',
-    rejected: 'bg-[var(--error)]/30 text-[var(--error)]',
-    revision: 'bg-[var(--primary)]/30 text-[var(--primary)]',
+    pending: 'bg-[var(--warning)]/20 text-[var(--warning)]',
+    approved: 'bg-[var(--primary)]/20 text-[var(--primary)]',
+    rejected: 'bg-[var(--error)]/20 text-[var(--error)]',
+    revision: 'bg-[var(--primary)]/20 text-[var(--primary)]',
   };
   const roleLabels: Record<string, string> = {
     leader: '组长',
@@ -259,7 +259,7 @@ export default function AdminProjectsPage() {
           </div>
           <div className="rounded-xl p-6 border border-[var(--border)]" style={{ backgroundColor: 'var(--surface)' }}>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[var(--warning)]/20 text-[var(--primary)]">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[var(--warning)]/20 text-[var(--warning)]">
                 <span className="material-symbols-outlined text-2xl">pending</span>
               </div>
               <div>
@@ -281,7 +281,7 @@ export default function AdminProjectsPage() {
           </div>
           <div className="rounded-xl p-6 border border-[var(--border)]" style={{ backgroundColor: 'var(--surface)' }}>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[var(--error)]/20 text-[var(--primary)]">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[var(--error)]/20 text-[var(--error)]">
                 <span className="material-symbols-outlined text-2xl">cancel</span>
               </div>
               <div>
@@ -300,7 +300,7 @@ export default function AdminProjectsPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors`}
                 style={{
                   backgroundColor: filter === status ? 'var(--primary)' : 'transparent',
-                  color: filter === status ? 'white' : 'var(--text-secondary)',
+                  color: filter === status ? 'var(--primary-contrast)' : 'var(--text-secondary)',
                 }}
               >
                 {status === 'all' ? '全部' : statusLabels[status]}
@@ -315,7 +315,7 @@ export default function AdminProjectsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="搜索项目或团队名称..."
-                className="w-full h-10 pl-10 pr-4 rounded-xl text-sm focus:outline-none focus:ring-2 border border-[var(--border)]"
+                className="w-full h-10 pl-10 pr-4 rounded-xl text-sm placeholder:text-[var(--input-placeholder)] focus:outline-none focus:ring-2 border border-[var(--border)]"
                 style={{
                   backgroundColor: 'var(--surface)',
                   color: 'var(--foreground)',

@@ -246,7 +246,7 @@ export function AdminLayout({
               <Link href="/admin" className="transition-colors hover:text-[var(--foreground)]">
                 管理后台
               </Link>
-              <span className="text-[var(--border)]">/</span>
+              <span aria-hidden="true" className="text-[var(--text-tertiary)]">/</span>
               <span className="truncate font-semibold text-[var(--foreground)]">
                 {activeLabel}
               </span>

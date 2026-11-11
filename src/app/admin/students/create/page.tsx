@@ -168,7 +168,7 @@ export default function CreateStudentPage() {
             >
               学生管理
             </Link>
-            <span className="text-[var(--border)]">/</span>
+            <span aria-hidden="true" className="text-[var(--text-tertiary)]">/</span>
             <span className="text-[var(--foreground)]">创建学生账户</span>
           </div>
           <h1 className="mt-3 font-display text-[30px] font-bold leading-tight tracking-[-0.03em] text-[var(--foreground)] sm:text-[34px]">
