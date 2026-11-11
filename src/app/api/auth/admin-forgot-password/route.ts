@@ -81,7 +81,7 @@ export async function POST(request: Request) {
           'id, email, recovery_email, role, is_active, chinese_name'
         )
         .eq('role', 'admin')
-        .ilike('recovery_email', identifier)
+        .eq('recovery_email', identifier)
         .maybeSingle();
 
       if (error) {

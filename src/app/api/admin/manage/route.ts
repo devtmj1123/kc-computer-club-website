@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       const { data: existingRecovery, error: recoveryError } = await admin
         .from('profiles')
         .select('id')
-        .ilike('recovery_email', recovery.value)
+        .eq('recovery_email', recovery.value)
         .maybeSingle();
       if (recoveryError) {
         return NextResponse.json(
@@ -324,7 +324,7 @@ export async function PUT(request: NextRequest) {
       const { data: existingRecovery, error: recoveryError } = await admin
         .from('profiles')
         .select('id')
-        .ilike('recovery_email', recovery.value)
+        .eq('recovery_email', recovery.value)
         .neq('id', adminId)
         .maybeSingle();
       if (recoveryError) {
