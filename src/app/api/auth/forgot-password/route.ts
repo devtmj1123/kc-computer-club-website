@@ -13,7 +13,9 @@ import {
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const RESEND_FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL || 'noreply@computerclub.school.my';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const APP_URL = (
+  process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+).replace(/\/+$/, '');
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 export async function POST(request: Request) {
   try {

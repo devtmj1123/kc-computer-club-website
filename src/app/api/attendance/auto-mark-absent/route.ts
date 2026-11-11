@@ -10,7 +10,9 @@ export async function GET(request: NextRequest) {
     const sessionTime = searchParams.get('sessionTime') || '15:20';
     const weekNumber = parseInt(searchParams.get('weekNumber') || '1', 10);
     const trigger = searchParams.get('trigger') || '手动触发';
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = (
+      process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    ).replace(/\/+$/, '');
     const markAbsentResponse = await fetch(`${baseUrl}/api/attendance/mark-absent`, {
       method: 'POST',
       headers: {
