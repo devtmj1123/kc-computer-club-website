@@ -73,11 +73,10 @@
   --tag-border: #2b4032;
 
   /* Grid */
-  --grid-line: rgba(125, 255, 171, 0.05);
-  --grid-hot: rgba(125, 255, 171, 0.5);
-  --grid-glow: rgba(125, 255, 171, 0.12);
+  --grid-line: rgba(125, 255, 171, 0.028);
+  --grid-hot: rgba(125, 255, 171, 0.18);
+  --grid-glow: rgba(125, 255, 171, 0.045);
   --grid-size: 64px;
-  --grid-detail: 16px;
   --vignette: rgba(0, 0, 0, 0.5);
   --noise-opacity: 0.028;
 
@@ -177,9 +176,9 @@
   --tag-bg: #eff4ea;
   --tag-border: #ccd7cb;
 
-  --grid-line: rgba(10, 102, 56, 0.07);
-  --grid-hot: rgba(10, 102, 56, 0.42);
-  --grid-glow: rgba(10, 102, 56, 0.1);
+  --grid-line: rgba(10, 102, 56, 0.045);
+  --grid-hot: rgba(10, 102, 56, 0.16);
+  --grid-glow: rgba(10, 102, 56, 0.04);
   --vignette: rgba(15, 30, 20, 0.06);
   --noise-opacity: 0.02;
 
@@ -279,28 +278,22 @@ body {
 .grid-backdrop__hot {
   --mx: 50vw;
   --my: 50vh;
-  opacity: 1;
+  opacity: 0.9;
   background-image:
     linear-gradient(to right, var(--grid-hot) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-hot) 1px, transparent 1px),
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size:
-    var(--grid-detail) var(--grid-detail),
-    var(--grid-detail) var(--grid-detail),
-    var(--grid-size) var(--grid-size),
-    var(--grid-size) var(--grid-size);
+    linear-gradient(to bottom, var(--grid-hot) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
   mask-image: radial-gradient(
-    340px circle at var(--mx) var(--my),
+    260px circle at var(--mx) var(--my),
     #000 0%,
-    rgba(0, 0, 0, 0.72) 42%,
-    transparent 76%
+    rgba(0, 0, 0, 0.55) 40%,
+    transparent 72%
   );
   -webkit-mask-image: radial-gradient(
-    340px circle at var(--mx) var(--my),
+    260px circle at var(--mx) var(--my),
     #000 0%,
-    rgba(0, 0, 0, 0.72) 42%,
-    transparent 76%
+    rgba(0, 0, 0, 0.55) 40%,
+    transparent 72%
   );
 }
 
@@ -309,10 +302,16 @@ body {
   position: absolute;
   inset: 0;
   background: radial-gradient(
-    320px circle at var(--mx) var(--my),
+    240px circle at var(--mx) var(--my),
     var(--grid-glow) 0%,
-    transparent 68%
+    transparent 70%
   );
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .grid-backdrop__hot {
+    display: none;
+  }
 }
 
 .grid-backdrop__vignette {

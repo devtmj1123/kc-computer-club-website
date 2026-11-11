@@ -1,6 +1,8 @@
 const RECAPTCHA_VERIFY_URL =
   'https://www.google.com/recaptcha/api/siteverify';
 
+let warnedAboutMissingSecret = false;
+
 function getSecret(): string {
   return process.env.RECAPTCHA_SECRET_KEY || '';
 }
@@ -8,8 +10,8 @@ function getSecret(): string {
 /**
  * Returns true when the request may proceed.
  * When RECAPTCHA_SECRET_KEY is not configured the check is skipped so local
- * development and the current deployment keep working; configure the secret
- * before launch to enforce it.
+ * development keeps working. Production logs a one-time warning; set the
+ * secret in the deployment environment to enforce server-side verification.
  */
 export async function verifyPublicFormToken(
   token: unknown,
@@ -17,6 +19,12 @@ export async function verifyPublicFormToken(
 ): Promise<boolean> {
   const secret = getSecret();
   if (!secret) {
+    if (process.env.NODE_ENV === 'production' && !warnedAboutMissingSecret) {
+      warnedAboutMissingSecret = true;
+      console.warn(
+        '[recaptcha] RECAPTCHA_SECRET_KEY is not configured; public forms are not protected server-side.'
+      );
+    }
     return true;
   }
 

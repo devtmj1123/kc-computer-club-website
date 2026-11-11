@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react';
 
 /**
  * Fixed background grid for the whole site.
- * A 64px base grid stays faintly visible; a 16px detail grid lights up
- * around the pointer through a radial mask. Decorative only.
+ * A faint 64px grid stays visible; the same lines brighten softly around
+ * the pointer through a small radial mask. Decorative only.
  */
 export function GridBackdrop() {
   const hotRef = useRef<HTMLDivElement>(null);

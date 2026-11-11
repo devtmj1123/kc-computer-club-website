@@ -14,6 +14,7 @@ interface ClubSettings {
   logoUrl: string;
   heroImage: string;
   heroImageAlt: string;
+  recruitmentStatus: string;
   activeMembers: number;
   yearlyActivities: number;
   awardProjects: number;
@@ -37,6 +38,7 @@ interface ClubSettingsRow {
   logo_url: string | null;
   hero_image_url: string | null;
   hero_image_alt: string | null;
+  recruitment_status: string | null;
   active_members: number;
   yearly_activities: number;
   award_projects: number;
@@ -59,6 +61,7 @@ const FIELD_MAP: Record<keyof ClubSettings, string> = {
   logoUrl: 'logo_url',
   heroImage: 'hero_image_url',
   heroImageAlt: 'hero_image_alt',
+  recruitmentStatus: 'recruitment_status',
   activeMembers: 'active_members',
   yearlyActivities: 'yearly_activities',
   awardProjects: 'award_projects',
@@ -89,6 +92,7 @@ function mapSettings(row: ClubSettingsRow): ClubSettings {
     logoUrl: row.logo_url || '',
     heroImage: row.hero_image_url || '',
     heroImageAlt: row.hero_image_alt || '',
+    recruitmentStatus: row.recruitment_status || '',
     activeMembers: row.active_members ?? 0,
     yearlyActivities: row.yearly_activities ?? 0,
     awardProjects: row.award_projects ?? 0,

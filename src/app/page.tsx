@@ -62,7 +62,7 @@ function IndexPanel({
   heroImageAlt?: string;
 }) {
   return (
-    <aside className="panel-corners self-start border border-[var(--rule-strong)] bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]">
+    <aside className="panel-corners self-start border border-[var(--rule-strong)] bg-[var(--surface)]">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
         <span>INDEX / 近期</span>
         <span className="inline-flex items-center gap-1.5 text-[var(--primary)]">
@@ -313,7 +313,7 @@ export default function HomePage() {
           }
         />
 
-        <section className="px-4 sm:px-6 lg:px-8">
+        <section className="bg-[var(--background)] px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 border-b border-[var(--rule-strong)] sm:grid-cols-3">
             {[
               { value: '1983', unit: '', label: '成立年份', note: 'ESTABLISHED' },

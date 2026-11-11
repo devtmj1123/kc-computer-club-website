@@ -18,6 +18,7 @@ interface ClubSettings {
   logoUrl?: string;
   heroImage?: string;
   heroImageAlt?: string;
+  recruitmentStatus?: string;
   activeMembers?: number;
   yearlyActivities?: number;
   awardProjects?: number;
@@ -135,6 +136,7 @@ export default function AdminSettings() {
         if (data.logoUrl) clubSettings.logoUrl = data.logoUrl;
         if (data.heroImage) clubSettings.heroImage = data.heroImage;
         if (data.heroImageAlt) clubSettings.heroImageAlt = data.heroImageAlt;
+        if (data.recruitmentStatus) clubSettings.recruitmentStatus = data.recruitmentStatus;
         if (data.activeMembers) clubSettings.activeMembers = data.activeMembers;
         if (data.yearlyActivities) clubSettings.yearlyActivities = data.yearlyActivities;
         if (data.awardProjects) clubSettings.awardProjects = data.awardProjects;
@@ -426,6 +428,13 @@ export default function AdminSettings() {
                 onChange={(e) => handleSettingChange('heroImageAlt', e.target.value)}
                 placeholder="例如: 电脑学会活动现场"
                 hint="用于图片无法加载时显示和辅助功能"
+              />
+              <Input
+                label="招生 / 运行状态"
+                value={settings.recruitmentStatus || ''}
+                onChange={(e) => handleSettingChange('recruitmentStatus', e.target.value)}
+                placeholder="例如: 社团运行中 / 2026 招新中"
+                hint="显示在主页 Hero 标签与 INDEX 面板底部"
               />
               {settings.heroImage && (
                 <div className="border border-[var(--border)] p-4">
