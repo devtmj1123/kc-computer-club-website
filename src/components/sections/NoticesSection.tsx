@@ -32,7 +32,7 @@ export function NoticesSection({ notices, className }: NoticesSectionProps) {
   const visibleNotices = notices.slice(0, 3);
 
   return (
-    <section className={cn('min-w-0 bg-[var(--background)]', className)}>
+    <section className={cn('min-w-0', className)}>
       <SectionHeading
         index="01"
         title="最新公告"
@@ -115,7 +115,7 @@ export function EventsSection({ activities, className }: EventsSectionProps) {
   const visibleActivities = activities.slice(0, 3);
 
   return (
-    <section className={cn('min-w-0 bg-[var(--background)]', className)}>
+    <section className={cn('min-w-0', className)}>
       <SectionHeading
         index="02"
         title="近期活动"

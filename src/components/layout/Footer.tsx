@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ClubMark } from '@/components/ui/ClubMark';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FooterLink {
   label: string;
@@ -39,7 +40,7 @@ const quickLinks: FooterLink[] = [
   { label: '项目展示', href: '/projects' },
 ];
 
-const resourceLinks: FooterLink[] = [
+const resourceLinksBase: FooterLink[] = [
   { label: '签到系统', href: '/attendance' },
   { label: '提交项目', href: '/projects/submit' },
   { label: '开发者教程', href: '/tutorial' },
@@ -96,7 +97,17 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
 
 export function Footer({ className }: FooterProps) {
   const [settings, setSettings] = useState<ClubSettings | null>(null);
+  const { isStudent, isAdmin } = useAuth();
   const currentYear = new Date().getFullYear();
+
+  const accountLink: FooterLink = isAdmin
+    ? { label: '管理后台', href: '/admin' }
+    : isStudent
+      ? { label: '个人资料', href: '/profile' }
+      : { label: '成员登录', href: '/auth/login' };
+  const resourceLinks = resourceLinksBase.map((link) =>
+    link.href === '/auth/login' ? accountLink : link
+  );
 
   useEffect(() => {
     async function fetchSettings() {

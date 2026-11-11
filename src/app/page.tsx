@@ -313,7 +313,7 @@ export default function HomePage() {
           }
         />
 
-        <section className="bg-[var(--background)] px-4 sm:px-6 lg:px-8">
+        <section className="px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 border-b border-[var(--rule-strong)] sm:grid-cols-3">
             {[
               { value: '1983', unit: '', label: '成立年份', note: 'ESTABLISHED' },

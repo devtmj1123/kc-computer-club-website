@@ -20,7 +20,7 @@ interface ProjectsSectionProps {
 
 export function ProjectsSection({ projects, className }: ProjectsSectionProps) {
   return (
-    <section className={cn('min-w-0 bg-[var(--background)]', className)}>
+    <section className={cn('min-w-0', className)}>
       <SectionHeading
         index="03"
         title="进行中的项目"

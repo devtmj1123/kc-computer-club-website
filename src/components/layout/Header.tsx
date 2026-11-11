@@ -42,6 +42,7 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isStudent, isAdmin, logout } = useAuth();
+  const currentYear = new Date().getFullYear();
 
   const handleLogout = async () => {
     await logout();
@@ -117,7 +118,7 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
 
         <div className="flex items-center gap-2.5">
           <span className="hidden font-mono text-[12px] tracking-[0.14em] text-[var(--text-tertiary)] xl:block">
-            2026 / 学年
+            {currentYear} / 学年
           </span>
           <ThemeToggle compact className="hidden sm:inline-flex" />
 
@@ -138,6 +139,26 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
                 退出
               </button>
             </div>
+          ) : isAdmin && user ? (
+            <div className="hidden items-center gap-2 md:flex">
+              <Link
+                href="/admin"
+                className="inline-flex items-center gap-1.5 px-2 py-2 text-[12px] font-medium text-[var(--primary)] transition-colors hover:text-[var(--foreground)]"
+              >
+                <span className="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+                后台
+              </Link>
+              <span className="inline-flex items-center gap-1.5 border-l border-[var(--border)] pl-2 text-[12px] text-[var(--text-secondary)]">
+                {user.name}
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-1.5 border border-[var(--border)] px-3 py-2 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--rule-strong)] hover:text-[var(--foreground)]"
+              >
+                退出
+              </button>
+            </div>
           ) : (
             <Link
               href="/auth/login"
@@ -145,16 +166,6 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
             >
               成员登录
               <span className="text-[13px] text-[var(--primary)] transition-transform duration-200 group-hover:translate-x-0.5">↗</span>
-            </Link>
-          )}
-
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="hidden items-center gap-1.5 px-2 py-2 text-[12px] font-medium text-[var(--primary)] md:inline-flex"
-            >
-              <span className="material-symbols-outlined text-[16px]">admin_panel_settings</span>
-              后台
             </Link>
           )}
 
@@ -213,17 +224,38 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
 
             <div className="mt-4 flex items-center justify-between">
               <ThemeToggle />
-              {isStudent && user ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleLogout();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="inline-flex items-center gap-1.5 border border-[var(--border)] px-3 py-2 text-[12px] font-medium text-[var(--text-secondary)]"
-                >
-                  退出登录
-                </button>
+              {user ? (
+                <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="inline-flex items-center gap-1.5 border border-[var(--border)] px-3 py-2 text-[12px] font-medium text-[var(--primary)]"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">admin_panel_settings</span>
+                      后台
+                    </Link>
+                  )}
+                  {isStudent && (
+                    <Link
+                      href="/profile"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="inline-flex items-center gap-1.5 border border-[var(--border)] px-3 py-2 text-[12px] font-medium text-[var(--text-secondary)]"
+                    >
+                      个人资料
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 border border-[var(--border)] px-3 py-2 text-[12px] font-medium text-[var(--text-secondary)]"
+                  >
+                    退出登录
+                  </button>
+                </div>
               ) : (
                 <Link
                   href="/auth/login"
