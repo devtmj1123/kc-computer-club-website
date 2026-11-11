@@ -127,7 +127,7 @@ export default function AdminManagePage() {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="mono-label">{stat.label}</span>
-                <span className="hidden font-mono text-[7px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
+                <span className="hidden font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
                   {stat.note}
                 </span>
               </div>
@@ -205,7 +205,7 @@ export default function AdminManagePage() {
                           <div className="truncate text-[12px] font-semibold text-[var(--foreground)]">
                             {admin.username}
                           </div>
-                          <div className="mt-0.5 font-mono text-[7px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                          <div className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
                             Admin · {String(index + 1).padStart(2, '0')}
                           </div>
                         </div>

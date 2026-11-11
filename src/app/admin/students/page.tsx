@@ -482,7 +482,7 @@ export default function StudentsPage() {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="mono-label">{stat.label}</span>
-                <span className="hidden font-mono text-[7px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
+                <span className="hidden font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
                   {stat.note}
                 </span>
               </div>
@@ -975,7 +975,7 @@ export default function StudentsPage() {
                       key={label}
                       className="min-w-0 border-b border-r border-[var(--border)] px-3 py-2.5"
                     >
-                      <div className="font-mono text-[7px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                      <div className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
                         {label}
                       </div>
                       <div
@@ -990,7 +990,7 @@ export default function StudentsPage() {
                     </div>
                   ))}
                   <div className="col-span-2 border-b border-r border-[var(--border)] px-3 py-2.5 sm:col-span-3">
-                    <div className="font-mono text-[7px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
                       备注
                     </div>
                     <div className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
@@ -998,7 +998,7 @@ export default function StudentsPage() {
                     </div>
                   </div>
                   <div className="col-span-2 border-b border-r border-[var(--border)] px-3 py-2.5 sm:col-span-3">
-                    <div className="font-mono text-[7px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
                       密码状态
                     </div>
                     {selectedStudent.requirePasswordChange ? (

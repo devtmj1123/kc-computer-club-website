@@ -212,7 +212,7 @@ export default function ActivitySignups() {
               <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
                 {stat.label}
               </span>
-              <span className="hidden font-mono text-[7px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
+              <span className="hidden font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
                 {stat.note}
               </span>
             </div>

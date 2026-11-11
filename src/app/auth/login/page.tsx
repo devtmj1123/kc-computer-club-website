@@ -188,7 +188,7 @@ export default function StudentLoginPage() {
                   <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="student-email"
-                      className="text-[12px] font-medium tracking-[0.01em] text-[var(--text-secondary)]"
+                      className="text-[13px] font-medium tracking-[0.01em] text-[var(--text-secondary)]"
                     >
                       学号邮箱 <span className="text-[var(--error)]">*</span>
                     </label>
@@ -207,11 +207,11 @@ export default function StudentLoginPage() {
                         maxLength={6}
                         className="h-12 min-w-0 flex-1 bg-transparent px-3.5 text-[15px] font-medium tracking-[0.04em] text-[var(--foreground)] outline-none placeholder:font-normal placeholder:tracking-normal placeholder:text-[var(--input-placeholder)]"
                       />
-                      <span className="flex shrink-0 items-center border-l border-[var(--border)] bg-[var(--surface-hover)] px-3 text-[13px] text-[var(--text-secondary)]">
+                      <span className="flex shrink-0 items-center border-l border-[var(--border)] bg-[var(--surface-hover)] px-3 text-[14px] font-medium text-[var(--text-secondary)]">
                         @kuencheng.edu.my
                       </span>
                     </div>
-                    <p className="text-[12px] leading-relaxed text-[var(--text-tertiary)]">
+                    <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
                       输入 5-6 位学号数字
                     </p>
                   </div>

@@ -48,7 +48,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={selectId || undefined}
-            className="text-[12px] font-medium tracking-[0.01em] text-[var(--text-secondary)]"
+            className="text-[13px] font-medium tracking-[0.01em] text-[var(--text-secondary)]"
           >
             {label}
             {required && <span className="text-[var(--error)] ml-1">*</span>}
@@ -90,14 +90,14 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         </div>
 
         {error && (
-          <p className="flex items-center gap-1 text-[12px] text-[var(--error)]">
+          <p className="flex items-center gap-1 text-[13px] text-[var(--error)]">
             <span className="material-symbols-outlined text-[14px]">error</span>
             {error}
           </p>
         )}
 
         {hint && !error && (
-          <p className="text-[12px] text-[var(--text-secondary)]">{hint}</p>
+          <p className="text-[13px] text-[var(--text-secondary)]">{hint}</p>
         )}
       </div>
     );

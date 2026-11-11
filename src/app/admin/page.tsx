@@ -221,7 +221,7 @@ export default function AdminDashboard() {
             {
               label: '活动报名',
               note: 'SIGNUPS',
-              value: isLoadingData ? '—' : String(stats.signups),
+              value: isLoadingData ? '—' : String(stats.signups).padStart(2, '0'),
             },
             {
               label: '待审核',
@@ -241,7 +241,7 @@ export default function AdminDashboard() {
                 <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
                   {stat.label}
                 </span>
-                <span className="hidden font-mono text-[7px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
+                <span className="hidden font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
                   {stat.note}
                 </span>
               </div>

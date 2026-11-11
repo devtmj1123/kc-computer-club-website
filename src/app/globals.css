@@ -338,13 +338,6 @@ a {
   text-decoration: none;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
 button {
   cursor: pointer;
 }
@@ -974,7 +967,7 @@ select option:disabled {
   background: var(--primary);
   border-color: var(--primary);
   color: var(--primary-contrast);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .btn-primary::before {

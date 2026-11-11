@@ -57,7 +57,7 @@ export function NeumorphicSelect({
   return (
     <div className={cn('flex flex-col gap-1.5', className)} ref={containerRef}>
       {label && (
-        <label className="text-[12px] font-medium tracking-[0.01em] text-[var(--text-secondary)]">
+        <label className="text-[13px] font-medium tracking-[0.01em] text-[var(--text-secondary)]">
           {label}
         </label>
       )}
@@ -112,7 +112,7 @@ export function NeumorphicSelect({
       </div>
 
       {error && (
-        <p className="flex items-center gap-1 text-[12px] tracking-[0.01em] text-[var(--error)]">
+        <p className="flex items-center gap-1 text-[13px] tracking-[0.01em] text-[var(--error)]">
           <span className="material-symbols-outlined text-[14px]">error</span>
           {error}
         </p>

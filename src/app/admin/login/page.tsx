@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
             <span className="font-display text-[15px] font-bold leading-none text-[var(--foreground)]">
               电脑学会
             </span>
-            <span className="font-mono text-[7px] leading-none tracking-[0.16em] text-[var(--text-tertiary)]">
+            <span className="font-mono text-[10px] leading-none tracking-[0.16em] text-[var(--text-tertiary)]">
               ADMIN CONSOLE
             </span>
           </span>
@@ -75,7 +75,7 @@ export default function AdminLoginPage() {
               <span className="font-display text-[14px] font-bold leading-none text-[var(--foreground)]">
                 电脑学会
               </span>
-              <span className="font-mono text-[7px] tracking-[0.16em] text-[var(--text-tertiary)]">
+              <span className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-tertiary)]">
                 ADMIN CONSOLE
               </span>
             </span>
@@ -184,7 +184,7 @@ export default function AdminLoginPage() {
               <span className="material-symbols-outlined text-[14px]">arrow_back</span>
               返回主站
             </Link>
-            <span className="font-mono text-[7px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
               KC · Admin
             </span>
           </div>

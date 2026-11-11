@@ -588,7 +588,7 @@ export default function AttendanceRecords() {
     if (!summary) return;
 
     const data = sessionNumber === 1 ? summary.session1.students : summary.session2.students;
-    const sessionTime = sessionNumber === 1 ? '下午 3:15-3:30' : '下午 4:30-4:45';
+    const sessionTime = formatSessionTimeRange(sessionNumber);
 
     const headers = ['学号', '姓名', '邮箱', '签到时间', '签到日期', '状态'];
     const rows = data.map((record) => [
@@ -793,12 +793,12 @@ export default function AttendanceRecords() {
 
       <div className={styles.summary}>
         <div className={styles.summaryCard}>
-          <div className={styles.title}>下午 3:15-3:30</div>
+          <div className={styles.title}>{formatSessionTimeRange(1)}</div>
           <div className={styles.count}>{(summary.session1.present || 0) + (summary.session1.late || 0)}</div>
           <div className={styles.label}>人出席</div>
         </div>
         <div className={styles.summaryCard}>
-          <div className={styles.title}>下午 4:30-4:45</div>
+          <div className={styles.title}>{formatSessionTimeRange(2)}</div>
           <div className={styles.count}>{(summary.session2.present || 0) + (summary.session2.late || 0)}</div>
           <div className={styles.label}>人出席</div>
         </div>
@@ -835,7 +835,7 @@ export default function AttendanceRecords() {
                 borderRadius: '8px',
                 border: isActive ? 'none' : '1px solid var(--border)',
                 background: isActive ? colors[status] : 'transparent',
-                color: isActive ? 'white' : 'var(--text-secondary)',
+                color: isActive ? 'var(--primary-contrast)' : 'var(--text-secondary)',
                 fontSize: '13px',
                 fontWeight: isActive ? '600' : '500',
                 cursor: 'pointer',
@@ -862,7 +862,7 @@ export default function AttendanceRecords() {
                   gap: '8px',
                   padding: '8px 16px',
                   backgroundColor: isInitializing ? 'var(--text-tertiary)' : 'var(--primary)',
-                  color: 'var(--foreground)',
+                  color: 'var(--primary-contrast)',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: isInitializing ? 'wait' : 'pointer',
@@ -902,7 +902,7 @@ export default function AttendanceRecords() {
                 gap: '8px',
                 padding: '8px 16px',
                 backgroundColor: isMarkingLate ? 'var(--text-tertiary)' : 'var(--error)',
-                color: 'var(--foreground)',
+                color: 'var(--error-contrast)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: isMarkingLate ? 'wait' : 'pointer',
@@ -1008,7 +1008,7 @@ export default function AttendanceRecords() {
                             className={`${styles.statusBtn} ${styles.statusBtnPresent} ${record.status === 'present' ? styles.active : ''}`}
                             disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为出席"
-                            style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
+                            style={{fontSize: '12px', padding: '4px 7px', minWidth: '42px'}}
                           >
                             出席
                           </button>
@@ -1017,7 +1017,7 @@ export default function AttendanceRecords() {
                             className={`${styles.statusBtn} ${styles.statusBtnLate} ${record.status === 'late' ? styles.active : ''}`}
                             disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为迟到"
-                            style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
+                            style={{fontSize: '12px', padding: '4px 7px', minWidth: '42px'}}
                           >
                             迟到
                           </button>
@@ -1026,7 +1026,7 @@ export default function AttendanceRecords() {
                             className={`${styles.statusBtn} ${styles.statusBtnAbsent} ${record.status === 'absent' ? styles.active : ''}`}
                             disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为缺席"
-                            style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
+                            style={{fontSize: '12px', padding: '4px 7px', minWidth: '42px'}}
                           >
                             缺席
                           </button>
@@ -1056,7 +1056,7 @@ export default function AttendanceRecords() {
                 gap: '8px',
                 padding: '8px 16px',
                 backgroundColor: isMarkingLate ? 'var(--text-tertiary)' : 'var(--error)',
-                color: 'var(--foreground)',
+                color: 'var(--error-contrast)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: isMarkingLate ? 'wait' : 'pointer',
@@ -1162,7 +1162,7 @@ export default function AttendanceRecords() {
                             className={`${styles.statusBtn} ${styles.statusBtnPresent} ${record.status === 'present' ? styles.active : ''}`}
                             disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为出席"
-                            style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
+                            style={{fontSize: '12px', padding: '4px 7px', minWidth: '42px'}}
                           >
                             出席
                           </button>
@@ -1171,7 +1171,7 @@ export default function AttendanceRecords() {
                             className={`${styles.statusBtn} ${styles.statusBtnLate} ${record.status === 'late' ? styles.active : ''}`}
                             disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为迟到"
-                            style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
+                            style={{fontSize: '12px', padding: '4px 7px', minWidth: '42px'}}
                           >
                             迟到
                           </button>
@@ -1180,7 +1180,7 @@ export default function AttendanceRecords() {
                             className={`${styles.statusBtn} ${styles.statusBtnAbsent} ${record.status === 'absent' ? styles.active : ''}`}
                             disabled={updatingId === (record.uniqueKey || record.$id)}
                             title="标记为缺席"
-                            style={{fontSize: '10px', padding: '3px 6px', minWidth: '38px'}}
+                            style={{fontSize: '12px', padding: '4px 7px', minWidth: '42px'}}
                           >
                             缺席
                           </button>

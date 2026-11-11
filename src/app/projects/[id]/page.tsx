@@ -416,7 +416,7 @@ export default function ProjectDetailPage() {
                     </p>
                   </div>
                   <span
-                    className={`shrink-0 border px-1.5 py-0.5 font-mono text-[7px] uppercase tracking-[0.06em] ${
+                    className={`shrink-0 border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] ${
                       member.role === 'leader'
                         ? 'border-[var(--primary)]/40 text-[var(--primary)]'
                         : 'border-[var(--border)] text-[var(--text-tertiary)]'

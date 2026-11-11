@@ -165,7 +165,7 @@ export default function AdminNoticesPage() {
               <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
                 {stat.label}
               </span>
-              <span className="font-mono text-[7px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
                 {stat.note}
               </span>
             </div>

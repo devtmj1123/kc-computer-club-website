@@ -145,7 +145,7 @@ export function AdminLayout({
               <span className="font-display text-[14px] font-bold leading-none text-[var(--foreground)]">
                 电脑学会
               </span>
-              <span className="font-mono text-[7px] leading-none tracking-[0.16em] text-[var(--text-tertiary)]">
+              <span className="font-mono text-[10px] leading-none tracking-[0.16em] text-[var(--text-tertiary)]">
                 ADMIN CONSOLE
               </span>
             </span>
@@ -162,7 +162,7 @@ export function AdminLayout({
         <nav className="flex-1 overflow-y-auto pb-4">
           {navGroups.map((group) => (
             <div key={group.label}>
-              <div className="px-6 pb-2 pt-5 font-mono text-[7px] uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
+              <div className="px-6 pb-2 pt-5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-tertiary)]">
                 {group.label}
               </div>
               <div className="flex flex-col gap-px px-2.5">
@@ -206,7 +206,7 @@ export function AdminLayout({
               <p className="truncate text-[12px] font-semibold text-[var(--foreground)]">
                 {displayName}
               </p>
-              <p className="mt-1 font-mono text-[7px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
                 ADMIN · ONLINE
               </p>
             </div>

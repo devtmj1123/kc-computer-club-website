@@ -75,7 +75,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId || undefined}
-            className="text-[12px] font-medium tracking-[0.01em] text-[var(--text-secondary)]"
+            className="text-[13px] font-medium tracking-[0.01em] text-[var(--text-secondary)]"
           >
             {label}
             {required && <span className="ml-1 text-[var(--error)]">*</span>}
@@ -110,14 +110,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         </div>
 
         {error && (
-          <p className="flex items-center gap-1 text-[12px] tracking-[0.01em] text-[var(--error)]">
+          <p className="flex items-center gap-1 text-[13px] tracking-[0.01em] text-[var(--error)]">
             <span className="material-symbols-outlined text-[14px]">error</span>
             {error}
           </p>
         )}
 
         {hint && !error && (
-          <p className="text-[12px] leading-relaxed tracking-[0.01em] text-[var(--text-tertiary)]">
+          <p className="text-[13px] leading-relaxed tracking-[0.01em] text-[var(--text-secondary)]">
             {hint}
           </p>
         )}
