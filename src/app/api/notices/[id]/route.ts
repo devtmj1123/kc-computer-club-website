@@ -5,8 +5,8 @@ import {
   deleteNotice,
   UpdateNoticeInput,
 } from '@/services/notice.service';
-import { serverDatabases } from '@/services/appwrite-server';
-import { requireAdminSession } from '@/lib/admin-session';
+import { requireAdminSession, getAdminSession } from '@/lib/admin-session';
+import { getSessionStudent } from '@/lib/student-identity';
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,12 +15,24 @@ export async function GET(
     const { id } = await params;
     const notice = await getNoticeById(id);
 
-    const authError = requireAdminSession(request);
-    if (authError && (notice.status !== 'published' || notice.visibility !== 'public')) {
-      return NextResponse.json(
-        { error: '公告不存在' },
-        { status: 404 }
-      );
+    const isAdmin = requireAdminSession(request) === null;
+    if (!isAdmin) {
+      if (notice.status !== 'published') {
+        return NextResponse.json(
+          { error: '公告不存在' },
+          { status: 404 }
+        );
+      }
+
+      if (notice.visibility === 'internal') {
+        const student = await getSessionStudent(request);
+        if (!student) {
+          return NextResponse.json(
+            { error: '此公告仅限登录成员查看' },
+            { status: 401 }
+          );
+        }
+      }
     }
 
     return NextResponse.json({
@@ -42,6 +54,7 @@ export async function PUT(
 ) {
   const authError = requireAdminSession(request);
   if (authError) return authError;
+  const session = getAdminSession(request);
 
   try {
     const { id } = await params;
@@ -51,8 +64,11 @@ export async function PUT(
       content: body.content,
       category: body.category,
       status: body.status,
+      visibility: body.visibility,
       images: body.images,
       tags: body.tags,
+      lastEditorId: session?.sub,
+      lastEditorName: session?.username,
     };
     const notice = await updateNotice(id, input);
     return NextResponse.json({
@@ -79,39 +95,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const { pinned } = await request.json();
-    const db = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
-    const coll = process.env.NEXT_PUBLIC_APPWRITE_NOTICES_COLLECTION || '';
-    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '';
-    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '';
-    const apiKey = process.env.APPWRITE_API_KEY || '';
-    const doUpdate = () =>
-      serverDatabases.updateDocument(db, coll, id, { pinned: !!pinned });
-    try {
-      await doUpdate();
-    } catch (e: unknown) {
-      const err = e as { code?: number };
-      if (err.code === 400) {
-        try {
-          await fetch(
-            `${endpoint}/databases/${db}/collections/${coll}/attributes/boolean`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Appwrite-Project': projectId,
-                'X-Appwrite-Key': apiKey,
-              },
-              body: JSON.stringify({ key: 'pinned', required: false, default: false }),
-              signal: AbortSignal.timeout(8000),
-            }
-          );
-        } catch {  }
-        await new Promise(r => setTimeout(r, 5000));
-        await doUpdate();
-      } else {
-        throw e;
-      }
-    }
+    await updateNotice(id, { pinned: !!pinned });
     return NextResponse.json({ success: true, pinned: !!pinned });
   } catch (error: unknown) {
     const err = error as Error & { message?: string };

@@ -57,7 +57,7 @@ export function NeumorphicSelect({
   return (
     <div className={cn('flex flex-col gap-1.5', className)} ref={containerRef}>
       {label && (
-        <label className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+        <label className="text-[12px] font-medium tracking-[0.01em] text-[var(--text-secondary)]">
           {label}
         </label>
       )}
@@ -67,42 +67,28 @@ export function NeumorphicSelect({
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           className={cn(
-            'w-full flex items-center justify-between px-4 py-3 text-base outline-none transition-all duration-200',
-            disabled && 'opacity-60 cursor-not-allowed'
+            'flex w-full items-center justify-between gap-2 rounded-[3px] border bg-[var(--input-bg)]',
+            'min-h-[46px] px-3.5 py-2.5 text-left text-[15px] font-medium outline-none transition-colors',
+            isOpen ? 'border-[var(--primary)]' : 'border-[var(--input-border)]',
+            'hover:border-[var(--rule-strong)]',
+            disabled && 'cursor-not-allowed opacity-60',
+            selectedLabel ? 'text-[var(--foreground)]' : 'text-[var(--text-tertiary)]'
           )}
-          style={{
-            background: 'var(--nm-bg)',
-            boxShadow: isOpen ? 'var(--nm-inset)' : 'var(--nm-inset)',
-            borderRadius: 18,
-            color: selectedLabel ? 'var(--foreground)' : 'var(--text-tertiary)',
-            border: isOpen ? '1.5px solid var(--primary)' : '1.5px solid transparent',
-            cursor: disabled ? 'not-allowed' : 'pointer',
-          }}
         >
           <span className="truncate">{selectedLabel || placeholder}</span>
           <span
-            className="material-symbols-outlined transition-transform duration-200"
-            style={{
-              color: 'var(--text-secondary)',
-              transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-            }}
+            className={cn(
+              'material-symbols-outlined text-[16px] text-[var(--text-tertiary)] transition-transform',
+              isOpen && 'rotate-180'
+            )}
           >
             expand_more
           </span>
         </button>
 
         {isOpen && (
-          <div
-            className="absolute z-50 w-full mt-2 overflow-hidden"
-            style={{
-              background: 'var(--nm-bg)',
-              boxShadow: 'var(--nm-raised-lg)',
-              borderRadius: 18,
-              border: 'none',
-              animation: 'slide-down 0.2s ease-out',
-            }}
-          >
-            <div className="py-2 max-h-60 overflow-y-auto">
+          <div className="absolute z-50 mt-1.5 w-full overflow-hidden rounded-[3px] border border-[var(--rule-strong)] bg-[var(--surface)] shadow-[var(--shadow-md)] animate-slide-down">
+            <div className="max-h-60 overflow-y-auto py-1">
               {options.map((option) => (
                 <button
                   key={option.value}
@@ -110,33 +96,12 @@ export function NeumorphicSelect({
                   onClick={() => !option.disabled && handleSelect(option.value)}
                   disabled={option.disabled}
                   className={cn(
-                    'w-full px-4 py-2.5 text-left text-base transition-all duration-150',
-                    option.disabled && 'opacity-40 cursor-not-allowed'
+                    'w-full px-3.5 py-2.5 text-left text-[14px] transition-colors',
+                    option.value === value
+                      ? 'bg-[var(--primary-light)] font-semibold text-[var(--primary)]'
+                      : 'text-[var(--foreground)] hover:bg-[var(--surface-hover)]',
+                    option.disabled && 'cursor-not-allowed opacity-40'
                   )}
-                  style={{
-                    color:
-                      option.value === value
-                        ? 'var(--primary)'
-                        : option.disabled
-                          ? 'var(--text-tertiary)'
-                          : 'var(--foreground)',
-                    background:
-                      option.value === value
-                        ? 'var(--primary-light)'
-                        : 'transparent',
-                    fontWeight: option.value === value ? 600 : 400,
-                    cursor: option.disabled ? 'not-allowed' : 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!option.disabled && option.value !== value) {
-                      e.currentTarget.style.background = 'var(--surface-hover)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (option.value !== value) {
-                      e.currentTarget.style.background = 'transparent';
-                    }
-                  }}
                 >
                   {option.label}
                 </button>
@@ -147,7 +112,7 @@ export function NeumorphicSelect({
       </div>
 
       {error && (
-        <p className="text-xs flex items-center gap-1" style={{ color: 'var(--error)' }}>
+        <p className="flex items-center gap-1 text-[12px] tracking-[0.01em] text-[var(--error)]">
           <span className="material-symbols-outlined text-[14px]">error</span>
           {error}
         </p>

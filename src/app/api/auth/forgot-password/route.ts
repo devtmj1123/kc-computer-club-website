@@ -1,15 +1,34 @@
 import { NextResponse } from 'next/server';
-import { serverDatabases, Query } from '@/services/appwrite-server';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { Resend } from 'resend';
-import crypto from 'crypto';
-const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
-const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
+import {
+  createResetToken,
+  isResetTokenConfigured,
+} from '@/lib/reset-token';
+import {
+  getClientIp,
+  rateLimit,
+  rateLimitResponse,
+} from '@/lib/rate-limit';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_FROM_EMAIL =
+  process.env.RESEND_FROM_EMAIL || 'noreply@computerclub.school.my';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-const RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || process.env.ADMIN_SESSION_SECRET || '';
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 export async function POST(request: Request) {
   try {
+    if (!isResetTokenConfigured()) {
+      return NextResponse.json(
+        { error: '密码重置功能暂未配置，请联系管理员' },
+        { status: 503 }
+      );
+    }
+    if (!resend) {
+      return NextResponse.json(
+        { error: '邮件服务暂未配置，请联系管理员重置密码' },
+        { status: 503 }
+      );
+    }
     const body = await request.json();
     const { email } = body;
     if (!email) {
@@ -25,36 +44,60 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const userRecords = await serverDatabases.listDocuments(
-      APPWRITE_DATABASE_ID,
-      USERS_COLLECTION_ID,
-      [Query.equal('email', email.toLowerCase().trim())]
+
+    const ip = getClientIp(request);
+    const limit = rateLimit(
+      `forgot-password:${ip}:${String(email).toLowerCase()}`,
+      5,
+      60 * 60 * 1000
     );
-    if (userRecords.documents.length === 0) {
+    if (!limit.allowed) {
+      return rateLimitResponse(limit.retryAfter);
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const admin = getSupabaseAdminClient();
+    const { data: profile, error: profileError } = await admin
+      .from('profiles')
+      .select('id, email, role, is_active, chinese_name, english_name')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('查询密码重置用户失败:', profileError.message);
+    }
+
+    if (
+      profileError ||
+      !profile ||
+      profile.role !== 'student' ||
+      profile.is_active === false
+    ) {
       return NextResponse.json({
         success: true,
         message: '如果该邮箱已注册，重置请求已提交。请检查邮件（包括垃圾邮件文件夹）',
       });
     }
-    const user = userRecords.documents[0];
-    const userId = user.$id;
-    const payload = JSON.stringify({
+
+    const userId = profile.id;
+    const displayName =
+      profile.chinese_name || profile.english_name || '同学';
+    const resetToken = createResetToken({
       userId,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       timestamp: Date.now(),
     });
-    const signature = crypto
-      .createHmac('sha256', RESET_TOKEN_SECRET)
-      .update(payload)
-      .digest('hex');
-    const resetToken = Buffer.from(
-      JSON.stringify({ data: payload, signature })
-    ).toString('base64');
+    if (!resetToken) {
+      return NextResponse.json(
+        { error: '密码重置功能暂未配置，请联系管理员' },
+        { status: 503 }
+      );
+    }
     const resetLink = `${APP_URL}/auth/reset-password?token=${resetToken}`;
     if (resend) {
       try {
         const result = await resend.emails.send({
-          from: 'noreply@computerclub.school.my',
+          from: RESEND_FROM_EMAIL,
           to: email.toLowerCase(),
           subject: '电脑学会 - 密码重置请求',
           html: `
@@ -154,7 +197,7 @@ export async function POST(request: Request) {
                     <div class="logo-text">电脑学会</div>
                   </div>
                   <div class="content">
-                    <div class="greeting">嗨，${user.name}！</div>
+                    <div class="greeting">嗨，${displayName}！</div>
                     <div class="message">
                       我们收到了您的密码重置请求。请点击下方按钮来重置您的密码。此链接将在 <strong>24 小时</strong>后过期。
                     </div>
@@ -193,10 +236,6 @@ export async function POST(request: Request) {
           message: '密码重置请求已提交。请检查邮件',
         });
       }
-    } else {
-      console.warn('RESEND_API_KEY 未配置，跳过邮件发送');
-      console.log(`[模拟] 密码重置邮件已发送到: ${email} (用户ID: ${userId})`);
-      console.log(`[模拟] 重置链接: ${resetLink}`);
     }
     return NextResponse.json({
       success: true,

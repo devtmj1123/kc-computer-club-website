@@ -557,15 +557,15 @@ export default function AttendanceRecords() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'present':
-        return '#3fb950';
+        return 'var(--success)';
       case 'late':
-        return '#d29922';
+        return 'var(--warning)';
       case 'absent':
-        return '#ff7b72';
+        return 'var(--error)';
       case 'pending':
-        return '#6e7681';
+        return 'var(--text-tertiary)';
       default:
-        return '#6e7681';
+        return 'var(--text-tertiary)';
     }
   };
 
@@ -644,28 +644,27 @@ export default function AttendanceRecords() {
       `}</style>
 
       <div style={{
-        background: 'linear-gradient(135deg, #1a2632 0%, #1e3a5f 100%)',
-        border: codeEnabled ? '2px solid rgba(19, 236, 128, 0.5)' : '1px solid rgba(19, 127, 236, 0.3)',
+        background: 'var(--surface)',
+        border: codeEnabled ? '2px solid var(--primary)' : '1px solid var(--border)',
         borderRadius: '16px',
         padding: '20px',
         marginBottom: '24px',
-        boxShadow: codeEnabled ? '0 0 20px rgba(19, 236, 128, 0.2)' : 'none',
       }}>
         <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px'}}>
           <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-            <span className="material-symbols-outlined" style={{fontSize: '28px', color: '#137fec'}}>pin</span>
+            <span className="material-symbols-outlined" style={{fontSize: '28px', color: 'var(--primary)'}}>pin</span>
             <div>
-              <h3 style={{margin: 0, color: 'white', fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <h3 style={{margin: 0, color: 'var(--foreground)', fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px'}}>
                 点名验证码
                 {isAttendanceOpen && (
                   <span style={{
                     padding: '4px 12px',
-                    background: 'rgba(19, 236, 128, 0.2)',
-                    border: '1px solid rgba(19, 236, 128, 0.5)',
+                    background: 'var(--primary-light)',
+                    border: '1px solid var(--primary-light)',
                     borderRadius: '20px',
                     fontSize: '11px',
                     fontWeight: 600,
-                    color: '#13ec80',
+                    color: 'var(--primary)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
@@ -674,7 +673,7 @@ export default function AttendanceRecords() {
                     <span style={{
                       width: '6px',
                       height: '6px',
-                      background: '#13ec80',
+                      background: 'var(--primary)',
                       borderRadius: '50%',
                       animation: 'blink 1s infinite',
                     }}></span>
@@ -682,7 +681,7 @@ export default function AttendanceRecords() {
                   </span>
                 )}
               </h3>
-              <p style={{margin: '4px 0 0', color: '#8a9e94', fontSize: '13px'}}>
+              <p style={{margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '13px'}}>
                 {codeEnabled ? '学生需要输入验证码才能点名' : '验证码功能已关闭'}
               </p>
             </div>
@@ -691,23 +690,23 @@ export default function AttendanceRecords() {
           <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
             {codeEnabled && (attendanceCode1 || attendanceCode2) && (
               <div style={{
-                background: 'rgba(19, 127, 236, 0.15)',
-                border: '2px solid rgba(19, 127, 236, 0.5)',
+                background: 'var(--primary-light)',
+                border: '2px solid var(--primary-light)',
                 borderRadius: '12px',
                 padding: '12px 20px',
                 display: 'flex',
                 gap: '24px',
               }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ color: '#8a9e94', fontSize: '11px', marginBottom: '4px' }}>时段 1 验证码</div>
-                  <div style={{ color: '#137fec', fontSize: '28px', fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: '6px' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginBottom: '4px' }}>时段 1 验证码</div>
+                  <div style={{ color: 'var(--primary)', fontSize: '28px', fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: '6px' }}>
                     {attendanceCode1 || '----'}
                   </div>
                 </div>
-                <div style={{ width: '1px', background: 'rgba(19, 127, 236, 0.3)' }} />
+                <div style={{ width: '1px', background: 'var(--primary-light)' }} />
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ color: '#8a9e94', fontSize: '11px', marginBottom: '4px' }}>时段 2 验证码</div>
-                  <div style={{ color: '#13ec80', fontSize: '28px', fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: '6px' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginBottom: '4px' }}>时段 2 验证码</div>
+                  <div style={{ color: 'var(--primary)', fontSize: '28px', fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: '6px' }}>
                     {attendanceCode2 || '----'}
                   </div>
                 </div>
@@ -723,8 +722,8 @@ export default function AttendanceRecords() {
                   alignItems: 'center',
                   gap: '6px',
                   padding: '10px 16px',
-                  background: '#137fec',
-                  color: 'white',
+                  background: 'var(--primary)',
+                  color: 'var(--primary-contrast)',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: isGeneratingCode ? 'wait' : 'pointer',
@@ -746,8 +745,8 @@ export default function AttendanceRecords() {
                     gap: '6px',
                     padding: '10px 16px',
                     background: 'transparent',
-                    color: '#ff7b72',
-                    border: '1px solid rgba(255, 123, 114, 0.3)',
+                    color: 'var(--error)',
+                    border: '1px solid color-mix(in srgb, var(--error) 30%, transparent)',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '14px',
@@ -764,7 +763,7 @@ export default function AttendanceRecords() {
       </div>
 
       <div className={styles.header}>
-        <h2><span className="material-symbols-outlined" style={{fontSize: '28px', marginRight: '8px', verticalAlign: 'middle', color: '#137fec'}}>bar_chart</span>点名记录</h2>
+        <h2><span className="material-symbols-outlined" style={{fontSize: '28px', marginRight: '8px', verticalAlign: 'middle', color: 'var(--primary)'}}>bar_chart</span>点名记录</h2>
         <div className={styles.weekSelector}>
           <button
             onClick={() => {
@@ -815,17 +814,17 @@ export default function AttendanceRecords() {
         alignItems: 'center',
         gap: '8px',
         padding: '12px 16px',
-        background: '#1a2632',
+        background: 'var(--surface)',
         borderRadius: '12px',
-        border: '1px solid #2a3c54',
+        border: '1px solid var(--border)',
         marginBottom: '24px',
         flexWrap: 'wrap',
       }}>
-        <span className="material-symbols-outlined" style={{ color: '#8ba9c8', fontSize: '20px' }}>filter_list</span>
-        <span style={{ color: '#8ba9c8', fontSize: '14px', marginRight: '8px' }}>筛选状态:</span>
+        <span className="material-symbols-outlined" style={{ color: 'var(--text-secondary)', fontSize: '20px' }}>filter_list</span>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '14px', marginRight: '8px' }}>筛选状态:</span>
         {(['all', 'present', 'late', 'absent', 'pending'] as const).map((status) => {
           const labels: Record<string, string> = { all: '全部', present: '出席', late: '迟到', absent: '缺席', pending: '未点名' };
-          const colors: Record<string, string> = { all: '#137fec', present: '#3fb950', late: '#d29922', absent: '#f85149', pending: '#6e7681' };
+          const colors: Record<string, string> = { all: 'var(--primary)', present: 'var(--success)', late: 'var(--warning)', absent: 'var(--error)', pending: 'var(--text-tertiary)' };
           const isActive = statusFilter === status;
           return (
             <button
@@ -834,9 +833,9 @@ export default function AttendanceRecords() {
               style={{
                 padding: '6px 16px',
                 borderRadius: '8px',
-                border: isActive ? 'none' : '1px solid #2a3c54',
+                border: isActive ? 'none' : '1px solid var(--border)',
                 background: isActive ? colors[status] : 'transparent',
-                color: isActive ? 'white' : '#8ba9c8',
+                color: isActive ? 'white' : 'var(--text-secondary)',
                 fontSize: '13px',
                 fontWeight: isActive ? '600' : '500',
                 cursor: 'pointer',
@@ -851,7 +850,7 @@ export default function AttendanceRecords() {
 
       <div className={styles.section}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-          <h3><span className="material-symbols-outlined" style={{fontSize: '20px', marginRight: '8px', verticalAlign: 'middle', color: '#137fec'}}>location_on</span>{formatSessionTimeRange(1)} 点名记录</h3>
+          <h3><span className="material-symbols-outlined" style={{fontSize: '20px', marginRight: '8px', verticalAlign: 'middle', color: 'var(--primary)'}}>location_on</span>{formatSessionTimeRange(1)} 点名记录</h3>
           <div style={{ display: 'flex', gap: '8px' }}>
             {!sessionInitStatus.isInitialized && (
               <button
@@ -862,8 +861,8 @@ export default function AttendanceRecords() {
                   alignItems: 'center',
                   gap: '8px',
                   padding: '8px 16px',
-                  backgroundColor: isInitializing ? '#555' : '#10b981',
-                  color: 'white',
+                  backgroundColor: isInitializing ? 'var(--text-tertiary)' : 'var(--primary)',
+                  color: 'var(--foreground)',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: isInitializing ? 'wait' : 'pointer',
@@ -884,11 +883,11 @@ export default function AttendanceRecords() {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '8px 16px',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
+                backgroundColor: 'var(--primary-light)',
+                border: '1px solid var(--primary-light)',
                 borderRadius: '8px',
                 fontSize: '13px',
-                color: '#10b981',
+                color: 'var(--primary)',
               }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
                 已初始化 ({sessionInitStatus.stats.pending} 人待点名)
@@ -902,8 +901,8 @@ export default function AttendanceRecords() {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '8px 16px',
-                backgroundColor: isMarkingLate ? '#6e7681' : '#f85149',
-                color: 'white',
+                backgroundColor: isMarkingLate ? 'var(--text-tertiary)' : 'var(--error)',
+                color: 'var(--foreground)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: isMarkingLate ? 'wait' : 'pointer',
@@ -922,8 +921,8 @@ export default function AttendanceRecords() {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '8px 16px',
-                backgroundColor: '#137fec',
-                color: 'white',
+                backgroundColor: 'var(--primary)',
+                color: 'var(--primary-contrast)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -932,10 +931,10 @@ export default function AttendanceRecords() {
                 transition: 'all 0.3s',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#0d5bc4';
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--primary-hover)';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#137fec';
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--primary)';
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
@@ -957,7 +956,7 @@ export default function AttendanceRecords() {
                 <div key={record.$id} className={styles.tableRow}>
                   <div
                     className={styles.col1}
-                    style={{ fontWeight: '600', color: '#137fec', cursor: 'pointer', textDecoration: 'underline' }}
+                    style={{ fontWeight: '600', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }}
                     onClick={() => handleStudentClick(record.studentEmail, record.studentName)}
                     title="点击查看学生出席统计"
                   >
@@ -967,14 +966,14 @@ export default function AttendanceRecords() {
                   <div className={styles.col3}>{record.studentEmail}</div>
                   <div className={styles.col4}>
                     {record.status === 'pending' ? (
-                      <span style={{ color: '#6e7681', fontStyle: 'italic' }}>未点名</span>
+                      <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>未点名</span>
                     ) : (
                       <>{formatDate(record.checkInTime)} {formatTime(record.checkInTime)}</>
                     )}
                   </div>
                   <div className={styles.col5}>
                     {updatingId === (record.uniqueKey || record.$id) ? (
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px', animation: 'spin 1s linear infinite', color: '#6e7681' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '20px', animation: 'spin 1s linear infinite', color: 'var(--text-tertiary)' }}>
                         sync
                       </span>
                     ) : (
@@ -987,16 +986,16 @@ export default function AttendanceRecords() {
                           fontSize: '13px',
                           background: record.status === 'present' ? 'rgba(63, 185, 80, 0.15)' :
                                       record.status === 'late' ? 'rgba(210, 153, 34, 0.15)' :
-                                      record.status === 'absent' ? 'rgba(255, 123, 114, 0.15)' :
+                                      record.status === 'absent' ? 'var(--error-light)' :
                                       'rgba(110, 118, 129, 0.15)',
-                          color: record.status === 'present' ? '#3fb950' :
-                                 record.status === 'late' ? '#d29922' :
-                                 record.status === 'absent' ? '#ff7b72' :
-                                 '#6e7681',
-                          border: `1px solid ${record.status === 'present' ? '#3fb950' :
-                                                record.status === 'late' ? '#d29922' :
-                                                record.status === 'absent' ? '#ff7b72' :
-                                                '#6e7681'}`,
+                          color: record.status === 'present' ? 'var(--success)' :
+                                 record.status === 'late' ? 'var(--warning)' :
+                                 record.status === 'absent' ? 'var(--error)' :
+                                 'var(--text-tertiary)',
+                          border: `1px solid ${record.status === 'present' ? 'var(--success)' :
+                                                record.status === 'late' ? 'var(--warning)' :
+                                                record.status === 'absent' ? 'var(--error)' :
+                                                'var(--text-tertiary)'}`,
                         }}>
                           {record.status === 'present' ? '✓ 出席' :
                            record.status === 'late' ? '⏰ 迟到' :
@@ -1046,7 +1045,7 @@ export default function AttendanceRecords() {
 
       <div className={styles.section}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-          <h3><span className="material-symbols-outlined" style={{fontSize: '20px', marginRight: '8px', verticalAlign: 'middle', color: '#137fec'}}>location_on</span>{formatSessionTimeRange(2)} 点名记录</h3>
+          <h3><span className="material-symbols-outlined" style={{fontSize: '20px', marginRight: '8px', verticalAlign: 'middle', color: 'var(--primary)'}}>location_on</span>{formatSessionTimeRange(2)} 点名记录</h3>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={() => handleMarkAllLate(2)}
@@ -1056,8 +1055,8 @@ export default function AttendanceRecords() {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '8px 16px',
-                backgroundColor: isMarkingLate ? '#6e7681' : '#f85149',
-                color: 'white',
+                backgroundColor: isMarkingLate ? 'var(--text-tertiary)' : 'var(--error)',
+                color: 'var(--foreground)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: isMarkingLate ? 'wait' : 'pointer',
@@ -1076,8 +1075,8 @@ export default function AttendanceRecords() {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '8px 16px',
-                backgroundColor: '#137fec',
-                color: 'white',
+                backgroundColor: 'var(--primary)',
+                color: 'var(--primary-contrast)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -1086,10 +1085,10 @@ export default function AttendanceRecords() {
                 transition: 'all 0.3s',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#0d5bc4';
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--primary-hover)';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#137fec';
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--primary)';
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
@@ -1111,7 +1110,7 @@ export default function AttendanceRecords() {
                 <div key={record.$id} className={styles.tableRow}>
                   <div
                     className={styles.col1}
-                    style={{ fontWeight: '600', color: '#137fec', cursor: 'pointer', textDecoration: 'underline' }}
+                    style={{ fontWeight: '600', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }}
                     onClick={() => handleStudentClick(record.studentEmail, record.studentName)}
                     title="点击查看学生出席统计"
                   >
@@ -1121,14 +1120,14 @@ export default function AttendanceRecords() {
                   <div className={styles.col3}>{record.studentEmail}</div>
                   <div className={styles.col4}>
                     {record.status === 'pending' ? (
-                      <span style={{ color: '#6e7681', fontStyle: 'italic' }}>未点名</span>
+                      <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>未点名</span>
                     ) : (
                       <>{formatDate(record.checkInTime)} {formatTime(record.checkInTime)}</>
                     )}
                   </div>
                   <div className={styles.col5}>
                     {updatingId === (record.uniqueKey || record.$id) ? (
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px', animation: 'spin 1s linear infinite', color: '#6e7681' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '20px', animation: 'spin 1s linear infinite', color: 'var(--text-tertiary)' }}>
                         sync
                       </span>
                     ) : (
@@ -1141,16 +1140,16 @@ export default function AttendanceRecords() {
                           fontSize: '13px',
                           background: record.status === 'present' ? 'rgba(63, 185, 80, 0.15)' :
                                       record.status === 'late' ? 'rgba(210, 153, 34, 0.15)' :
-                                      record.status === 'absent' ? 'rgba(255, 123, 114, 0.15)' :
+                                      record.status === 'absent' ? 'var(--error-light)' :
                                       'rgba(110, 118, 129, 0.15)',
-                          color: record.status === 'present' ? '#3fb950' :
-                                 record.status === 'late' ? '#d29922' :
-                                 record.status === 'absent' ? '#ff7b72' :
-                                 '#6e7681',
-                          border: `1px solid ${record.status === 'present' ? '#3fb950' :
-                                                record.status === 'late' ? '#d29922' :
-                                                record.status === 'absent' ? '#ff7b72' :
-                                                '#6e7681'}`,
+                          color: record.status === 'present' ? 'var(--success)' :
+                                 record.status === 'late' ? 'var(--warning)' :
+                                 record.status === 'absent' ? 'var(--error)' :
+                                 'var(--text-tertiary)',
+                          border: `1px solid ${record.status === 'present' ? 'var(--success)' :
+                                                record.status === 'late' ? 'var(--warning)' :
+                                                record.status === 'absent' ? 'var(--error)' :
+                                                'var(--text-tertiary)'}`,
                         }}>
                           {record.status === 'present' ? '✓ 出席' :
                            record.status === 'late' ? '⏰ 迟到' :
@@ -1203,7 +1202,7 @@ export default function AttendanceRecords() {
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             {isLoadingStudent ? (
               <div className={styles.modalLoading}>
-                <span className="material-symbols-outlined" style={{ fontSize: '48px', animation: 'spin 1s linear infinite', color: '#137fec' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '48px', animation: 'spin 1s linear infinite', color: 'var(--primary)' }}>
                   sync
                 </span>
                 <p>加载中...</p>
@@ -1212,7 +1211,7 @@ export default function AttendanceRecords() {
               <>
                 <div className={styles.modalHeader}>
                   <h2>
-                    <span className="material-symbols-outlined" style={{ marginRight: '8px', color: '#137fec' }}>person</span>
+                    <span className="material-symbols-outlined" style={{ marginRight: '8px', color: 'var(--primary)' }}>person</span>
                     学生出席统计
                   </h2>
                   <button className={styles.closeBtn} onClick={closeModal}>
@@ -1236,19 +1235,19 @@ export default function AttendanceRecords() {
                 </div>
 
                 <div className={styles.statsGrid}>
-                  <div className={styles.statCard} style={{ borderColor: '#3fb950' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#3fb950' }}>check_circle</span>
-                    <div className={styles.statNumber} style={{ color: '#3fb950' }}>{selectedStudent.present}</div>
+                  <div className={styles.statCard} style={{ borderColor: 'var(--success)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--success)' }}>check_circle</span>
+                    <div className={styles.statNumber} style={{ color: 'var(--success)' }}>{selectedStudent.present}</div>
                     <div className={styles.statLabel}>出席</div>
                   </div>
-                  <div className={styles.statCard} style={{ borderColor: '#d29922' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#d29922' }}>schedule</span>
-                    <div className={styles.statNumber} style={{ color: '#d29922' }}>{selectedStudent.late}</div>
+                  <div className={styles.statCard} style={{ borderColor: 'var(--warning)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--warning)' }}>schedule</span>
+                    <div className={styles.statNumber} style={{ color: 'var(--warning)' }}>{selectedStudent.late}</div>
                     <div className={styles.statLabel}>迟到</div>
                   </div>
-                  <div className={styles.statCard} style={{ borderColor: '#ff7b72' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#ff7b72' }}>cancel</span>
-                    <div className={styles.statNumber} style={{ color: '#ff7b72' }}>{selectedStudent.absent}</div>
+                  <div className={styles.statCard} style={{ borderColor: 'var(--error)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--error)' }}>cancel</span>
+                    <div className={styles.statNumber} style={{ color: 'var(--error)' }}>{selectedStudent.absent}</div>
                     <div className={styles.statLabel}>缺席</div>
                   </div>
                 </div>

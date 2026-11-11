@@ -25,19 +25,21 @@ export function Loading({
     <div className={cn('flex flex-col items-center justify-center gap-4', className)}>
       <div
         className={cn(
-          'rounded-full border-primary/30 border-t-primary animate-spin',
+          'rounded-full border-[var(--border)] border-t-[var(--primary)] animate-spin',
           sizeClasses[size]
         )}
       />
       {text && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">{text}</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          {text}
+        </p>
       )}
     </div>
   );
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(223,229,225,0.74)] dark:bg-[rgba(17,24,20,0.74)] backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(16,22,18,0.55)] backdrop-blur-sm">
         {spinner}
       </div>
     );
@@ -62,8 +64,8 @@ export function Skeleton({
   return (
     <div
       className={cn(
-        'animate-pulse bg-[var(--surface-hover)] dark:bg-[#283930]',
-        circle ? 'rounded-full' : 'rounded-lg',
+        'animate-pulse bg-[var(--surface-hover)] dark:bg-[var(--border)]',
+        circle ? 'rounded-full' : 'rounded-[3px]',
         className
       )}
       style={{
@@ -78,7 +80,7 @@ export function SkeletonCard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'rounded-[24px] p-4 bg-[var(--nm-bg)] shadow-[var(--nm-raised-sm)]',
+        'rounded-[3px] border border-[var(--border)] p-4 bg-[var(--surface)]',
         className
       )}
     >
@@ -107,7 +109,7 @@ export function SkeletonList({ count = 3, className }: SkeletonListProps) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--nm-bg)] shadow-[var(--nm-raised-sm)]"
+          className="flex items-center gap-4 border border-[var(--border)] bg-[var(--surface)] p-4"
         >
           <Skeleton width={40} height={40} circle />
           <div className="flex-1">

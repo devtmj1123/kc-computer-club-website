@@ -25,7 +25,7 @@ export function ClubLogo({ className = '', size = 32 }: ClubLogoProps) {
 
   return (
     <div
-      className={`flex items-center justify-center rounded-lg overflow-hidden flex-shrink-0 bg-white dark:bg-[#1c3328] ${className}`}
+      className={`flex items-center justify-center rounded-lg overflow-hidden flex-shrink-0 bg-[var(--surface)] ${className}`}
       style={{ width: size, height: size }}
     >
       <img

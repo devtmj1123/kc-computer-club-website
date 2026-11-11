@@ -75,29 +75,29 @@ export function Modal({
       className={cn(
         'fixed inset-0 z-50',
         'flex items-center justify-center p-4',
-        'bg-[rgba(16,22,18,0.55)] backdrop-blur-md',
+        'bg-[rgba(16,22,18,0.55)] backdrop-blur-sm',
         'animate-in fade-in duration-200'
       )}
     >
       <div
         className={cn(
-          'w-full rounded-[30px]',
-          'bg-[var(--nm-bg)] shadow-[var(--nm-raised-lg)]',
+          'w-full rounded-[3px] border border-[var(--rule-strong)]',
+          'bg-[var(--surface)]',
           'animate-in zoom-in-95 duration-200',
           sizeClasses[size],
           className
         )}
       >
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
+          <div className="flex items-center justify-between border-b border-[var(--border)] p-5 sm:p-6">
             <div>
               {title && (
-                <h2 className="text-lg font-bold text-[var(--foreground)]">
+                <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
                   {title}
                 </h2>
               )}
               {description && (
-                <p className="text-sm text-[var(--text-secondary)] mt-1">
+                <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
                   {description}
                 </p>
               )}
@@ -106,20 +106,19 @@ export function Modal({
               <button
                 onClick={onClose}
                 className={cn(
-                    'size-8 rounded-2xl',
-                  'flex items-center justify-center',
-                    'text-[var(--text-secondary)] hover:text-[var(--foreground)]',
-                    'shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)]',
-                    'transition-all'
+                  'flex size-8 items-center justify-center',
+                  'border border-[var(--border)]',
+                  'text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--primary)]',
+                  'transition-colors'
                 )}
               >
-                <span className="material-symbols-outlined">close</span>
+                <span className="material-symbols-outlined text-[17px]">close</span>
               </button>
             )}
           </div>
         )}
 
-        <div className="p-6">{children}</div>
+        <div className="p-5 sm:p-6">{children}</div>
       </div>
     </div>
   );
@@ -149,9 +148,9 @@ export function ConfirmModal({
   loading = false,
 }: ConfirmModalProps) {
   const iconMap = {
-    danger: { icon: 'warning', color: 'text-red-500', bg: 'bg-red-500/10' },
-    warning: { icon: 'error', color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-    info: { icon: 'info', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    danger: { icon: 'warning', color: 'text-[var(--error)]', bg: 'bg-[var(--error)]/10' },
+    warning: { icon: 'error', color: 'text-[var(--warning)]', bg: 'bg-[var(--warning)]/10' },
+    info: { icon: 'info', color: 'text-[var(--primary)]', bg: 'bg-[var(--primary)]/10' },
   };
 
   const { icon, color, bg } = iconMap[variant];
@@ -172,11 +171,11 @@ export function ConfirmModal({
           </span>
         </div>
 
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+        <h3 className="text-lg font-bold text-[var(--foreground)] mb-2">
           {title}
         </h3>
         {description && (
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-sm text-[var(--text-secondary)] mb-6">
             {description}
           </p>
         )}

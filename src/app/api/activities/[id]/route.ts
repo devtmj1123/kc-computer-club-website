@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { activityService, UpdateActivityInput } from '@/services/activity.service';
+import { requireAdminSession } from '@/lib/admin-session';
+import { getSessionStudent } from '@/lib/student-identity';
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -7,6 +9,26 @@ export async function GET(
   try {
     const { id } = await params;
     const activity = await activityService.getActivityById(id);
+
+    const isAdmin = requireAdminSession(request) === null;
+    const publicStatuses = new Set(['published', 'ongoing', 'completed']);
+    if (!publicStatuses.has(activity.status) && !isAdmin) {
+      return NextResponse.json(
+        { error: '活动不存在' },
+        { status: 404 }
+      );
+    }
+
+    if (activity.visibility === 'internal' && !isAdmin) {
+      const student = await getSessionStudent(request);
+      if (!student) {
+        return NextResponse.json(
+          { error: '此活动仅限登录成员查看' },
+          { status: 401 }
+        );
+      }
+    }
+
     return NextResponse.json({
       success: true,
       activity,
@@ -24,6 +46,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -40,10 +65,11 @@ export async function PUT(
       registrationDeadline, 
       registrationDeadlineTime, 
       organizer, 
-      organizerId, 
       status,
       coverImage,
       allowedGrades,
+      visibility,
+      signupFormFields,
     } = body;
     const updateData: UpdateActivityInput = {};
     if (title !== undefined) updateData.title = title;
@@ -52,10 +78,24 @@ export async function PUT(
     if (location !== undefined) updateData.location = location;
     if (maxAttendees !== undefined) updateData.maxParticipants = maxAttendees;
     if (organizer !== undefined) updateData.organizer = organizer;
-    if (organizerId !== undefined) updateData.organizerId = organizerId;
-    if (status !== undefined) updateData.status = status as any;
+    if (status !== undefined) {
+      updateData.status = status as UpdateActivityInput['status'];
+    }
     if (coverImage !== undefined) updateData.coverImage = coverImage || undefined;
-    if (allowedGrades !== undefined) updateData.allowedGrades = allowedGrades && allowedGrades.length > 0 ? JSON.stringify(allowedGrades) : undefined;
+    if (allowedGrades !== undefined) {
+      updateData.allowedGrades = JSON.stringify(
+        Array.isArray(allowedGrades) ? allowedGrades : []
+      );
+    }
+    if (visibility !== undefined) {
+      updateData.visibility = visibility === 'internal' ? 'internal' : 'public';
+    }
+    if (signupFormFields !== undefined) {
+      updateData.signupFormFields =
+        typeof signupFormFields === 'string'
+          ? signupFormFields
+          : JSON.stringify(signupFormFields);
+    }
     if (date && startTime) {
       updateData.startTime = `${date}T${startTime}:00Z`;
     }
@@ -84,6 +124,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
+
   try {
     const { id } = await params;
     await activityService.deleteActivity(id);

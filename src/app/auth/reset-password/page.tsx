@@ -1,7 +1,76 @@
 'use client';
+
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { StudentLayout } from '@/components/layout/StudentLayout';
+import { Loading } from '@/components/ui/Loading';
+import { Input } from '@/components/ui/Input';
+
+const PASSWORD_RULES = [
+  '至少 6 个字符',
+  '包含大写字母 (A-Z)',
+  '包含小写字母 (a-z)',
+  '包含数字 (0-9)',
+  '包含特殊字符 (!@#$%^&*)',
+];
+
+function AuthShell({
+  stepLabel,
+  stepValue,
+  children,
+}: {
+  stepLabel: string;
+  stepValue: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <StudentLayout>
+      <main className="mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-20">
+          <section className="min-w-0">
+            <div className="eyebrow">ACCOUNT RECOVERY · 重置密码</div>
+            <h1 className="mt-5 font-display text-[clamp(2.3rem,5.5vw,3.8rem)] font-bold leading-[1.08] tracking-[-0.04em] text-[var(--foreground)]">
+              设置新密码。
+            </h1>
+            <p className="mt-5 max-w-md text-[13px] leading-[1.95] text-[var(--text-secondary)]">
+              重置链接有效期 24 小时。新密码必须满足安全要求，完成后即可使用新密码登录。
+            </p>
+
+            <div className="mt-10 border-t border-[var(--rule-strong)]">
+              <div className="border-b border-[var(--border)] py-4">
+                <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+                  PASSWORD REQUIREMENTS / 密码要求
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {PASSWORD_RULES.map((rule) => (
+                    <li key={rule} className="flex items-start gap-2.5">
+                      <span className="mt-[9px] block size-1 shrink-0 bg-[var(--primary)]" />
+                      <span className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                        {rule}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section className="lg:pt-2">
+            <div className="border border-[var(--rule-strong)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+                <span>{stepLabel}</span>
+                <span className="text-[var(--primary)]">{stepValue}</span>
+              </div>
+              <div className="p-5 sm:p-6">{children}</div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </StudentLayout>
+  );
+}
+
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -13,6 +82,7 @@ function ResetPasswordContent() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userEmail, setUserEmail] = useState('');
+
   useEffect(() => {
     const validateToken = async () => {
       if (!token) {
@@ -34,13 +104,14 @@ function ResetPasswordContent() {
         }
         setUserEmail(data.email || '');
         setStep('form');
-      } catch (err) {
+      } catch {
         setError('验证失败，请检查链接');
         setStep('error');
       }
     };
     validateToken();
   }, [token]);
+
   const validatePassword = (password: string): string[] => {
     const errors: string[] = [];
     if (password.length < 6) {
@@ -63,12 +134,13 @@ function ResetPasswordContent() {
     }
     return errors;
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     const passwordErrors = validatePassword(newPassword);
     if (passwordErrors.length > 0) {
-      setError(passwordErrors.join('; '));
+      setError(passwordErrors.join('；'));
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -80,10 +152,7 @@ function ResetPasswordContent() {
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token,
-          newPassword,
-        }),
+        body: JSON.stringify({ token, newPassword }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -96,229 +165,183 @@ function ResetPasswordContent() {
       setIsLoading(false);
     }
   };
+
+  if (step === 'validating') {
+    return (
+      <StudentLayout>
+        <main className="flex items-center justify-center px-4 py-32">
+          <Loading size="lg" text="正在验证重置链接…" />
+        </main>
+      </StudentLayout>
+    );
+  }
+
+  if (step === 'success') {
+    return (
+      <AuthShell stepLabel="RESET / 重置" stepValue="DONE">
+        <span className="inline-flex size-10 items-center justify-center border border-[var(--primary)]/40 bg-[var(--primary-light)] text-[var(--primary)]">
+          <span className="material-symbols-outlined text-[20px]">check_circle</span>
+        </span>
+        <h2 className="mt-4 font-display text-[26px] font-bold tracking-[-0.03em] text-[var(--foreground)]">
+          密码已重置。
+        </h2>
+        <p className="mt-3 text-[12px] leading-[1.9] text-[var(--text-secondary)]">
+          你的密码已成功更新。现在可以使用新密码登录社团网站。
+        </p>
+        <Link
+          href="/auth/login"
+          className="mt-6 inline-flex w-full items-center justify-center gap-2 bg-[var(--primary)] px-4 py-3 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
+        >
+          <span className="material-symbols-outlined text-[15px]">login</span>
+          返回登录
+        </Link>
+      </AuthShell>
+    );
+  }
+
+  if (step === 'error') {
+    return (
+      <AuthShell stepLabel="RESET / 重置" stepValue="INVALID">
+        <span className="inline-flex size-10 items-center justify-center border border-[var(--error)]/40 bg-[var(--error-light)] text-[var(--error)]">
+          <span className="material-symbols-outlined text-[20px]">error</span>
+        </span>
+        <h2 className="mt-4 font-display text-[26px] font-bold tracking-[-0.03em] text-[var(--foreground)]">
+          链接无效或已过期。
+        </h2>
+        <p className="mt-3 text-[12px] leading-[1.9] text-[var(--text-secondary)]">
+          {error || '重置密码链接已过期（有效期：24 小时）。请重新申请。'}
+        </p>
+        <div className="mt-6 space-y-3">
+          <Link
+            href="/auth/forgot-password"
+            className="inline-flex w-full items-center justify-center gap-2 bg-[var(--primary)] px-4 py-3 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
+          >
+            <span className="material-symbols-outlined text-[15px]">mail</span>
+            重新申请重置
+          </Link>
+          <Link
+            href="/auth/login"
+            className="inline-flex w-full items-center justify-center gap-2 border border-[var(--rule-strong)] px-4 py-3 text-[12px] font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+          >
+            <span className="material-symbols-outlined text-[15px]">login</span>
+            返回登录
+          </Link>
+        </div>
+      </AuthShell>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-12 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-20 right-20 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 left-20 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
+    <AuthShell stepLabel="RESET / 重置" stepValue="STEP 02">
+      {userEmail && (
+        <div className="mb-5 border border-[var(--border)] bg-[var(--surface-hover)] px-4 py-3">
+          <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+            重置账户
+          </p>
+          <p className="mt-1 text-[12px] font-medium text-[var(--foreground)]">{userEmail}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-5 flex items-start gap-3 border border-[var(--error)]/30 bg-[var(--error-light)] px-4 py-3">
+          <span className="material-symbols-outlined mt-0.5 text-[16px] text-[var(--error)]">
+            error
+          </span>
+          <p className="text-[12px] leading-relaxed text-[var(--error)]">{error}</p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Input
+          label="新密码"
+          type={showPassword ? 'text' : 'password'}
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          placeholder="输入新密码"
+          required
+          disabled={isLoading}
+          leftIcon="lock"
+          rightIcon={
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-[var(--text-tertiary)] transition-colors hover:text-[var(--foreground)]"
+              aria-label={showPassword ? '隐藏密码' : '显示密码'}
+            >
+              <span className="material-symbols-outlined text-[17px]">
+                {showPassword ? 'visibility_off' : 'visibility'}
+              </span>
+            </button>
+          }
+        />
+
+        <Input
+          label="确认密码"
+          type={showConfirmPassword ? 'text' : 'password'}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="再次输入密码"
+          required
+          disabled={isLoading}
+          leftIcon="lock_check"
+          rightIcon={
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="text-[var(--text-tertiary)] transition-colors hover:text-[var(--foreground)]"
+              aria-label={showConfirmPassword ? '隐藏密码' : '显示密码'}
+            >
+              <span className="material-symbols-outlined text-[17px]">
+                {showConfirmPassword ? 'visibility_off' : 'visibility'}
+              </span>
+            </button>
+          }
+        />
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="inline-flex w-full items-center justify-center gap-2 bg-[var(--primary)] px-4 py-3 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isLoading ? (
+            <>
+              <span className="material-symbols-outlined animate-spin text-[15px]">
+                hourglass_empty
+              </span>
+              重置中…
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined text-[15px]">lock_reset</span>
+              重置密码
+            </>
+          )}
+        </button>
+      </form>
+
+      <div className="mt-5 border-t border-[var(--border)] pt-4">
+        <Link
+          href="/auth/login"
+          className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] transition-colors hover:text-[var(--primary)]"
+        >
+          <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+          返回登录
+        </Link>
       </div>
-      <div className="w-full max-w-md relative z-10">
-        {step === 'validating' && (
-          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
-            <div className="flex flex-col items-center justify-center">
-              <div className="animate-spin mb-4">
-                <span className="material-symbols-outlined text-primary text-5xl">
-                  hourglass_bottom
-                </span>
-              </div>
-              <p className="text-[var(--foreground)] text-center">验证重置链接中...</p>
-            </div>
-          </div>
-        )}
-        {step === 'form' && (
-          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary/10 mb-4">
-                <span className="material-symbols-outlined text-primary text-3xl">
-                  lock
-                </span>
-              </div>
-              <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">重置密码</h1>
-              <p className="text-[var(--text-secondary)] text-sm">
-                为您的账户创建一个新的强密码
-              </p>
-            </div>
-            {error && (
-              <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-start gap-2">
-                <span className="material-symbols-outlined text-lg shrink-0">error</span>
-                <span>{error}</span>
-              </div>
-            )}
-            {userEmail && (
-              <div className="mb-6 p-3 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-sm text-[var(--text-secondary)]">
-                <p>重置账户: <span className="font-medium text-[var(--foreground)]">{userEmail}</span></p>
-              </div>
-            )}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
-                  新密码
-                </label>
-                <div className="relative flex items-center bg-[var(--input-bg)] border border-[var(--border)] rounded-lg focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors overflow-hidden">
-                  <span className="absolute left-3 text-[var(--text-secondary)] material-symbols-outlined">
-                    lock
-                  </span>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="输入新密码"
-                    required
-                    className="flex-1 pl-10 pr-10 py-3 bg-transparent text-[var(--foreground)] placeholder-[var(--text-secondary)] focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors"
-                  >
-                    <span className="material-symbols-outlined">
-                      {showPassword ? 'visibility' : 'visibility_off'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
-                  确认密码
-                </label>
-                <div className="relative flex items-center bg-[var(--input-bg)] border border-[var(--border)] rounded-lg focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors overflow-hidden">
-                  <span className="absolute left-3 text-[var(--text-secondary)] material-symbols-outlined">
-                    lock_check
-                  </span>
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="再次输入密码"
-                    required
-                    className="flex-1 pl-10 pr-10 py-3 bg-transparent text-[var(--foreground)] placeholder-[var(--text-secondary)] focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors"
-                  >
-                    <span className="material-symbols-outlined">
-                      {showConfirmPassword ? 'visibility' : 'visibility_off'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-              <div className="mb-6 p-4 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)]">
-                <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-primary shrink-0 mt-1">
-                    info
-                  </span>
-                  <div className="text-sm text-[var(--text-secondary)]">
-                    <p className="font-medium text-[var(--foreground)] mb-2">密码需要满足:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>至少 6 个字符</li>
-                      <li>包含大写字母 (A-Z)</li>
-                      <li>包含小写字母 (a-z)</li>
-                      <li>包含数字 (0-9)</li>
-                      <li>包含特殊字符 (!@#$%^&*)</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 bg-primary text-[#102219] font-bold rounded-lg hover:bg-[var(--primary-hover)] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <span className="animate-spin material-symbols-outlined">hourglass_bottom</span>
-                    重置中...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined">lock_reset</span>
-                    重置密码
-                  </>
-                )}
-              </button>
-            </form>
-            <div className="mt-6 text-center">
-              <p className="text-[var(--text-secondary)] text-sm">
-                想起密码了?{' '}
-                <Link
-                  href="/auth/login"
-                  className="text-primary hover:text-[var(--primary-hover)] font-medium transition-colors"
-                >
-                  返回登录
-                </Link>
-              </p>
-            </div>
-          </div>
-        )}
-        {step === 'success' && (
-          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
-                <span className="material-symbols-outlined text-primary text-5xl">
-                  check_circle
-                </span>
-              </div>
-              <h2 className="text-2xl font-bold text-[var(--foreground)] mb-2">
-                密码重置成功
-              </h2>
-              <p className="text-[var(--text-secondary)] mb-6">
-                您的密码已成功更新。现在可以使用新密码登录了。
-              </p>
-              <Link
-                href="/auth/login"
-                className="inline-flex items-center justify-center gap-2 w-full py-3 bg-primary text-[#102219] font-bold rounded-lg hover:bg-[var(--primary-hover)] transition-colors"
-              >
-                <span className="material-symbols-outlined">login</span>
-                返回登录
-              </Link>
-            </div>
-          </div>
-        )}
-        {step === 'error' && (
-          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-500/10 mb-6">
-                <span className="material-symbols-outlined text-red-500 text-5xl">
-                  error
-                </span>
-              </div>
-              <h2 className="text-2xl font-bold text-[var(--foreground)] mb-2">
-                链接无效或已过期
-              </h2>
-              <p className="text-[var(--text-secondary)] mb-6">
-                {error || '重置密码链接已过期（有效期：24小时）。请重新申请。'}
-              </p>
-              <Link
-                href="/auth/forgot-password"
-                className="inline-flex items-center justify-center gap-2 w-full py-3 bg-primary text-[#102219] font-bold rounded-lg hover:bg-[var(--primary-hover)] transition-colors mb-3"
-              >
-                <span className="material-symbols-outlined">mail</span>
-                重新申请重置
-              </Link>
-              <Link
-                href="/auth/login"
-                className="inline-flex items-center justify-center gap-2 w-full py-3 bg-[var(--surface-hover)] text-[var(--foreground)] font-bold border border-[var(--border)] rounded-lg hover:bg-[var(--card-hover-dark)] transition-colors"
-              >
-                <span className="material-symbols-outlined">login</span>
-                返回登录
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    </AuthShell>
   );
 }
+
 function ResetPasswordLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-      <div className="w-full max-w-md">
-        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
-          <div className="flex flex-col items-center justify-center">
-            <div className="animate-spin mb-4">
-              <span className="material-symbols-outlined text-primary text-5xl">
-                hourglass_bottom
-              </span>
-            </div>
-            <p className="text-[var(--foreground)] text-center">加载中...</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <StudentLayout>
+      <main className="flex items-center justify-center px-4 py-32">
+        <Loading size="lg" text="加载中…" />
+      </main>
+    </StudentLayout>
   );
 }
+
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={<ResetPasswordLoading />}>

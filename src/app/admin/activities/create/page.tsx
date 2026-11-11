@@ -1,10 +1,17 @@
 'use client';
+
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { useState } from 'react';
+import {
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
+
 interface ActivityFormData {
   title: string;
   description: string;
@@ -16,12 +23,101 @@ interface ActivityFormData {
   maxAttendees: number;
   registrationDeadline: string;
   registrationDeadlineTime: string;
-  coverImageUrl: string; 
-  coverImageFile: File | null; 
+  coverImageUrl: string;
+  coverImageFile: File | null;
   status: 'draft' | 'published';
   visibility: 'public' | 'internal';
   allowedGrades: string[];
 }
+
+const grades = [
+  { value: 'junior_1', label: '初一' },
+  { value: 'junior_2', label: '初二' },
+  { value: 'junior_3', label: '初三' },
+  { value: 'senior_1_science', label: '高一理科' },
+  { value: 'senior_2_science', label: '高二理科' },
+  { value: 'senior_3_science', label: '高三理科' },
+  { value: 'senior_1_commerce', label: '高一纯商' },
+  { value: 'senior_2_commerce', label: '高二纯商' },
+  { value: 'senior_3_commerce', label: '高三纯商' },
+  { value: 'senior_1_arts', label: '高一文' },
+  { value: 'senior_2_arts', label: '高二文' },
+  { value: 'senior_3_arts', label: '高三文' },
+];
+
+function EditorSection({
+  index,
+  title,
+  children,
+}: {
+  index: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border border-[var(--rule-strong)] bg-[var(--surface)]">
+      <div className="flex items-baseline justify-between border-b border-[var(--border)] px-4 py-2.5 sm:px-5">
+        <h2 className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+          {title}
+        </h2>
+        <span className="font-mono text-[12px] tracking-[0.08em] text-[var(--text-tertiary)]">
+          {index}
+        </span>
+      </div>
+      <div className="px-4 py-4 sm:px-5 sm:py-5">{children}</div>
+    </section>
+  );
+}
+
+function ChoiceRow({
+  id,
+  name,
+  value,
+  label,
+  note,
+  checked,
+  onChange,
+}: {
+  id: string;
+  name: string;
+  value: string;
+  label: string;
+  note: string;
+  checked: boolean;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className={`flex cursor-pointer items-center justify-between border px-3 py-2.5 transition-colors ${
+        checked
+          ? 'border-[var(--primary)] bg-[var(--primary-light)]'
+          : 'border-[var(--border)] hover:bg-[var(--surface-hover)]'
+      }`}
+    >
+      <span className="flex items-center gap-2">
+        <input
+          id={id}
+          type="radio"
+          name={name}
+          value={value}
+          checked={checked}
+          onChange={onChange}
+          className="size-3.5 accent-[var(--primary)]"
+        />
+        <span className="text-[12px] text-[var(--foreground)]">{label}</span>
+      </span>
+      <span
+        className={`font-mono text-[12px] uppercase tracking-[0.08em] ${
+          checked ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'
+        }`}
+      >
+        {note}
+      </span>
+    </label>
+  );
+}
+
 export default function CreateActivity() {
   const { user } = useAuth();
   const [formData, setFormData] = useState<ActivityFormData>({
@@ -44,7 +140,8 @@ export default function CreateActivity() {
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSuccessMessage('');
@@ -108,13 +205,16 @@ export default function CreateActivity() {
       }
     } catch (error) {
       console.error('保存活动失败:', error);
-      setErrorMessage('保存失败: ' + (error instanceof Error ? error.message : '网络错误'));
+      setErrorMessage(
+        '保存失败: ' + (error instanceof Error ? error.message : '网络错误')
+      );
     } finally {
       setIsSaving(false);
     }
   };
+
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -122,7 +222,8 @@ export default function CreateActivity() {
       [name]: name === 'maxAttendees' ? parseInt(value) || 0 : value,
     }));
   };
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleImageChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData((prev) => ({
@@ -132,216 +233,202 @@ export default function CreateActivity() {
       }));
     }
   };
+
   return (
     <AdminLayout adminName="管理员">
+      <div className="mb-7 flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--primary)]">
+            Content · Activities · New
+          </p>
+          <h1 className="mt-2 font-display text-[30px] font-bold leading-tight tracking-[-0.03em] text-[var(--foreground)] sm:text-[34px]">
+            创建新活动
+          </h1>
+          <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            填写活动信息，支持详细的活动介绍。
+          </p>
+        </div>
+        <Link
+          href="/admin/activities"
+          aria-label="返回活动管理"
+          className="flex size-9 shrink-0 items-center justify-center border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:border-[var(--rule-strong)] hover:text-[var(--foreground)]"
+        >
+          <span className="material-symbols-outlined text-[18px]">close</span>
+        </Link>
+      </div>
+
       {successMessage && (
-        <div className="mb-6 bg-green-500/10 border border-green-500/50 rounded-xl p-4 flex items-center gap-3">
-          <span className="material-symbols-outlined text-green-400">check_circle</span>
-          <p className="text-green-400 font-medium">{successMessage}</p>
+        <div className="mb-4 flex items-center gap-2 border border-[var(--primary)]/40 bg-[var(--primary-light)] px-4 py-3">
+          <span className="material-symbols-outlined text-[16px] text-[var(--primary)]">
+            check_circle
+          </span>
+          <p className="text-[12px] text-[var(--primary)]">{successMessage}</p>
         </div>
       )}
       {errorMessage && (
-        <div className="mb-6 bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex items-center gap-3">
-          <span className="material-symbols-outlined text-red-400">error</span>
-          <p className="text-red-400 font-medium">{errorMessage}</p>
+        <div className="mb-4 flex items-start gap-2 border border-[var(--error)]/40 bg-[var(--error-light)] px-4 py-3">
+          <span className="material-symbols-outlined text-[16px] text-[var(--error)]">
+            error
+          </span>
+          <p className="text-[12px] leading-relaxed text-[var(--error)]">{errorMessage}</p>
         </div>
       )}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-white mb-2">创建新活动</h1>
-          <p className="text-gray-400">填写活动信息，支持详细的活动介绍。</p>
-        </div>
-        <Link href="/admin/activities">
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <span className="material-symbols-outlined text-2xl">close</span>
-          </button>
-        </Link>
-      </div>
-      <form onSubmit={handleSubmit} className="max-w-4xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <label htmlFor="title" className="block text-white font-semibold mb-3">
-                活动标题 *
-              </label>
+
+      <form onSubmit={handleSubmit} className="max-w-6xl">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-4">
+            <EditorSection index="01" title="活动标题">
               <Input
                 id="title"
                 name="title"
+                label="活动标题"
+                required
                 value={formData.title}
                 onChange={handleChange}
-                placeholder="输入活动标题..."
-                required
+                placeholder="输入活动标题…"
               />
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-4">活动时间 *</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="date" className="block text-gray-400 text-sm font-medium mb-2">
-                    开始日期
-                  </label>
-                  <Input
-                    id="date"
-                    name="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="startTime" className="block text-gray-400 text-sm font-medium mb-2">
-                    开始时间
-                  </label>
-                  <Input
-                    id="startTime"
-                    name="startTime"
-                    type="time"
-                    value={formData.startTime}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="endDate" className="block text-gray-400 text-sm font-medium mb-2">
-                    结束日期
-                  </label>
-                  <Input
-                    id="endDate"
-                    name="endDate"
-                    type="date"
-                    value={formData.endDate}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="endTime" className="block text-gray-400 text-sm font-medium mb-2">
-                    结束时间
-                  </label>
-                  <Input
-                    id="endTime"
-                    name="endTime"
-                    type="time"
-                    value={formData.endTime}
-                    onChange={handleChange}
-                  />
-                </div>
+            </EditorSection>
+
+            <EditorSection index="02" title="活动时间">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  id="date"
+                  name="date"
+                  type="date"
+                  label="开始日期"
+                  required
+                  value={formData.date}
+                  onChange={handleChange}
+                />
+                <Input
+                  id="startTime"
+                  name="startTime"
+                  type="time"
+                  label="开始时间"
+                  value={formData.startTime}
+                  onChange={handleChange}
+                />
+                <Input
+                  id="endDate"
+                  name="endDate"
+                  type="date"
+                  label="结束日期"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                />
+                <Input
+                  id="endTime"
+                  name="endTime"
+                  type="time"
+                  label="结束时间"
+                  value={formData.endTime}
+                  onChange={handleChange}
+                />
               </div>
-              {formData.date && formData.startTime && formData.endDate && formData.endTime && (
-                <div className="mt-3 bg-[#1f2d39] rounded-lg p-3 border border-[#283946]">
-                  <p className="text-gray-400 text-sm">
-                    活动时间：从 <span className="text-white font-semibold">{formData.date} {formData.startTime}</span>
-                    {' '}至 <span className="text-white font-semibold">{formData.endDate} {formData.endTime}</span>
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-4">活动地点与容量 *</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="location" className="block text-gray-400 text-sm font-medium mb-2">
-                    活动地点
-                  </label>
-                  <Input
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    placeholder="例如：教学楼 301"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="maxAttendees" className="block text-gray-400 text-sm font-medium mb-2">
-                    最大参与人数（0 = 无限制）
-                  </label>
-                  <Input
-                    id="maxAttendees"
-                    name="maxAttendees"
-                    type="number"
-                    value={formData.maxAttendees}
-                    onChange={handleChange}
-                    min="0"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-4">报名截止 *</h3>
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="registrationDeadline" className="block text-gray-400 text-sm font-medium mb-2">
-                      截止日期
-                    </label>
-                    <Input
-                      id="registrationDeadline"
-                      name="registrationDeadline"
-                      type="date"
-                      value={formData.registrationDeadline}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="registrationDeadlineTime" className="block text-gray-400 text-sm font-medium mb-2">
-                      截止时间
-                    </label>
-                    <Input
-                      id="registrationDeadlineTime"
-                      name="registrationDeadlineTime"
-                      type="time"
-                      value={formData.registrationDeadlineTime}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-                {formData.registrationDeadline && (
-                  <div className="bg-[#1f2d39] rounded-lg p-3 border border-[#283946]">
-                    <p className="text-gray-400 text-sm">
-                      报名截止：<span className="text-white font-semibold">{formData.registrationDeadline} {formData.registrationDeadlineTime}</span>
-                      <br />
-                      {(() => {
-                        const deadlineDate = new Date(`${formData.registrationDeadline}T${formData.registrationDeadlineTime}`);
-                        const daysRemaining = Math.ceil((deadlineDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                        if (daysRemaining > 0) {
-                          return (
-                            <>
-                              <span className="text-[#137fec] font-semibold">
-                                {daysRemaining}
-                              </span>
-                              {' '}天截止
-                            </>
-                          );
-                        } else if (daysRemaining === 0) {
-                          return <span className="text-amber-400 font-semibold">今天截止</span>;
-                        } else {
-                          return <span className="text-red-400 font-semibold">已过期</span>;
-                        }
-                      })()}
+              {formData.date &&
+                formData.startTime &&
+                formData.endDate &&
+                formData.endTime && (
+                  <div className="mt-4 border border-[var(--border)] bg-[var(--background)] px-3 py-2.5">
+                    <p className="font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                      从{' '}
+                      <span className="text-[var(--foreground)]">
+                        {formData.date} {formData.startTime}
+                      </span>{' '}
+                      至{' '}
+                      <span className="text-[var(--foreground)]">
+                        {formData.endDate} {formData.endTime}
+                      </span>
                     </p>
                   </div>
                 )}
+            </EditorSection>
+
+            <EditorSection index="03" title="地点与容量">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  id="location"
+                  name="location"
+                  label="活动地点"
+                  required
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="例如：教学楼 301"
+                />
+                <Input
+                  id="maxAttendees"
+                  name="maxAttendees"
+                  type="number"
+                  label="最大参与人数（0 = 无限制）"
+                  value={formData.maxAttendees}
+                  onChange={handleChange}
+                  min="0"
+                />
               </div>
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-4">允许参加的年级</h3>
-              <div className="space-y-3">
-                {[
-                  { value: 'junior_1', label: '初一' },
-                  { value: 'junior_2', label: '初二' },
-                  { value: 'junior_3', label: '初三' },
-                  { value: 'senior_1_science', label: '高一理科' },
-                  { value: 'senior_2_science', label: '高二理科' },
-                  { value: 'senior_3_science', label: '高三理科' },
-                  { value: 'senior_1_commerce', label: '高一纯商' },
-                  { value: 'senior_2_commerce', label: '高二纯商' },
-                  { value: 'senior_3_commerce', label: '高三纯商' },
-                  { value: 'senior_1_arts', label: '高一文' },
-                  { value: 'senior_2_arts', label: '高二文' },
-                  { value: 'senior_3_arts', label: '高三文' },
-                ].map((grade) => (
-                  <label key={grade.value} className="flex items-center gap-3 cursor-pointer">
+            </EditorSection>
+
+            <EditorSection index="04" title="报名截止">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  id="registrationDeadline"
+                  name="registrationDeadline"
+                  type="date"
+                  label="截止日期"
+                  required
+                  value={formData.registrationDeadline}
+                  onChange={handleChange}
+                />
+                <Input
+                  id="registrationDeadlineTime"
+                  name="registrationDeadlineTime"
+                  type="time"
+                  label="截止时间"
+                  value={formData.registrationDeadlineTime}
+                  onChange={handleChange}
+                />
+              </div>
+              {formData.registrationDeadline && (
+                <div className="mt-4 border border-[var(--border)] bg-[var(--background)] px-3 py-2.5">
+                  <p className="font-mono text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                    截止至{' '}
+                    <span className="text-[var(--foreground)]">
+                      {formData.registrationDeadline} {formData.registrationDeadlineTime}
+                    </span>
+                    <br />
+                    {(() => {
+                      const deadlineDate = new Date(
+                        `${formData.registrationDeadline}T${formData.registrationDeadlineTime}`
+                      );
+                      const daysRemaining = Math.ceil(
+                        (deadlineDate.getTime() - new Date().getTime()) /
+                          (1000 * 60 * 60 * 24)
+                      );
+                      if (daysRemaining > 0) {
+                        return (
+                          <span className="text-[var(--primary)]">
+                            {daysRemaining} 天截止
+                          </span>
+                        );
+                      }
+                      if (daysRemaining === 0) {
+                        return (
+                          <span className="text-[var(--warning)]">今天截止</span>
+                        );
+                      }
+                      return <span className="text-[var(--error)]">已过期</span>;
+                    })()}
+                  </p>
+                </div>
+              )}
+            </EditorSection>
+
+            <EditorSection index="05" title="允许参加的年级">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+                {grades.map((grade) => (
+                  <label
+                    key={grade.value}
+                    className="flex cursor-pointer items-center gap-2 py-1"
+                  >
                     <input
                       type="checkbox"
                       value={grade.value}
@@ -355,214 +442,249 @@ export default function CreateActivity() {
                         } else {
                           setFormData((prev) => ({
                             ...prev,
-                            allowedGrades: prev.allowedGrades.filter((g) => g !== grade.value),
+                            allowedGrades: prev.allowedGrades.filter(
+                              (g) => g !== grade.value
+                            ),
                           }));
                         }
                       }}
-                      className="w-4 h-4 rounded border-gray-400 text-[#137fec] focus:ring-[#137fec] cursor-pointer"
+                      className="size-4 accent-[var(--primary)]"
                     />
-                    <span className="text-gray-300 text-sm">{grade.label}</span>
+                    <span className="text-[12px] text-[var(--text-secondary)]">
+                      {grade.label}
+                    </span>
                   </label>
                 ))}
               </div>
               {formData.allowedGrades.length === 0 && (
-                <p className="text-yellow-400 text-sm mt-4">未选择任何年级 - 所有学生都可以报名</p>
+                <p className="mt-4 border border-[var(--warning)]/40 bg-[var(--warning-light)] px-3 py-2 font-mono text-[12px] leading-relaxed text-[var(--warning)]">
+                  未选择任何年级 - 所有学生都可以报名
+                </p>
               )}
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <label htmlFor="description" className="block text-white font-semibold mb-3">
-                活动描述 *
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="输入活动详细描述...支持 Markdown 格式"
-                required
-                rows={8}
-                className="w-full bg-[#1f2d39] border border-[#283946] rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#137fec] transition-colors resize-none"
+            </EditorSection>
+
+            <EditorSection index="06" title="活动描述">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="description"
+                  className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]"
+                >
+                  活动描述 <span className="text-[var(--error)]">*</span>
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="输入活动详细描述…支持 Markdown 格式"
+                  required
+                  rows={9}
+                  className="w-full resize-y rounded-[3px] border border-[var(--input-border)] bg-[var(--input-bg)] px-3.5 py-2.5 text-[13px] leading-7 text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--input-placeholder)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-light)]"
+                />
+                <p className="font-mono text-[12px] tracking-[0.04em] text-[var(--text-tertiary)]">
+                  支持标题、列表、链接等 Markdown 语法
+                </p>
+              </div>
+            </EditorSection>
+
+            <EditorSection index="07" title="活动封面">
+              <Input
+                label="图片链接"
+                placeholder="输入图片 URL，例如：https://example.com/image.jpg"
+                value={formData.coverImageUrl}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    coverImageUrl: e.target.value,
+                    coverImageFile: null,
+                  }))
+                }
+                disabled={!!formData.coverImageFile}
               />
-              <p className="text-gray-500 text-sm mt-2">
-                支持 Markdown 格式，包括标题、列表、链接等
-              </p>
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <label className="block text-white font-semibold mb-3">
-                活动封面图像
+
+              <div className="my-4 flex items-center gap-3">
+                <div className="h-px flex-1 bg-[var(--border)]" />
+                <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                  或
+                </span>
+                <div className="h-px flex-1 bg-[var(--border)]" />
+              </div>
+
+              <label
+                htmlFor="coverImage"
+                className={`inline-flex h-10 items-center gap-2 border border-[var(--border)] px-4 text-[12px] font-semibold text-[var(--text-secondary)] transition-colors ${
+                  formData.coverImageUrl
+                    ? 'pointer-events-none opacity-50'
+                    : 'cursor-pointer hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[17px]">image</span>
+                选择图片
               </label>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-400 text-sm font-medium mb-2">
-                    图片链接
-                  </label>
-                  <Input
-                    placeholder="输入图片 URL，例如：https://example.com/image.jpg"
-                    value={formData.coverImageUrl}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, coverImageUrl: e.target.value, coverImageFile: null }))}
-                    disabled={!!formData.coverImageFile}
+              <input
+                type="file"
+                id="coverImage"
+                accept="image/*"
+                onChange={handleImageChange}
+                disabled={!!formData.coverImageUrl}
+                className="hidden"
+              />
+
+              {(formData.coverImageFile || formData.coverImageUrl) && (
+                <div className="relative mt-4 h-44 w-full overflow-hidden border border-[var(--border)] bg-[var(--surface-hover)]">
+                  <img
+                    src={
+                      formData.coverImageFile
+                        ? URL.createObjectURL(formData.coverImageFile)
+                        : formData.coverImageUrl
+                    }
+                    alt="预览"
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        coverImageFile: null,
+                        coverImageUrl: '',
+                      }))
+                    }
+                    aria-label="移除封面"
+                    className="absolute right-2 top-2 flex size-7 items-center justify-center bg-[var(--error)] text-[var(--error-contrast)]"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">close</span>
+                  </button>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-[#283946]"></div>
-                  <span className="text-gray-500 text-sm">或</span>
-                  <div className="flex-1 h-px bg-[#283946]"></div>
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm font-medium mb-2">
-                    上传图片
-                  </label>
-                  <label htmlFor="coverImage" className="flex items-center gap-2 px-4 py-2 bg-[#137fec] text-white rounded-lg font-semibold text-sm hover:bg-[#0f5fcc] transition-colors cursor-pointer w-fit disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{opacity: formData.coverImageUrl ? 0.5 : 1, cursor: formData.coverImageUrl ? 'not-allowed' : 'pointer'}}>
-                    <span className="material-symbols-outlined text-[20px]">image</span>
-                    选择图片
-                  </label>
-                  <input
-                    type="file"
-                    id="coverImage"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    disabled={!!formData.coverImageUrl}
-                    className="hidden"
-                  />
-                </div>
-                {(formData.coverImageFile || formData.coverImageUrl) && (
-                  <div className="relative w-full h-40 bg-[#1f2d39] rounded-lg overflow-hidden border border-[#283946]">
-                    <img
-                      src={
-                        formData.coverImageFile
-                          ? URL.createObjectURL(formData.coverImageFile)
-                          : formData.coverImageUrl
-                      }
-                      alt="预览"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, coverImageFile: null, coverImageUrl: '' }))}
-                      className="absolute top-2 right-2 p-1 bg-red-500/80 hover:bg-red-500 text-white rounded-full transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-sm">close</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+              )}
+            </EditorSection>
           </div>
-          <div className="space-y-6">
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6 sticky top-6">
-              <h2 className="text-white font-semibold mb-4">预览</h2>
-              <div className="bg-[#1f2d39] rounded-xl p-4 mb-4 space-y-3">
-                {formData.title && (
-                  <h3 className="text-white font-semibold text-sm">{formData.title}</h3>
-                )}
-                {formData.date && (
-                  <p className="text-gray-400 text-xs flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">calendar_today</span>
-                    {formData.date} {formData.startTime}
-                  </p>
-                )}
-                {formData.location && (
-                  <p className="text-gray-400 text-xs flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">location_on</span>
-                    {formData.location}
-                  </p>
-                )}
-                {formData.description && (
-                  <p className="text-gray-400 text-xs line-clamp-3">
-                    {formData.description.replace(/[#*`]/g, '')}
-                  </p>
-                )}
+
+          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+            <section className="border border-[var(--rule-strong)] bg-[var(--surface)]">
+              <div className="border-b border-[var(--border)] px-4 py-2.5">
+                <h2 className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                  Preview
+                </h2>
               </div>
-              <div className="space-y-3 mb-6">
-                <div className="flex gap-2">
-                  <input
-                    type="radio"
+              <div className="px-4 py-4">
+                <div className="border border-[var(--border)] bg-[var(--background)] p-3">
+                  <h3 className="font-display text-[15px] font-bold leading-snug text-[var(--foreground)]">
+                    {formData.title || '未命名活动'}
+                  </h3>
+                  <div className="mt-2 space-y-1.5">
+                    {formData.date && (
+                      <p className="flex items-center gap-2 font-mono text-[12px] text-[var(--text-secondary)]">
+                        <span className="material-symbols-outlined text-[13px]">
+                          calendar_today
+                        </span>
+                        {formData.date} {formData.startTime}
+                      </p>
+                    )}
+                    {formData.location && (
+                      <p className="flex items-center gap-2 font-mono text-[12px] text-[var(--text-secondary)]">
+                        <span className="material-symbols-outlined text-[13px]">
+                          location_on
+                        </span>
+                        {formData.location}
+                      </p>
+                    )}
+                  </div>
+                  {formData.description && (
+                    <p className="mt-2 line-clamp-3 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                      {formData.description.replace(/[#*`]/g, '')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <section className="border border-[var(--rule-strong)] bg-[var(--surface)]">
+              <div className="border-b border-[var(--border)] px-4 py-2.5">
+                <h2 className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                  Publishing
+                </h2>
+              </div>
+              <div className="space-y-5 px-4 py-4">
+                <div className="space-y-2">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    发布状态
+                  </p>
+                  <ChoiceRow
                     id="draft"
                     name="status"
                     value="draft"
+                    label="保存为草稿"
+                    note="Draft"
                     checked={formData.status === 'draft'}
                     onChange={handleChange}
-                    className="cursor-pointer"
                   />
-                  <label htmlFor="draft" className="text-gray-400 text-sm cursor-pointer flex-1">
-                    保存为草稿
-                  </label>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="radio"
+                  <ChoiceRow
                     id="published"
                     name="status"
                     value="published"
+                    label="立即发布"
+                    note="Live"
                     checked={formData.status === 'published'}
                     onChange={handleChange}
-                    className="cursor-pointer"
                   />
-                  <label htmlFor="published" className="text-gray-400 text-sm cursor-pointer flex-1">
-                    立即发布
-                  </label>
                 </div>
-              </div>
-              <div className="mb-6">
-                <h3 className="text-white font-semibold mb-3 text-sm">可见范围</h3>
+
                 <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      type="radio"
-                      id="public"
-                      name="visibility"
-                      value="public"
-                      checked={formData.visibility === 'public'}
-                      onChange={handleChange}
-                      className="cursor-pointer"
-                    />
-                    <label htmlFor="public" className="text-gray-400 text-sm cursor-pointer flex-1 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-green-400 text-base">public</span>
-                      公开（所有人可见）
-                    </label>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="radio"
-                      id="internal"
-                      name="visibility"
-                      value="internal"
-                      checked={formData.visibility === 'internal'}
-                      onChange={handleChange}
-                      className="cursor-pointer"
-                    />
-                    <label htmlFor="internal" className="text-gray-400 text-sm cursor-pointer flex-1 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-blue-400 text-base">lock</span>
-                      内部（仅学生可见）
-                    </label>
-                  </div>
+                  <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    可见范围
+                  </p>
+                  <ChoiceRow
+                    id="public"
+                    name="visibility"
+                    value="public"
+                    label="公开（所有人可见）"
+                    note="Public"
+                    checked={formData.visibility === 'public'}
+                    onChange={handleChange}
+                  />
+                  <ChoiceRow
+                    id="internal"
+                    name="visibility"
+                    value="internal"
+                    label="内部（仅学生可见）"
+                    note="Internal"
+                    checked={formData.visibility === 'internal'}
+                    onChange={handleChange}
+                  />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="w-full bg-[#137fec]! hover:bg-[#0f5fcc]"
-                  leftIcon={isSaving ? 'sync' : 'check'}
-                  disabled={isSaving || !formData.title || !formData.location || !formData.date || !formData.endDate || !formData.registrationDeadline || !formData.description}
-                >
-                  {isSaving ? '保存中...' : (formData.status === 'draft' ? '保存草稿' : '发布活动')}
-                </Button>
-                <Link href="/admin/activities" className="w-full">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-2 bg-[#1f2d39] hover:bg-[#283946] text-gray-400 rounded-lg font-medium transition-colors"
+
+                <div className="space-y-2 border-t border-[var(--border)] pt-4">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    className="w-full"
+                    isLoading={isSaving}
+                    disabled={
+                      isSaving ||
+                      !formData.title ||
+                      !formData.location ||
+                      !formData.date ||
+                      !formData.endDate ||
+                      !formData.registrationDeadline ||
+                      !formData.description
+                    }
+                  >
+                    {formData.status === 'draft' ? '保存草稿' : '发布活动'}
+                  </Button>
+                  <Link
+                    href="/admin/activities"
+                    className="flex h-10 w-full items-center justify-center border border-[var(--border)] text-[12px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
                   >
                     取消
-                  </button>
-                </Link>
+                  </Link>
+                </div>
               </div>
-            </div>
-          </div>
+            </section>
+          </aside>
         </div>
       </form>
     </AdminLayout>

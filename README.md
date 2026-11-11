@@ -1,8 +1,8 @@
 # Kuen Cheng High School Computer Club Website
 
-This is the official website for the Kuen Cheng High School Computer Club, built with Next.js 16, TypeScript, Tailwind CSS 4, and Appwrite.
+Official website for the Kuen Cheng High School Computer Club, built with Next.js 16, TypeScript, Tailwind CSS 4, and Supabase (Postgres + Auth + Storage + RLS).
 
-**Project status:** the platform is in active real-world use at school and continues to be maintained and refined.
+**Project status:** in active real-world use at school. The backend now runs on Supabase; Appwrite is no longer a dependency.
 
 **Author:** Tan Ming Jing  
 **Username:** devtmj1123
@@ -11,76 +11,22 @@ This is the official website for the Kuen Cheng High School Computer Club, built
 
 ## Real-World Usage
 
-This platform is maintained for the Kuen Cheng High School Computer Club.
-
 - Serves 111 club members
-- Used for attendance during weekly co-curricular sessions
-- Supports project and homework status updates
-- Allows teachers and administrators to review student progress
-- Includes notices, activity applications, authentication, and role-based administration
-
-The project is actively maintained and deployed for real school workflows.
-
----
-
-## Overview
-
-The repository currently includes:
-
-- Student pages for home, about, notices, activities, attendance, projects, profile, tutorial, and authentication
-- Project submission and editing flows
-- Activity browsing, details, and signup flows
-- Online attendance with verification code check-in
-- Comments and community interaction
-- A full admin area for managing notices, activities, projects, students, admins, signups, comments, attendance, and settings
-- Appwrite-backed API routes for content, authentication, attendance, uploads, notifications, and admin workflows
-
----
-
-## Key Pages
-
-### Student-facing pages
-
-- `/` Home
-- `/about` About
-- `/activities` Activities list
-- `/notices` Notices list
-- `/projects` Projects list
-- `/projects/submit` Submit a project
-- `/attendance` Attendance check-in
-- `/profile` Profile
-- `/tutorial` Tutorial
-- `/auth/login` Login
-- `/auth/forgot-password` Forgot password
-- `/auth/reset-password` Reset password
-- `/auth/change-password` Change password
-
-### Admin pages
-
-- `/admin` Admin entry
-- `/admin/dashboard` Dashboard
-- `/admin/activities` Activity management
-- `/admin/notices` Notice management
-- `/admin/projects` Project management
-- `/admin/students` Student management
-- `/admin/admins` Admin management
-- `/admin/attendance` Attendance management
-- `/admin/signups` Signup management
-- `/admin/comments` Comment moderation
-- `/admin/settings` System settings
-- `/admin/manage` General management
+- Weekly co-curricular attendance check-in
+- Project submission, review, and checklist tracking
+- Notices, activity signups, comments, and role-based administration
+- Used by teachers and administrators to review student progress
 
 ---
 
 ## Tech Stack
 
-- **Framework:** Next.js 16
+- **Framework:** Next.js 16 (App Router, `src/proxy.ts`)
 - **Language:** TypeScript 5
 - **Styling:** Tailwind CSS 4
-- **State management:** Zustand
-- **Forms:** react-hook-form + zod
-- **Backend services:** Appwrite
-- **Utilities:** Axios, date-fns, react-google-recaptcha-v3, xlsx, and more
+- **Auth / data:** Supabase Auth + Postgres + RLS + Storage
+- **Forms / validation:** react-hook-form + zod
+- **Utilities:** date-fns, react-google-recaptcha-v3, xlsx, Resend
 
 ---
 
@@ -91,14 +37,46 @@ src/
 ├── app/          # App Router pages and API routes
 ├── components/   # UI and feature components
 ├── contexts/     # React context providers
-├── lib/          # Shared helpers and cache utilities
-├── services/     # Appwrite and domain services
+├── lib/          # Shared helpers (session, rate limit, Supabase clients)
+├── services/     # Domain data services (Supabase)
 ├── types/        # TypeScript types
-└── utils/        # Utility functions
+└── proxy.ts      # Next 16 session refresh boundary
 public/           # Static assets
-scripts/          # Setup and maintenance scripts
-docs/             # Supporting documentation
+scripts/          # Setup, maintenance and migration scripts
+supabase/         # SQL migrations (schema, functions, RLS, storage)
+docs/             # Migration and UI planning documents
 ```
+
+---
+
+## Key Pages
+
+### Student-facing
+
+- `/` home
+- `/about`
+- `/activities`, `/activities/[id]`, `/activities/[id]/signup`
+- `/notices`, `/notices/[id]`
+- `/projects`, `/projects/[id]`, `/projects/submit`
+- `/attendance`
+- `/profile`
+- `/tutorial`
+- `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/change-password`
+
+### Admin
+
+- `/admin`
+- `/admin/notices` (+ create/edit)
+- `/admin/activities` (+ create/edit/signups)
+- `/admin/projects`
+- `/admin/students` (+ create/edit)
+- `/admin/attendance` (+ session/detail)
+- `/admin/signups`
+- `/admin/comments`
+- `/admin/settings`
+- `/admin/manage` (+ create/edit)
+
+Removed duplicate/dead routes (`/admin/admins`, `/admin/dashboard`, `/club-settings`, `/chat`, `/help`, `/privacy`, `/terms`) redirect or return 404 by design.
 
 ---
 
@@ -106,9 +84,9 @@ docs/             # Supporting documentation
 
 ### Requirements
 
-- Node.js 18+
+- Node.js 20+
 - npm
-- An Appwrite instance
+- A Supabase project (Singapore / Pro recommended)
 
 ### 1. Install dependencies
 
@@ -118,15 +96,58 @@ npm install
 
 ### 2. Configure environment variables
 
-Copy `.env.example` to `.env.local` and fill in your Appwrite configuration.
+Copy `.env.example` to `.env.local` and fill in the values you need.
 
-### 3. Start the development server
+- Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
+- Set `ADMIN_SESSION_SECRET`, `STUDENT_SESSION_SECRET`, and `RESET_TOKEN_SECRET` to long random strings.
+- Set `RECAPTCHA_SECRET_KEY` in production; public comments and anonymous signups verify it server-side.
+- Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to enable password reset emails.
+
+The full fresh-database checklist is in [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md).
+
+### 3. Run the development server
 
 ```bash
 npm run dev
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Supabase Setup
+
+SQL migrations live in `supabase/migrations/` and must be applied in order:
+
+1. `0001_schema.sql` — tables, enums, indexes, default settings
+2. `0002_functions.sql` — helper functions, triggers, attendance RPC
+3. `0003_rls.sql` — Row Level Security policies
+4. `0004_storage.sql` — Storage buckets and policies
+
+Apply them with the Supabase CLI (`supabase db push`) or the SQL Editor.
+
+Then create the first administrator:
+
+```bash
+npm run bootstrap:supabase
+```
+
+This repository does not migrate old Appwrite data. Supabase starts as an
+empty database and accounts are created through the admin UI, the student import,
+or `scripts/bootstrap-supabase.ts`.
+
+Validate the SQL before applying it:
+
+```bash
+npm run db:verify
+```
+
+`npm run db:verify` runs `0001` → `0004` against PGlite with stand-ins for the
+Supabase `auth`/`storage` schemas and checks RLS visibility, protected fields,
+the signup counter, the check-in RPC, the safe attendance view, and storage
+policies. It needs no Supabase project.
+
+See `docs/SUPABASE_SETUP.md` for the step-by-step setup and `docs/SUPABASE_MIGRATION_PLAN.md` for the schema/RLS/Auth design.
 
 ---
 
@@ -144,35 +165,33 @@ npm run format
 npm run format:check
 npm run type-check
 
-# Appwrite and data setup
-npm run setup:appwrite
-npm run setup:attendance
-npm run setup:projects
-npm run seed:appwrite
-npm run fix:attributes
-npm run fix:grades
-npm run fix:comments
+# Supabase
+npm run db:verify
+npm run db:check
+npm run db:smoke
+npm run bootstrap:supabase
 ```
 
-There is currently no dedicated `npm test` script in this repository.
+There is currently no dedicated `npm test` script.
+
+---
+
+## Security Notes
+
+- Authentication is enforced by httpOnly signed cookies (`kc_student_session`, `kc_admin_session`) and server-side checks. `localStorage` is a UI cache only.
+- Admin write routes require an admin session.
+- Public comments are moderated (`pending` → `approved`) and anonymous signups are verified with reCAPTCHA when configured.
+- Student PII is not returned by public list endpoints.
 
 ---
 
 ## Documentation
 
-- [Database schema fix guide](./docs/FIX_DATABASE_SCHEMA.md)
-- [GitHub Student Benefits tutorial](./docs/GITHUB_STUDENT_BENEFITS_TUTORIAL.md)
-- [Attendance fixes](./ATTENDANCE_FIXES.md)
-- [State update fixes](./STATE_UPDATE_FIXES.md)
-- [Fix summary](./FIXES_SUMMARY.md)
-
----
-
-## Notes
-
-- The README reflects the current repository state and does not use the old phase-based roadmap.
-- The project already has its main user and admin workflows in place, and it is actively maintained for school use.
-- If you add new pages, scripts, or setup steps, update this file to keep it current.
+- [Supabase migration plan](./docs/SUPABASE_MIGRATION_PLAN.md)
+- [Implementation roadmap](./docs/IMPLEMENTATION_ROADMAP.md)
+- [UI/UX audit](./docs/UI_UX_AUDIT.md)
+- [Audit findings](./findings.md)
+- [Current progress](./progress.md)
 
 ---
 

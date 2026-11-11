@@ -8,6 +8,9 @@ interface ImageCarouselProps {
   showThumbnails?: boolean;
 }
 
+const FALLBACK_IMAGE =
+  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23e8e4d8" width="400" height="300"/%3E%3Ctext x="200" y="150" dominant-baseline="middle" text-anchor="middle" font-size="14" fill="%237a7a70"%3E图片加载失败%3C/text%3E%3C/svg%3E';
+
 export const ImageCarousel = ({ images, title, showThumbnails = true }: ImageCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -28,53 +31,55 @@ export const ImageCarousel = ({ images, title, showThumbnails = true }: ImageCar
   };
 
   return (
-    <div className="space-y-3">
-      <div className="relative bg-gray-200 dark:bg-[#1a2632] rounded-xl overflow-hidden">
+    <figure className="space-y-3">
+      <div className="relative overflow-hidden border border-[var(--border)] bg-[var(--surface-hover)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={images[currentIndex]}
           alt={`${title || '图片'} ${currentIndex + 1}`}
-          className="w-full h-auto"
+          className="h-auto w-full"
           onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"%3E%3Crect fill="%23333" width="400" height="300"/%3E%3Ctext x="200" y="150" dominant-baseline="middle" text-anchor="middle" font-size="16" fill="%23999"%3E图片加载失败%3C/text%3E%3C/svg%3E';
+            (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
           }}
         />
 
         {images.length > 1 && (
           <>
             <button
+              type="button"
               onClick={handlePrevious}
-              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors z-10"
+              className="absolute left-3 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center border border-white/20 bg-black/55 text-white transition-colors hover:bg-black/75"
               title="上一张"
             >
-              <span className="material-symbols-outlined text-lg">chevron_left</span>
+              <span className="material-symbols-outlined text-[17px]">chevron_left</span>
             </button>
             <button
+              type="button"
               onClick={handleNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors z-10"
+              className="absolute right-3 top-1/2 z-10 flex size-9 -translate-y-1/2 items-center justify-center border border-white/20 bg-black/55 text-white transition-colors hover:bg-black/75"
               title="下一张"
             >
-              <span className="material-symbols-outlined text-lg">chevron_right</span>
+              <span className="material-symbols-outlined text-[17px]">chevron_right</span>
             </button>
 
-            <div className="absolute bottom-3 right-3 bg-black/50 text-white px-3 py-1 rounded-full text-xs">
-              {currentIndex + 1} / {images.length}
+            <div className="absolute bottom-3 right-3 bg-black/60 px-2.5 py-1 font-mono text-[12px] tracking-[0.08em] text-white">
+              {String(currentIndex + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}
             </div>
           </>
         )}
       </div>
 
       {showThumbnails && images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {images.map((image, index) => (
             <button
               key={index}
+              type="button"
               onClick={() => handleThumbnailClick(index)}
-              className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+              className={`size-16 shrink-0 overflow-hidden border transition-colors ${
                 currentIndex === index
-                  ? 'border-[#137fec]'
-                  : 'border-[#283946] hover:border-gray-500'
+                  ? 'border-[var(--primary)]'
+                  : 'border-[var(--border)] hover:border-[var(--rule-strong)]'
               }`}
               title={`第 ${index + 1} 张图片`}
             >
@@ -82,7 +87,7 @@ export const ImageCarousel = ({ images, title, showThumbnails = true }: ImageCar
               <img
                 src={image}
                 alt={`缩略图 ${index + 1}`}
-                className="w-full h-full object-cover"
+                className="size-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
@@ -91,6 +96,6 @@ export const ImageCarousel = ({ images, title, showThumbnails = true }: ImageCar
           ))}
         </div>
       )}
-    </div>
+    </figure>
   );
 };

@@ -11,30 +11,23 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
-    "setup:appwrite": "ts-node scripts/setup-appwrite.ts",
-    "setup:attendance": "ts-node scripts/create-attendance-collection.ts",
-    "setup:projects": "ts-node scripts/create-projects-collection.ts",
-    "seed:appwrite": "ts-node scripts/seed-appwrite.ts",
-    "fix:attributes": "ts-node scripts/fix-attributes.ts",
-    "fix:grades": "ts-node scripts/add-allowed-grades.ts",
-    "fix:comments": "ts-node scripts/add-comment-reply.ts"
+    "db:verify": "ts-node scripts/verify-supabase-schema.ts",
+    "db:check": "ts-node scripts/check-supabase-connection.ts",
+    "db:smoke": "ts-node scripts/smoke-supabase.ts",
+    "bootstrap:supabase": "ts-node scripts/bootstrap-supabase.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@types/bcryptjs": "^2.4.6",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.0",
     "@types/crypto-js": "^4.2.2",
     "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.3.1",
-    "appwrite": "^21.5.0",
-    "axios": "^1.13.2",
-    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
-    "js-cookie": "^3.0.5",
     "next": "16.1.1",
-    "node-appwrite": "^21.1.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-google-recaptcha-v3": "^1.11.0",
@@ -42,12 +35,11 @@
     "resend": "^6.7.0",
     "tailwind-merge": "^3.4.0",
     "xlsx": "^0.18.5",
-    "zod": "^4.3.5",
-    "zustand": "^5.0.9"
+    "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "@tailwindcss/postcss": "^4",
-    "@types/js-cookie": "^3.0.6",
     "@types/node": "^20.19.27",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -58,7 +50,6 @@
     "prettier": "^3.7.4",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5",
-    "uuid": "^13.0.0"
+    "typescript": "^5"
   }
 }

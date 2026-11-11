@@ -21,6 +21,10 @@ export interface StudentUser {
   classNameCn?: string;
   classNameEn?: string;
   classCode?: string;
+  groupLevel?: string;
+  position?: string;
+  phone?: string;
+  instagram?: string;
   createdAt: string;
   requirePasswordChange?: boolean;
 }

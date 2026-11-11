@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import styles from './StudentAttendanceRecords.module.css';
 
 interface AttendanceRecord {
   $id: string;
@@ -29,10 +28,6 @@ export default function StudentAttendanceRecords() {
       return;
     }
 
-    console.log('StudentAttendanceRecords - authLoading:', authLoading);
-    console.log('StudentAttendanceRecords - user:', user);
-    console.log('StudentAttendanceRecords - user?.email:', user?.email);
-
     if (!user) {
       setError('请先登录');
       setIsLoading(false);
@@ -41,9 +36,8 @@ export default function StudentAttendanceRecords() {
 
     setError('');
 
-    const email = user.email || (user as any).username;
+    const email = user.email || (user as { username?: string }).username;
     if (!email) {
-      console.error('User object missing email field:', user);
       setError('用户信息不完整，请重新登录');
       setIsLoading(false);
       return;
@@ -52,7 +46,9 @@ export default function StudentAttendanceRecords() {
     const fetchRecords = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/attendance/my-records?email=${encodeURIComponent(email)}`);
+        const response = await fetch(
+          `/api/attendance/my-records?email=${encodeURIComponent(email)}&studentId=${encodeURIComponent(user.id)}`
+        );
         const data = await response.json();
 
         if (response.ok) {
@@ -99,108 +95,111 @@ export default function StudentAttendanceRecords() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'present':
-        return '#3fb950';
-      case 'late':
-        return '#d29922';
-      case 'absent':
-        return '#ff7b72';
-      default:
-        return '#6e7681';
-    }
-  };
-
   if (authLoading || isLoading) {
-    return <div className={styles.loading}>加载中...</div>;
+    return (
+      <div className="border border-[var(--rule-strong)] px-5 py-10 text-center">
+        <span className="material-symbols-outlined animate-spin text-[22px] text-[var(--primary)]">
+          hourglass_empty
+        </span>
+        <p className="mt-3 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          正在读取考勤记录…
+        </p>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className={styles.error}>{error}</div>;
+    return (
+      <div className="border border-[var(--error)]/30 bg-[var(--error-light)] px-4 py-3">
+        <p className="text-[12px] leading-relaxed text-[var(--error)]">{error}</p>
+      </div>
+    );
   }
 
   const weeks = Object.keys(recordsByWeek)
     .map(Number)
     .sort((a, b) => b - a);
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h2>
-          <span className="material-symbols-outlined" style={{ fontSize: '28px', marginRight: '8px', verticalAlign: 'middle', color: '#137fec' }}>
-            check_circle
-          </span>
-          我的签到记录
-        </h2>
-        <p className={styles.subtitle}>查看您的签到历史和状态</p>
+  if (weeks.length === 0) {
+    return (
+      <div className="border border-dashed border-[var(--border)] px-4 py-10 text-center">
+        <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          暂无签到记录
+        </p>
+        <p className="mt-2 text-[12px] text-[var(--text-secondary)]">
+          完成第一次社团点名后，记录会显示在这里。
+        </p>
       </div>
+    );
+  }
 
-      {weeks.length === 0 ? (
-        <div className={styles.empty}>
-          <span className="material-symbols-outlined" style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>
-            info
-          </span>
-          <p>暂无签到记录</p>
-        </div>
-      ) : (
-        <div className={styles.recordsContainer}>
-          {weeks.map((weekNumber) => (
-            <div key={weekNumber} className={styles.weekSection}>
-              <div className={styles.weekTitle}>
-                <span className="material-symbols-outlined" style={{ fontSize: '20px', marginRight: '8px' }}>
-                  calendar_month
-                </span>
+  return (
+    <div className="space-y-8">
+      {weeks.map((weekNumber) => (
+        <section key={weekNumber}>
+          <div className="flex items-center justify-between border-b border-[var(--rule-strong)] pb-3">
+            <div className="flex items-baseline gap-3">
+              <span className="font-mono text-[12px] tracking-[0.14em] text-[var(--primary)]">
+                WEEK {String(weekNumber).padStart(2, '0')}
+              </span>
+              <h3 className="font-display text-[18px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
                 第 {weekNumber} 周
-                <span className={styles.weekCount}>
-                  共 {recordsByWeek[weekNumber]?.length || 0} 次
-                </span>
-              </div>
-
-              <div className={styles.table}>
-                <div className={styles.tableHeader}>
-                  <div className={styles.col1}>签到时间</div>
-                  <div className={styles.col2}>场次</div>
-                  <div className={styles.col3}>状态</div>
-                </div>
-
-                <div className={styles.tableBody}>
-                  {recordsByWeek[weekNumber]?.map((record) => (
-                    <div key={record.$id} className={styles.tableRow}>
-                      <div className={styles.col1}>
-                        <div className={styles.date}>{formatDate(record.checkInTime)}</div>
-                        <div className={styles.time}>{formatTime(record.checkInTime)}</div>
-                      </div>
-
-                      <div className={styles.col2}>
-                        {record.sessionTime === '15:20' ? (
-                          <div className={styles.session}>下午 3:15-3:30</div>
-                        ) : record.sessionTime === '16:35' ? (
-                          <div className={styles.session}>下午 4:30-4:45</div>
-                        ) : (
-                          <div className={styles.session}>{record.sessionTime}</div>
-                        )}
-                      </div>
-
-                      <div className={styles.col3}>
-                        <span
-                          className={styles.statusBadge}
-                          style={{
-                            color: getStatusColor(record.status),
-                            borderColor: getStatusColor(record.status),
-                          }}
-                        >
-                          {getStatusLabel(record.status)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              </h3>
             </div>
-          ))}
-        </div>
-      )}
+            <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+              共 {recordsByWeek[weekNumber]?.length || 0} 次
+            </span>
+          </div>
+
+          <div>
+            <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_72px] gap-3 border-b border-[var(--border)] px-1 py-2 font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
+              <span>签到时间</span>
+              <span>场次</span>
+              <span className="text-right">状态</span>
+            </div>
+
+            {recordsByWeek[weekNumber]?.map((record) => (
+              <div
+                key={record.$id}
+                className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_72px] items-center gap-3 border-b border-[var(--border)] px-1 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="font-mono text-[12px] tracking-[0.02em] text-[var(--foreground)]">
+                    {formatDate(record.checkInTime)}
+                  </p>
+                  <p className="mt-0.5 font-mono text-[12px] tracking-[0.04em] text-[var(--text-tertiary)]">
+                    {formatTime(record.checkInTime)}
+                  </p>
+                </div>
+
+                <p className="text-[12px] text-[var(--text-secondary)]">
+                  {record.sessionTime === '15:20'
+                    ? '下午 3:15–3:30'
+                    : record.sessionTime === '16:35'
+                      ? '下午 4:30–4:45'
+                      : record.sessionTime}
+                </p>
+
+                <div className="flex justify-end">
+                  <span
+                    className={`border px-1.5 py-0.5 font-mono text-[12px] uppercase tracking-[0.06em] ${
+                      record.status === 'present'
+                        ? 'border-[var(--primary)]/40 text-[var(--primary)]'
+                        : record.status === 'late'
+                          ? 'border-[var(--warning)]/40 text-[var(--warning)]'
+                          : record.status === 'absent'
+                            ? 'border-[var(--error)]/40 text-[var(--error)]'
+                            : 'border-[var(--border)] text-[var(--text-tertiary)]'
+                    }`}
+                  >
+                    {getStatusLabel(record.status)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

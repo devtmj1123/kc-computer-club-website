@@ -1,125 +1,95 @@
-import { Client, Storage, ID } from 'appwrite';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
-const APPWRITE_ENDPOINT = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '';
-const APPWRITE_PROJECT_ID = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '';
-const APPWRITE_STORAGE_BUCKET_ID = process.env.NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID || '';
+export const DEFAULT_STORAGE_BUCKET = 'public-assets';
 
-const client = new Client()
-  .setEndpoint(APPWRITE_ENDPOINT)
-  .setProject(APPWRITE_PROJECT_ID);
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-export const storage = new Storage(client);
+function sanitizeFileName(name: string): string {
+  const cleaned = name
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return cleaned || 'image';
+}
+
+function buildObjectPath(file: File, folder: string): string {
+  const extension = file.name.includes('.')
+    ? file.name.split('.').pop()?.toLowerCase()
+    : 'bin';
+  const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `${folder.replace(/^\/+|\/+$/g, '')}/${unique}-${sanitizeFileName(
+    file.name.replace(/\.[^.]+$/, '')
+  )}.${extension}`;
+}
 
 export async function uploadImage(
   file: File,
-  bucket: string = APPWRITE_STORAGE_BUCKET_ID
+  bucket: string = DEFAULT_STORAGE_BUCKET,
+  folder = 'uploads'
 ): Promise<string> {
-  try {
-    if (!bucket) {
-      throw new Error('存储桶 ID 未配置');
-    }
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error('仅支持 JPEG、PNG、WebP、GIF 格式的图片');
-    }
-
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new Error('文件大小不能超过 5MB');
-    }
-
-    const response = await storage.createFile(
-      bucket,
-      ID.unique(),
-      file
-    );
-
-    return response.$id;
-  } catch (error: unknown) {
-    const err = error as Error & { message?: string };
-    throw new Error(err.message || '图片上传失败');
+  if (!bucket) {
+    throw new Error('存储桶未配置');
   }
+
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    throw new Error('仅支持 JPEG、PNG、WebP、GIF 格式的图片');
+  }
+
+  if (file.size > MAX_IMAGE_SIZE) {
+    throw new Error('文件大小不能超过 5MB');
+  }
+
+  const admin = getSupabaseAdminClient();
+  const path = buildObjectPath(file, folder);
+  const bytes = Buffer.from(await file.arrayBuffer());
+
+  const { error } = await admin.storage.from(bucket).upload(path, bytes, {
+    contentType: file.type,
+    cacheControl: '31536000',
+    upsert: false,
+  });
+
+  if (error) {
+    console.error('图片上传失败:', error.message);
+    throw new Error('图片上传失败');
+  }
+
+  return path;
 }
 
 export function getImageUrl(
-  fileId: string,
-  bucket: string = APPWRITE_STORAGE_BUCKET_ID
+  pathOrUrl: string,
+  bucket: string = DEFAULT_STORAGE_BUCKET
 ): string {
-  if (!bucket) {
-    throw new Error('存储桶 ID 未配置');
-  }
-  return `${APPWRITE_ENDPOINT}/storage/buckets/${bucket}/files/${fileId}/preview?project=${APPWRITE_PROJECT_ID}`;
+  if (!pathOrUrl) return '';
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+
+  const admin = getSupabaseAdminClient();
+  const { data } = admin.storage.from(bucket).getPublicUrl(pathOrUrl);
+  return data.publicUrl;
 }
 
 export async function deleteImage(
-  fileId: string,
-  bucket: string = APPWRITE_STORAGE_BUCKET_ID
+  pathOrUrl: string,
+  bucket: string = DEFAULT_STORAGE_BUCKET
 ): Promise<void> {
-  try {
-    if (!bucket) {
-      throw new Error('存储桶 ID 未配置');
-    }
+  if (!pathOrUrl) return;
 
-    await storage.deleteFile(bucket, fileId);
-  } catch (error: unknown) {
-    const err = error as Error & { message?: string };
-    throw new Error(err.message || '删除图片失败');
+  let path = pathOrUrl;
+  if (/^https?:\/\//i.test(pathOrUrl)) {
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const index = pathOrUrl.indexOf(marker);
+    if (index === -1) {
+      throw new Error('无法解析文件路径');
+    }
+    path = decodeURIComponent(pathOrUrl.slice(index + marker.length).split('?')[0]);
   }
-}
 
-interface FileInfo {
-  id: string;
-  name: string;
-  size: number;
-  mimeType: string;
-  createdAt: string;
-}
-
-export async function getFileInfo(
-  fileId: string,
-  bucket: string = APPWRITE_STORAGE_BUCKET_ID
-): Promise<FileInfo> {
-  try {
-    if (!bucket) {
-      throw new Error('存储桶 ID 未配置');
-    }
-
-    const file = await storage.getFile(bucket, fileId);
-    return {
-      id: file.$id,
-      name: file.name,
-      size: file.sizeOriginal,
-      mimeType: file.mimeType,
-      createdAt: file.$createdAt,
-    };
-  } catch (error: unknown) {
-    const err = error as Error & { message?: string };
-    throw new Error(err.message || '获取文件信息失败');
-  }
-}
-
-export async function listFiles(
-  bucket: string = APPWRITE_STORAGE_BUCKET_ID
-): Promise<FileInfo[]> {
-  try {
-    if (!bucket) {
-      throw new Error('存储桶 ID 未配置');
-    }
-
-    const response = await storage.listFiles(bucket);
-    return response.files.map((file: Record<string, unknown>) => {
-      const typedFile = file as Record<string, unknown>;
-      return {
-        id: String(typedFile.$id),
-        name: String(typedFile.name),
-        size: Number(typedFile.sizeOriginal),
-        mimeType: String(typedFile.mimeType),
-        createdAt: String(typedFile.$createdAt),
-      };
-    });
-  } catch (error: unknown) {
-    const err = error as Error & { message?: string };
-    throw new Error(err.message || '获取文件列表失败');
+  const admin = getSupabaseAdminClient();
+  const { error } = await admin.storage.from(bucket).remove([path]);
+  if (error) {
+    console.error('删除图片失败:', error.message);
+    throw new Error('删除图片失败');
   }
 }

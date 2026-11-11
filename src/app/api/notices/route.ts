@@ -4,7 +4,7 @@ import {
   createNotice,
   CreateNoticeInput,
 } from '@/services/notice.service';
-import { requireAdminSession } from '@/lib/admin-session';
+import { requireAdminSession, getAdminSession } from '@/lib/admin-session';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -31,13 +31,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const authError = requireAdminSession(request);
   if (authError) return authError;
+  const session = getAdminSession(request);
+  if (!session) return NextResponse.json({ error: '未授权' }, { status: 401 });
 
   try {
     const body = await request.json();
-    const { title, content, category, authorId, author, status, images, tags, visibility } = body;
-    if (!title || !content || !category || !authorId || !author) {
+    const { title, content, category, author, status, images, tags, visibility } = body;
+    if (!title || !content || !category) {
       return NextResponse.json(
-        { error: '缺少必填字段：title, content, category, authorId, author' },
+        { error: '缺少必填字段：title, content, category' },
         { status: 400 }
       );
     }
@@ -45,35 +47,14 @@ export async function POST(request: NextRequest) {
       title,
       content,
       category,
-      authorId,
-      author,
+      authorId: session.sub,
+      author: typeof author === 'string' && author.trim() ? author : session.username,
       status: status || 'draft',
       images,
       tags,
       visibility: visibility || 'public',
     };
     const notice = await createNotice(input);
-    if (status === 'published') {
-      try {
-        const userIds = ['user1', 'user2', 'user3']; 
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        for (const userId of userIds) {
-          await fetch(`${appUrl}/api/notifications`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId,
-              title: `新公告：${title}`,
-              message: content.substring(0, 100) + '...',
-              type: 'notice',
-              relatedId: notice.$id,
-            }),
-          }).catch((err) => console.error('发送通知失败:', err));
-        }
-      } catch (err) {
-        console.error('发送通知时出错:', err);
-      }
-    }
     return NextResponse.json({
       success: true,
       message: '公告创建成功',

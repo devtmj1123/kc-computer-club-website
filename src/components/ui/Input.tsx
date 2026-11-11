@@ -45,10 +45,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         return (
           <span
             className={cn(
-              'material-symbols-outlined text-[20px] text-[#9dabb9]',
-              position === 'left' ? 'absolute left-4 top-1/2 -translate-y-1/2' : '',
+              'material-symbols-outlined text-[18px] text-[var(--text-tertiary)]',
+              position === 'left' ? 'absolute left-3.5 top-1/2 -translate-y-1/2' : '',
               position === 'right' && onRightIconClick
-                ? 'cursor-pointer hover:text-white transition-colors'
+                ? 'cursor-pointer transition-colors hover:text-[var(--foreground)]'
                 : ''
             )}
             onClick={position === 'right' ? onRightIconClick : undefined}
@@ -61,7 +61,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         <span
           className={cn(
             'absolute top-1/2 -translate-y-1/2',
-            position === 'left' ? 'left-4' : 'right-4'
+            position === 'left' ? 'left-3.5' : 'right-3.5'
           )}
           onClick={position === 'right' ? onRightIconClick : undefined}
         >
@@ -75,10 +75,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId || undefined}
-            className="text-sm font-medium text-gray-700 dark:text-gray-200"
+            className="text-[12px] font-medium tracking-[0.01em] text-[var(--text-secondary)]"
           >
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="ml-1 text-[var(--error)]">*</span>}
           </label>
         )}
 
@@ -90,10 +90,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId || undefined}
             type={type}
             className={cn(
-              'w-full rounded-2xl px-4 py-3 text-base outline-none transition-all duration-200',
-              'bg-[var(--nm-bg)] text-[var(--foreground)] placeholder:text-[var(--input-placeholder)]',
-              'shadow-[var(--nm-inset)] focus:shadow-[var(--nm-inset),0_0_0_2px_var(--primary-light)]',
-              error && 'shadow-[var(--nm-inset),0_0_0_2px_rgba(239,68,68,0.18)]',
+              'w-full rounded-[3px] border border-[var(--input-border)] bg-[var(--input-bg)]',
+              'min-h-[46px] px-3.5 py-3 text-[15px] font-medium text-[var(--foreground)] outline-none transition-colors',
+              'placeholder:font-normal placeholder:text-[var(--input-placeholder)]',
+              'focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-light)]',
+              error && 'border-[var(--error)]',
               leftIcon && 'pl-11',
               rightIcon && 'pr-11',
               className
@@ -102,21 +103,23 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           />
 
           {rightIcon && (
-            <span className="absolute right-4 top-1/2 -translate-y-1/2">
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2">
               {renderIcon(rightIcon, 'right')}
             </span>
           )}
         </div>
 
         {error && (
-          <p className="text-xs text-red-500 flex items-center gap-1">
+          <p className="flex items-center gap-1 text-[12px] tracking-[0.01em] text-[var(--error)]">
             <span className="material-symbols-outlined text-[14px]">error</span>
             {error}
           </p>
         )}
 
         {hint && !error && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+          <p className="text-[12px] leading-relaxed tracking-[0.01em] text-[var(--text-tertiary)]">
+            {hint}
+          </p>
         )}
       </div>
     );

@@ -20,34 +20,27 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null);
 
-const toastStyles: Record<ToastType, { icon: string; bg: string; border: string }> = {
+const toastStyles: Record<ToastType, { icon: string; border: string; iconColor: string }> = {
   success: {
     icon: 'check_circle',
-    bg: 'bg-green-500/10 dark:bg-green-500/20',
-    border: 'border-green-500/30',
+    border: 'border-l-[var(--primary)]',
+    iconColor: 'text-[var(--primary)]',
   },
   error: {
     icon: 'error',
-    bg: 'bg-red-500/10 dark:bg-red-500/20',
-    border: 'border-red-500/30',
+    border: 'border-l-[var(--error)]',
+    iconColor: 'text-[var(--error)]',
   },
   warning: {
     icon: 'warning',
-    bg: 'bg-yellow-500/10 dark:bg-yellow-500/20',
-    border: 'border-yellow-500/30',
+    border: 'border-l-[var(--warning)]',
+    iconColor: 'text-[var(--warning)]',
   },
   info: {
     icon: 'info',
-    bg: 'bg-blue-500/10 dark:bg-blue-500/20',
-    border: 'border-blue-500/30',
+    border: 'border-l-[var(--primary)]',
+    iconColor: 'text-[var(--primary)]',
   },
-};
-
-const iconColors: Record<ToastType, string> = {
-  success: 'text-green-500',
-  error: 'text-red-500',
-  warning: 'text-yellow-500',
-  info: 'text-blue-500',
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -98,13 +91,7 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   if (toasts.length === 0) return null;
 
   return (
-    <div
-      className={cn(
-        'fixed bottom-4 right-4 z-100',
-        'flex flex-col gap-2',
-        'max-w-sm w-full'
-      )}
-    >
+    <div className="fixed bottom-4 right-4 z-100 flex w-full max-w-sm flex-col gap-2">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
@@ -118,39 +105,31 @@ interface ToastItemProps {
 }
 
 function ToastItem({ toast, onRemove }: ToastItemProps) {
-  const { icon, bg, border } = toastStyles[toast.type];
-  const iconColor = iconColors[toast.type];
+  const { icon, border, iconColor } = toastStyles[toast.type];
 
   return (
     <div
       className={cn(
-        'flex items-start gap-3 p-4',
-        'rounded-xl border',
-        'shadow-lg shadow-black/10',
-        'backdrop-blur-xl',
+        'flex items-start gap-3 border border-[var(--rule-strong)] border-l-2 bg-[var(--surface)] px-4 py-3.5',
+        'shadow-[0_10px_30px_rgba(0,0,0,0.12)]',
         'animate-in slide-in-from-right-full duration-300',
-        'bg-white dark:bg-[#1c3128]',
-        bg,
         border
       )}
     >
-      <span className={cn('material-symbols-outlined', iconColor)}>
+      <span className={cn('material-symbols-outlined mt-0.5 text-[17px]', iconColor)}>
         {icon}
       </span>
 
-      <p className="flex-1 text-sm text-gray-900 dark:text-white">
+      <p className="flex-1 text-[12px] leading-[1.7] text-[var(--foreground)]">
         {toast.message}
       </p>
 
       <button
         onClick={() => onRemove(toast.id)}
-        className={cn(
-          'text-gray-400 hover:text-gray-600',
-          'dark:text-gray-500 dark:hover:text-gray-300',
-          'transition-colors'
-        )}
+        className="mt-0.5 text-[var(--text-tertiary)] transition-colors hover:text-[var(--foreground)]"
+        aria-label="关闭提示"
       >
-        <span className="material-symbols-outlined text-base">close</span>
+        <span className="material-symbols-outlined text-[15px]">close</span>
       </button>
     </div>
   );

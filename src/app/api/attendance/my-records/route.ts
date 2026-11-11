@@ -1,47 +1,61 @@
-import { Client, Databases, Query } from 'node-appwrite';
-export async function GET(request: Request) {
+import { NextRequest, NextResponse } from 'next/server';
+import { getStudentAttendanceRecords } from '@/services/attendance.service';
+import { verifyStudentRequestIdentity } from '@/lib/student-identity';
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const studentEmail = searchParams.get('email');
-    if (!studentEmail) {
-      return Response.json(
-        { error: '缺少学生邮箱' },
+    const email = searchParams.get('email');
+    const studentId = searchParams.get('studentId');
+
+    if (!email || !studentId) {
+      return NextResponse.json(
+        { error: '缺少学生邮箱或学号' },
         { status: 400 }
       );
     }
-    const client = new Client()
-      .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '')
-      .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '')
-      .setKey(process.env.APPWRITE_API_KEY || '');
-    const databases = new Databases(client);
-    const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
-    const ATTENDANCE_COLLECTION = process.env.NEXT_PUBLIC_APPWRITE_ATTENDANCE_COLLECTION || 'attendance';
-    const response = await databases.listDocuments(
-      DATABASE_ID,
-      ATTENDANCE_COLLECTION,
-      [
-        Query.equal('studentEmail', studentEmail),
-        Query.orderDesc('checkInTime'),
-      ]
+
+    const student = await verifyStudentRequestIdentity(
+      request,
+      email,
+      studentId
     );
-    const recordsByWeek: Record<number, any[]> = {};
-    response.documents.forEach((doc: any) => {
-      const week = doc.weekNumber || 0;
-      if (!recordsByWeek[week]) {
-        recordsByWeek[week] = [];
-      }
-      recordsByWeek[week].push(doc);
-    });
-    return Response.json({
+    if (!student) {
+      return NextResponse.json(
+        { error: '学生身份验证失败' },
+        { status: 401 }
+      );
+    }
+
+    const records = await getStudentAttendanceRecords(student.id);
+    const recordsByWeek: Record<number, unknown[]> = {};
+
+    for (const record of records) {
+      const week = Number(record.weekNumber) || 0;
+      if (!recordsByWeek[week]) recordsByWeek[week] = [];
+      recordsByWeek[week].push({
+        $id: record.$id,
+        studentName: record.studentName,
+        studentEmail: record.studentEmail,
+        studentId: record.studentId,
+        checkInTime: record.checkInTime,
+        sessionTime: record.sessionTime,
+        sessionNumber: record.sessionNumber,
+        weekNumber: record.weekNumber,
+        status: record.status,
+        notes: record.notes,
+      });
+    }
+
+    return NextResponse.json({
       success: true,
-      studentEmail,
       recordsByWeek,
-      totalRecords: response.documents.length,
+      totalRecords: records.length,
     });
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('获取学生记录失败:', err);
-    return Response.json(
+    return NextResponse.json(
       { error: err.message || '获取记录失败' },
       { status: 500 }
     );

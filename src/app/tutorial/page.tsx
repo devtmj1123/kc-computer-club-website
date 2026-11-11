@@ -1,5 +1,8 @@
 'use client';
+
 import { useState } from 'react';
+import Link from 'next/link';
+import { StudentLayout } from '@/components/layout/StudentLayout';
 
 type Lang = 'zh' | 'en';
 
@@ -17,24 +20,24 @@ const sections: Section[] = [
     title: { zh: '项目概览', en: 'Project Overview' },
     content: {
       zh: [
-        '这是一个基于 **Next.js 16** 的学校电脑学会官网，使用 **App Router** 路由系统，后端采用 **Appwrite** (BaaS) 提供数据库、认证和文件存储服务。',
+        '这是一个基于 **Next.js 16** 的学校电脑学会官网，使用 **App Router** 路由系统，后端采用 **Supabase**（Postgres + Auth + Storage + RLS）提供数据库、认证和文件存储服务。',
         '',
         '**技术栈一览：**',
         '- **前端框架：** Next.js 16 + React 19 + TypeScript 5',
-        '- **样式系统：** Tailwind CSS 4 + Neumorphism 设计系统',
-        '- **后端服务：** Appwrite (数据库、认证、存储)',
+        '- **样式系统：** Tailwind CSS 4 + 中性极简设计系统（单一强调色 + 明暗主题）',
+        '- **后端服务：** Supabase (Postgres、Auth、Storage、RLS)',
         '- **部署平台：** Vercel',
-        '- **其他工具：** Zod (验证)、React Hook Form (表单)、Zustand (状态管理)、Resend (邮件)',
+        '- **其他工具：** Zod (验证)、React Hook Form (表单)、Resend (邮件)',
       ],
       en: [
-        'This is a school Computer Club website built with **Next.js 16** using the **App Router** routing system. The backend uses **Appwrite** (BaaS) for database, authentication, and file storage.',
+        'This is a school Computer Club website built with **Next.js 16** using the **App Router** routing system. The backend uses **Supabase** (Postgres + Auth + Storage + RLS) for database, authentication, and file storage.',
         '',
         '**Tech Stack:**',
         '- **Frontend:** Next.js 16 + React 19 + TypeScript 5',
-        '- **Styling:** Tailwind CSS 4 + Neumorphism Design System',
-        '- **Backend:** Appwrite (Database, Auth, Storage)',
+        '- **Styling:** Tailwind CSS 4 + neutral minimal design system (single accent color, light/dark themes)',
+        '- **Backend:** Supabase (Postgres, Auth, Storage, RLS)',
         '- **Deployment:** Vercel',
-        '- **Tools:** Zod (Validation), React Hook Form, Zustand (State), Resend (Email)',
+        '- **Tools:** Zod (Validation), React Hook Form, Resend (Email)',
       ],
     },
   },
@@ -60,28 +63,28 @@ const sections: Section[] = [
         '- comments/ — 评论组件',
         '- notices/ — 公告组件 (图片轮播、评论区)',
         '- projects/ — 项目组件 (检查清单)',
-        '- notifications/ — 通知铃铛组件',
         '',
         '**src/contexts/** — React Context 状态管理',
         '- AuthContext.tsx — 用户认证状态',
         '- ThemeContext.tsx — 主题切换 (亮/暗)',
         '- ClubContext.tsx — 社团信息',
-        '- NotificationContext.tsx — 通知系统',
         '- ReCaptchaContext.tsx — 人机验证',
         '',
-        '**src/services/** — Appwrite 数据服务层',
-        '- 每个文件对应一个数据库集合的 CRUD 操作',
-        '- appwrite.ts — 客户端 SDK 初始化',
-        '- appwrite-server.ts — 服务端 SDK 初始化',
+        '**src/services/** — Supabase 数据服务层',
+        '- 每个文件对应一组表或业务领域的数据访问',
+        '- notice / activity / project / comment / attendance / student service',
+        '',
+        '**src/lib/supabase/** — Supabase 客户端与鉴权工具',
+        '- client.ts — 浏览器端客户端',
+        '- server.ts / admin.ts — 服务端与 service-role 客户端',
+        '- auth.ts — 会话读取与鉴权辅助',
         '',
         '**src/types/** — TypeScript 类型定义',
         '- index.ts — 所有接口定义',
         '',
-        '**src/utils/** — 工具函数',
-        '- api.ts — API 请求封装',
-        '- constants.ts — 常量定义',
-        '- format.ts — 日期/文本格式化',
-        '- validate.ts — 表单验证',
+        '**src/lib/** — 共享工具与基础设施',
+        '- utils.ts — className/日期等通用函数',
+        '- admin-session.ts / student-session.ts — HMAC 会话 cookie（过渡方案）',
       ],
       en: [
         'The core directory structure:',
@@ -98,30 +101,30 @@ const sections: Section[] = [
         '- sections/ — Homepage sections (Hero, Notices, Projects, etc.)',
         '- attendance/ — Attendance-related components',
         '- comments/ — Comment components',
-        '- notices/ — Notice components (ImageCarousel, CommentSection)',
+        '- notices/ — Notice components (ImageCarousel)',
         '- projects/ — Project components (Checklist)',
-        '- notifications/ — Notification bell component',
         '',
         '**src/contexts/** — React Context State Management',
         '- AuthContext.tsx — User authentication state',
         '- ThemeContext.tsx — Theme switching (light/dark)',
         '- ClubContext.tsx — Club information',
-        '- NotificationContext.tsx — Notification system',
         '- ReCaptchaContext.tsx — Human verification',
         '',
-        '**src/services/** — Appwrite Data Service Layer',
-        '- Each file handles CRUD for one database collection',
-        '- appwrite.ts — Client-side SDK initialization',
-        '- appwrite-server.ts — Server-side SDK initialization',
+        '**src/services/** — Supabase Data Service Layer',
+        '- Each file handles data access for a group of tables or business domain',
+        '- notice / activity / project / comment / attendance / student service',
+        '',
+        '**src/lib/supabase/** — Supabase clients and auth helpers',
+        '- client.ts — Browser client',
+        '- server.ts / admin.ts — Server and service-role clients',
+        '- auth.ts — Session helpers',
         '',
         '**src/types/** — TypeScript Type Definitions',
         '- index.ts — All interface definitions',
         '',
-        '**src/utils/** — Utility Functions',
-        '- api.ts — API request wrapper',
-        '- constants.ts — Constant definitions',
-        '- format.ts — Date/text formatting',
-        '- validate.ts — Form validation',
+        '**src/lib/** — Shared utilities and infrastructure',
+        '- utils.ts — className/date helpers',
+        '- admin-session.ts / student-session.ts — HMAC session cookies (transitional)',
       ],
     },
   },
@@ -141,7 +144,6 @@ const sections: Section[] = [
         '- /notices — 公告列表 → /notices/[id] 公告详情',
         '- /projects — 项目列表 → /projects/[id] 项目详情 → /projects/submit 提交项目',
         '- /profile — 个人资料',
-        '- /club-settings — 社团设置展示',
         '- /auth/login — 学生登录',
         '- /auth/forgot-password — 忘记密码',
         '- /auth/reset-password — 重置密码',
@@ -171,7 +173,6 @@ const sections: Section[] = [
         '- /notices — Notice List → /notices/[id] Notice Detail',
         '- /projects — Project List → /projects/[id] Detail → /projects/submit Submit Project',
         '- /profile — Profile',
-        '- /club-settings — Club Settings Display',
         '- /auth/login — Student Login',
         '- /auth/forgot-password — Forgot Password',
         '- /auth/reset-password — Reset Password',
@@ -224,7 +225,6 @@ const sections: Section[] = [
         '- /api/auth/verify-reset-token — POST (验证重置令牌)',
         '- /api/auth/student-change-password — POST (学生改密)',
         '- /api/auth/admin-change-password — POST (管理员改密)',
-        '- /api/auth/get-student — GET (获取学生信息)',
         '',
         '**公告 API：**',
         '- /api/notices — GET / POST',
@@ -269,7 +269,6 @@ const sections: Section[] = [
         '- /api/auth/verify-reset-token — POST (verify reset token)',
         '- /api/auth/student-change-password — POST (student change password)',
         '- /api/auth/admin-change-password — POST (admin change password)',
-        '- /api/auth/get-student — GET (get student info)',
         '',
         '**Notice API:**',
         '- /api/notices — GET / POST',
@@ -299,14 +298,12 @@ const sections: Section[] = [
         '- Button.tsx — 按钮组件，支持 primary/secondary/ghost/danger/outline 变体',
         '- Input.tsx — 输入框组件，支持标签、错误提示、图标',
         '- Select.tsx — 下拉选择组件',
-        '- NeumorphicSelect.tsx — 新拟态下拉选择组件',
         '- Modal.tsx — 模态对话框',
         '- Toast.tsx — 消息提示 (成功/错误/警告/信息)',
         '- Badge.tsx — 标签/徽章',
         '- Loading.tsx — 加载动画',
         '- EmptyState.tsx — 空状态占位',
-        '- ThemeToggle.tsx — 主题切换按钮',
-        '- BreathingToggle.tsx — 呼吸灯开关',
+        '- ThemeToggle.tsx — 明暗主题切换按钮',
         '- ClubLogo.tsx — 社团 Logo',
         '',
         '**布局组件 (src/components/layout/):**',
@@ -316,8 +313,6 @@ const sections: Section[] = [
         '- StudentLayout.tsx — 学生端布局',
         '- StudentSidebar.tsx — 学生端侧边栏',
         '- AdminLayout.tsx — 管理端布局',
-        '- AdminModernLayout.tsx — 管理端布局 (新版)',
-        '- AdminModernSidebar.tsx — 管理端侧边栏',
         '',
         '**其他组件：**',
         '- attendance/AttendanceWidget.tsx — 考勤打卡组件',
@@ -325,7 +320,6 @@ const sections: Section[] = [
         '- comments/CommentForm.tsx — 评论表单',
         '- comments/CommentList.tsx — 评论列表',
         '- notices/ImageCarousel.tsx — 图片轮播',
-        '- notifications/NotificationBell.tsx — 通知铃铛',
         '- projects/ProjectChecklist.tsx — 项目检查清单',
       ],
       en: [
@@ -333,14 +327,12 @@ const sections: Section[] = [
         '- Button.tsx — Button with primary/secondary/ghost/danger/outline variants',
         '- Input.tsx — Input with label, error, icon support',
         '- Select.tsx — Select dropdown component',
-        '- NeumorphicSelect.tsx — Neumorphic styled select dropdown',
         '- Modal.tsx — Modal dialog',
         '- Toast.tsx — Toast notifications (success/error/warning/info)',
         '- Badge.tsx — Badge/tag component',
         '- Loading.tsx — Loading spinner',
         '- EmptyState.tsx — Empty state placeholder',
-        '- ThemeToggle.tsx — Theme toggle button',
-        '- BreathingToggle.tsx — Breathing light toggle',
+        '- ThemeToggle.tsx — Light/dark theme toggle',
         '- ClubLogo.tsx — Club logo component',
         '',
         '**Layout Components (src/components/layout/):**',
@@ -350,8 +342,6 @@ const sections: Section[] = [
         '- StudentLayout.tsx — Student section layout',
         '- StudentSidebar.tsx — Student sidebar navigation',
         '- AdminLayout.tsx — Admin section layout',
-        '- AdminModernLayout.tsx — Admin layout (modern)',
-        '- AdminModernSidebar.tsx — Admin sidebar navigation',
         '',
         '**Other Components:**',
         '- attendance/AttendanceWidget.tsx — Attendance check-in widget',
@@ -359,7 +349,6 @@ const sections: Section[] = [
         '- comments/CommentForm.tsx — Comment form',
         '- comments/CommentList.tsx — Comment list',
         '- notices/ImageCarousel.tsx — Image carousel',
-        '- notifications/NotificationBell.tsx — Notification bell',
         '- projects/ProjectChecklist.tsx — Project checklist',
       ],
     },
@@ -370,68 +359,52 @@ const sections: Section[] = [
     title: { zh: '设计系统', en: 'Design System' },
     content: {
       zh: [
-        '网站采用 **Neumorphism (新拟态)** 设计风格：',
+        '网站采用 **中性极简** 设计风格：单一社团绿色强调色、明暗双主题、无渐变与装饰性光效。',
         '',
-        '**核心概念：**',
-        '- 背景色 --nm-bg 作为所有元素的基底',
-        '- 凸起效果 --nm-raised = 亮色阴影 + 暗色阴影',
-        '- 凹陷效果 --nm-inset = 内阴影组合',
-        '- 按压效果 --nm-pressed = 更深的内阴影',
+        '**核心原则：**',
+        '- 中性灰阶承担背景、表面与边框',
+        '- 社团绿色只用于主操作、链接、选中态和关键数据',
+        '- 层级通过 1px 边框与轻阴影表达，而不是新拟态阴影',
+        '- 所有颜色通过 CSS 变量读取，自动适配明暗主题',
         '',
-        '**学生端配色：**',
-        '- 主色：翠绿色 #10b981',
-        '- 背景：浅灰绿 #e8ece9 (亮) / #1a1f1c (暗)',
+        '**主题变量：**',
+        '- --background / --surface / --surface-hover — 页面与卡片表面',
+        '- --foreground / --text-secondary / --text-tertiary — 文本层级',
+        '- --border — 统一边框颜色',
+        '- --primary / --primary-hover / --primary-light — 社团绿色强调色',
         '',
-        '**管理端配色：**',
-        '- 主色：蓝色 #3b82f6',
-        '- 背景：深海军蓝 #0f1419',
-        '',
-        '**工具类：**',
-        '- .nm-raised / .nm-raised-sm / .nm-raised-lg — 凸起表面',
-        '- .nm-inset / .nm-inset-sm — 凹陷表面',
-        '- .nm-pressed — 按压状态',
-        '- .card — 卡片 (带悬停动画)',
+        '**常用类：**',
+        '- .card — 卡片',
         '- .btn / .btn-primary / .btn-ghost / .btn-danger — 按钮变体',
-        '- .nm-input — 输入框',
-        '- .nm-divider — 分割线',
-        '- .nm-avatar — 头像',
-        '- .nm-progress — 进度条',
-        '- .nm-toggle — 开关',
+        '- .input / .nm-input — 输入框',
+        '- .badge / .nm-chip — 标签与胶囊',
+        '- .nm-panel / .nm-section — 内容面板',
         '- .nm-tabs / .nm-tab — 标签页',
         '- .nm-table — 表格',
-        '- .nm-tooltip — 提示气泡',
       ],
       en: [
-        'The website uses **Neumorphism** design style:',
+        'The website uses a **neutral minimal** design system: one club-green accent, light and dark themes, no gradients or decorative glows.',
         '',
-        '**Core Concepts:**',
-        '- Background --nm-bg as base for all elements',
-        '- Raised effect --nm-raised = light shadow + dark shadow',
-        '- Inset effect --nm-inset = inner shadow combination',
-        '- Pressed effect --nm-pressed = deeper inner shadow',
+        '**Core principles:**',
+        '- Neutral greys carry background, surfaces and borders',
+        '- Club green is reserved for primary actions, links, selected states and key data',
+        '- Hierarchy comes from 1px borders and light shadows, not neumorphic shadows',
+        '- Every colour reads from CSS variables so both themes stay consistent',
         '',
-        '**Student Color Scheme:**',
-        '- Primary: Emerald green #10b981',
-        '- Background: Soft gray-green #e8ece9 (light) / #1a1f1c (dark)',
+        '**Theme tokens:**',
+        '- --background / --surface / --surface-hover — page and card surfaces',
+        '- --foreground / --text-secondary / --text-tertiary — text hierarchy',
+        '- --border — unified border colour',
+        '- --primary / --primary-hover / --primary-light — club-green accent',
         '',
-        '**Admin Color Scheme:**',
-        '- Primary: Blue #3b82f6',
-        '- Background: Deep navy #0f1419',
-        '',
-        '**Utility Classes:**',
-        '- .nm-raised / .nm-raised-sm / .nm-raised-lg — Raised surfaces',
-        '- .nm-inset / .nm-inset-sm — Inset surfaces',
-        '- .nm-pressed — Pressed state',
-        '- .card — Card (with hover animation)',
+        '**Common classes:**',
+        '- .card — Card',
         '- .btn / .btn-primary / .btn-ghost / .btn-danger — Button variants',
-        '- .nm-input — Input field',
-        '- .nm-divider — Divider',
-        '- .nm-avatar — Avatar',
-        '- .nm-progress — Progress bar',
-        '- .nm-toggle — Toggle switch',
+        '- .input / .nm-input — Input field',
+        '- .badge / .nm-chip — Badges and pills',
+        '- .nm-panel / .nm-section — Content panels',
         '- .nm-tabs / .nm-tab — Tab navigation',
         '- .nm-table — Table',
-        '- .nm-tooltip — Tooltip',
       ],
     },
   },
@@ -445,25 +418,28 @@ const sections: Section[] = [
         'npm install',
         '',
         '**2. 配置环境变量**',
-        '复制 .env.example 为 .env，填入你的 Appwrite 配置：',
-        '- NEXT_PUBLIC_APPWRITE_ENDPOINT — Appwrite API 地址',
-        '- NEXT_PUBLIC_APPWRITE_PROJECT_ID — 项目 ID',
-        '- NEXT_PUBLIC_APPWRITE_DATABASE_ID — 数据库 ID',
-        '- APPWRITE_API_KEY — 服务端 API Key',
+        '复制 .env.example 为 .env.local，填入你的 Supabase 配置：',
+        '- NEXT_PUBLIC_SUPABASE_URL — Supabase 项目 URL',
+        '- NEXT_PUBLIC_SUPABASE_ANON_KEY — 公开 key（publishable）',
+        '- SUPABASE_SERVICE_ROLE_KEY — 服务端 key（secret，禁止暴露到浏览器）',
+        '- ADMIN_SESSION_SECRET / STUDENT_SESSION_SECRET / RESET_TOKEN_SECRET — 会话与重置令牌密钥',
         '',
         '**3. 启动开发服务器**',
         'npm run dev',
         '访问 http://localhost:3000',
         '',
         '**4. 初始化数据库**',
-        '访问 /init 页面，点击初始化按钮创建必要的数据库集合和索引。',
+        '在 Supabase SQL Editor 中按顺序执行 supabase/migrations/ 下的迁移文件，然后运行 npm run db:check 验证连接。',
         '',
         '**5. 创建管理员**',
-        '访问 /admin/login，使用默认管理员账号登录。',
+        '配置 BOOTSTRAP_ADMIN_USERNAME / BOOTSTRAP_ADMIN_PASSWORD 后运行 npm run bootstrap:supabase，再访问 /admin/login 登录。',
         '',
         '**常用命令：**',
         '- npm run dev — 启动开发服务器',
         '- npm run build — 构建生产版本',
+        '- npm run type-check — TypeScript 类型检查',
+        '- npm run db:check — 检查 Supabase 连接与表结构',
+        '- npm run db:smoke — 运行 Supabase 冒烟测试',
         '- npm run lint — 运行 ESLint 检查',
         '- npm run format — 格式化代码',
       ],
@@ -472,25 +448,28 @@ const sections: Section[] = [
         'npm install',
         '',
         '**2. Configure Environment Variables**',
-        'Copy .env.example to .env and fill in your Appwrite configuration:',
-        '- NEXT_PUBLIC_APPWRITE_ENDPOINT — Appwrite API endpoint',
-        '- NEXT_PUBLIC_APPWRITE_PROJECT_ID — Project ID',
-        '- NEXT_PUBLIC_APPWRITE_DATABASE_ID — Database ID',
-        '- APPWRITE_API_KEY — Server API Key',
+        'Copy .env.example to .env.local and fill in your Supabase configuration:',
+        '- NEXT_PUBLIC_SUPABASE_URL — Supabase project URL',
+        '- NEXT_PUBLIC_SUPABASE_ANON_KEY — Public publishable key',
+        '- SUPABASE_SERVICE_ROLE_KEY — Server secret key (never expose to the browser)',
+        '- ADMIN_SESSION_SECRET / STUDENT_SESSION_SECRET / RESET_TOKEN_SECRET — session and reset secrets',
         '',
         '**3. Start Development Server**',
         'npm run dev',
         'Visit http://localhost:3000',
         '',
         '**4. Initialize Database**',
-        'Visit /init page and click the initialize button to create necessary collections and indexes.',
+        'Run supabase/migrations/*.sql in order in the Supabase SQL Editor, then run npm run db:check.',
         '',
         '**5. Create Admin Account**',
-        'Visit /admin/login and use the default admin account to log in.',
+        'Set BOOTSTRAP_ADMIN_USERNAME / BOOTSTRAP_ADMIN_PASSWORD, run npm run bootstrap:supabase, then log in at /admin/login.',
         '',
         '**Common Commands:**',
         '- npm run dev — Start development server',
         '- npm run build — Build for production',
+        '- npm run type-check — TypeScript type check',
+        '- npm run db:check — Check Supabase connection and schema',
+        '- npm run db:smoke — Run Supabase smoke tests',
         '- npm run lint — Run ESLint check',
         '- npm run format — Format code',
       ],
@@ -517,16 +496,16 @@ const sections: Section[] = [
         "2. 使用 'use client' 标记客户端组件",
         '3. 在 index.ts 中导出',
         '',
-        '**使用新拟态样式：**',
-        '- 凸起元素：添加 .nm-raised 或 .card 类',
-        '- 凹陷元素：添加 .nm-inset 类',
+        '**使用设计系统：**',
+        '- 卡片：添加 .card 类',
+        '- 面板：添加 .nm-panel 或 .nm-section 类',
         '- 按钮：使用 .btn + 变体类 (.btn-primary, .btn-ghost 等)',
-        '- 输入框：使用 .nm-input 类',
+        '- 输入框：使用 .input 类',
+        '- 颜色：优先使用 CSS 变量，不要硬编码十六进制颜色',
         '',
         '**调试技巧：**',
         '- 使用浏览器 DevTools 检查 CSS 变量值',
-        '- 查看 /api/admin/diagnostic 获取系统状态',
-        '- 检查 Appwrite 控制台查看数据库状态',
+        '- 在 Supabase Dashboard 的 Table Editor / Logs 中查看数据与请求',
         '- 使用 console.log 在 API Route 中调试',
       ],
       en: [
@@ -545,16 +524,14 @@ const sections: Section[] = [
         "2. Use 'use client' for client components",
         '3. Export in index.ts',
         '',
-        '**Using Neumorphism Styles:**',
-        '- Raised elements: Add .nm-raised or .card class',
-        '- Inset elements: Add .nm-inset class',
+        '**Using the Design System:**',
+        '- Raised elements: Add .card class',
         '- Buttons: Use .btn + variant classes (.btn-primary, .btn-ghost, etc.)',
-        '- Inputs: Use .nm-input class',
+        '- Inputs: Use .input class',
         '',
         '**Debugging Tips:**',
         '- Use browser DevTools to inspect CSS variables',
-        '- Check /api/admin/diagnostic for system status',
-        '- Check Appwrite console for database status',
+        '- Check Supabase Dashboard Table Editor / Logs for data and requests',
         '- Use console.log in API Routes for debugging',
       ],
     },
@@ -565,6 +542,7 @@ export default function TutorialPage() {
   const [activeSection, setActiveSection] = useState('overview');
   const [lang, setLang] = useState<Lang>('zh');
   const currentSection = sections.find((s) => s.id === activeSection) || sections[0];
+  const currentIndex = sections.indexOf(currentSection);
 
   const renderContent = (lines: string[]) => {
     return lines.map((line, i) => {
@@ -572,8 +550,7 @@ export default function TutorialPage() {
         return (
           <h3
             key={i}
-            className="text-lg font-bold mt-6 mb-3"
-            style={{ color: 'var(--foreground)' }}
+            className="mt-8 font-display text-[1.15rem] font-bold leading-[1.4] tracking-[-0.02em] text-[var(--foreground)]"
           >
             {line.replace(/\*\*/g, '')}
           </h3>
@@ -581,12 +558,17 @@ export default function TutorialPage() {
       }
       if (line.startsWith('- ')) {
         return (
-          <div key={i} className="flex gap-2 mb-1.5 ml-4">
-            <span style={{ color: 'var(--primary)', marginTop: 4 }}>•</span>
+          <div key={i} className="ml-1 flex gap-2.5 py-1">
+            <span className="mt-[9px] block size-1 shrink-0 bg-[var(--primary)]" />
             <span
-              style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}
+              className="text-[13px] leading-[1.9] text-[var(--text-secondary)]"
               dangerouslySetInnerHTML={{
-                __html: line.slice(2).replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--foreground)">$1</strong>'),
+                __html: line
+                  .slice(2)
+                  .replace(
+                    /\*\*(.*?)\*\*/g,
+                    '<strong class="font-semibold text-[var(--foreground)]">$1</strong>'
+                  ),
               }}
             />
           </div>
@@ -598,10 +580,12 @@ export default function TutorialPage() {
       return (
         <p
           key={i}
-          className="mb-2 leading-relaxed"
-          style={{ color: 'var(--text-secondary)' }}
+          className="text-[13px] leading-[1.9] text-[var(--text-secondary)] [&:not(:first-child)]:mt-2"
           dangerouslySetInnerHTML={{
-            __html: line.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--foreground)">$1</strong>'),
+            __html: line.replace(
+              /\*\*(.*?)\*\*/g,
+              '<strong class="font-semibold text-[var(--foreground)]">$1</strong>'
+            ),
           }}
         />
       );
@@ -609,197 +593,151 @@ export default function TutorialPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--nm-bg)' }}>
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div
-          className="p-8 mb-8"
-          style={{
-            background: 'var(--nm-bg)',
-            boxShadow: 'var(--nm-raised-lg)',
-            borderRadius: 30,
-          }}
-        >
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-                {lang === 'zh' ? '开发者教程' : 'Developer Tutorial'}
-              </h1>
-              <p className="text-lg" style={{ color: 'var(--text-secondary)' }}>
-                {lang === 'zh'
-                  ? '欢迎加入 KC 电脑学会网站开发！这份教程将帮助你快速了解项目结构和开发流程。'
-                  : 'Welcome to KC Computer Club website development! This tutorial will help you quickly understand the project structure and development workflow.'}
-              </p>
-            </div>
-            <div
-              className="flex gap-1 p-1"
-              style={{
-                background: 'var(--nm-bg)',
-                boxShadow: 'var(--nm-inset-sm)',
-                borderRadius: 12,
-              }}
-            >
-              <button
-                onClick={() => setLang('zh')}
-                className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-                style={{
-                  background: lang === 'zh' ? 'var(--nm-bg)' : 'transparent',
-                  boxShadow: lang === 'zh' ? 'var(--nm-raised-sm)' : 'none',
-                  color: lang === 'zh' ? 'var(--primary)' : 'var(--text-secondary)',
-                }}
-              >
-                中文
-              </button>
-              <button
-                onClick={() => setLang('en')}
-                className="px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-                style={{
-                  background: lang === 'en' ? 'var(--nm-bg)' : 'transparent',
-                  boxShadow: lang === 'en' ? 'var(--nm-raised-sm)' : 'none',
-                  color: lang === 'en' ? 'var(--primary)' : 'var(--text-secondary)',
-                }}
-              >
-                English
-              </button>
-            </div>
-          </div>
-        </div>
+    <StudentLayout>
+      <main className="mx-auto w-full max-w-[1200px] px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+        <nav className="mb-8 flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          <Link href="/" className="transition-colors hover:text-[var(--foreground)]">
+            首页
+          </Link>
+          <span>/</span>
+          <span className="text-[var(--foreground)]">开发者教程</span>
+        </nav>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <nav className="lg:w-64 shrink-0">
-            <div
-              className="p-4 sticky top-4"
-              style={{
-                background: 'var(--nm-bg)',
-                boxShadow: 'var(--nm-raised)',
-                borderRadius: 22,
-              }}
-            >
-              <h2
-                className="text-sm font-semibold uppercase tracking-wider mb-3 px-2"
-                style={{ color: 'var(--text-tertiary)' }}
+        <header className="flex flex-col justify-between gap-6 border-b border-[var(--rule-strong)] pb-8 sm:flex-row sm:items-end">
+          <div>
+            <div className="eyebrow">DEVELOPER HANDBOOK · 开发者教程</div>
+            <h1 className="mt-5 font-display text-[clamp(2.1rem,5vw,3.3rem)] font-bold leading-[1.1] tracking-[-0.04em] text-[var(--foreground)]">
+              {lang === 'zh' ? '开发者教程' : 'Developer Tutorial'}
+            </h1>
+            <p className="mt-4 max-w-2xl text-[13px] leading-[1.9] text-[var(--text-secondary)]">
+              {lang === 'zh'
+                ? '欢迎加入 KC 电脑学会网站开发。这份教程帮助你快速了解项目结构、数据层与开发流程。'
+                : 'Welcome to KC Computer Club website development. This handbook covers the project structure, data layer and development workflow.'}
+            </p>
+          </div>
+
+          <div className="flex w-fit border border-[var(--rule-strong)]">
+            {(
+              [
+                { value: 'zh' as const, label: '中文' },
+                { value: 'en' as const, label: 'English' },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setLang(option.value)}
+                className={`px-4 py-2 font-mono text-[12px] uppercase tracking-[0.1em] transition-colors ${
+                  lang === option.value
+                    ? 'bg-[var(--primary)] text-[var(--primary-contrast)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--foreground)]'
+                }`}
               >
-                {lang === 'zh' ? '目录' : 'Contents'}
-              </h2>
-              <div className="flex flex-col gap-1">
-                {sections.map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => setActiveSection(section.id)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-sm font-medium transition-all duration-200"
-                    style={{
-                      background: activeSection === section.id ? 'var(--nm-bg)' : 'transparent',
-                      boxShadow: activeSection === section.id ? 'var(--nm-raised-sm)' : 'none',
-                      color: activeSection === section.id ? 'var(--primary)' : 'var(--text-secondary)',
-                    }}
-                  >
-                    <span className="material-symbols-outlined text-xl">{section.icon}</span>
-                    {section.title[lang]}
-                  </button>
-                ))}
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </header>
+
+        <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-14">
+          <nav className="lg:sticky lg:top-[98px] lg:h-fit">
+            <div className="border border-[var(--rule-strong)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+                <span>{lang === 'zh' ? '目录' : 'Contents'}</span>
+                <span className="text-[var(--primary)]">
+                  {String(sections.length).padStart(2, '0')}
+                </span>
               </div>
+              {sections.map((section, index) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setActiveSection(section.id)}
+                  className={`grid w-full grid-cols-[22px_minmax(0,1fr)] items-center gap-3 border-b border-[var(--border)] px-4 py-3 text-left transition-colors last:border-b-0 ${
+                    activeSection === section.id
+                      ? 'bg-[var(--primary-light)]'
+                      : 'hover:bg-[var(--surface-hover)]'
+                  }`}
+                >
+                  <span
+                    className={`font-mono text-[12px] ${
+                      activeSection === section.id
+                        ? 'text-[var(--primary)]'
+                        : 'text-[var(--text-tertiary)]'
+                    }`}
+                  >
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span
+                    className={`text-[12px] font-medium leading-[1.5] ${
+                      activeSection === section.id
+                        ? 'text-[var(--primary)]'
+                        : 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {section.title[lang]}
+                  </span>
+                </button>
+              ))}
             </div>
           </nav>
 
-          <main className="flex-1 min-w-0">
-            <div
-              className="p-8"
-              style={{
-                background: 'var(--nm-bg)',
-                boxShadow: 'var(--nm-raised)',
-                borderRadius: 26,
-              }}
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <span
-                  className="w-12 h-12 flex items-center justify-center"
-                  style={{
-                    background: 'var(--nm-bg)',
-                    boxShadow: 'var(--nm-raised-sm)',
-                    borderRadius: 14,
-                  }}
-                >
-                  <span className="material-symbols-outlined text-2xl" style={{ color: 'var(--primary)' }}>
-                    {currentSection.icon}
-                  </span>
+          <article className="min-w-0">
+            <div className="border border-[var(--rule-strong)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3.5 sm:px-7">
+                <span className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+                  SECTION {String(currentIndex + 1).padStart(2, '0')} /{' '}
+                  {String(sections.length).padStart(2, '0')}
                 </span>
-                <h2 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
+                <span className="material-symbols-outlined text-[16px] text-[var(--primary)]">
+                  {currentSection.icon}
+                </span>
+              </div>
+
+              <div className="px-5 py-7 sm:px-7">
+                <h2 className="font-display text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-[-0.03em] text-[var(--foreground)]">
                   {currentSection.title[lang]}
                 </h2>
+                <div className="mt-5">{renderContent(currentSection.content[lang])}</div>
               </div>
 
-              <div className="prose max-w-none">{renderContent(currentSection.content[lang])}</div>
-
-              <div className="flex justify-between items-center mt-8 pt-6">
-                <div
-                  className="w-full h-0.5 mb-6"
-                  style={{
-                    background: 'var(--nm-bg)',
-                    boxShadow: 'inset -1px -1px 2px var(--nm-shadow-light), inset 1px 1px 2px var(--nm-shadow-dark)',
-                  }}
-                />
-              </div>
-              <div className="flex justify-between items-center">
-                {sections.indexOf(currentSection) > 0 ? (
+              <div className="flex flex-col gap-3 border-t border-[var(--rule-strong)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                {currentIndex > 0 ? (
                   <button
-                    onClick={() => setActiveSection(sections[sections.indexOf(currentSection) - 1].id)}
-                    className="flex items-center gap-3 px-5 py-3 rounded-2xl text-sm font-semibold transition-all duration-200"
-                    style={{
-                      background: 'var(--nm-bg)',
-                      boxShadow: 'var(--nm-raised-sm)',
-                      color: 'var(--text-secondary)',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = 'var(--nm-raised)';
-                      e.currentTarget.style.color = 'var(--foreground)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = 'var(--nm-raised-sm)';
-                      e.currentTarget.style.color = 'var(--text-secondary)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
+                    type="button"
+                    onClick={() => setActiveSection(sections[currentIndex - 1].id)}
+                    className="inline-flex items-center gap-2 border border-[var(--border)] px-3 py-2 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
                   >
-                    <span className="material-symbols-outlined">arrow_back</span>
-                    {sections[sections.indexOf(currentSection) - 1].title[lang]}
+                    <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+                    {sections[currentIndex - 1].title[lang]}
                   </button>
                 ) : (
-                  <div />
+                  <span className="hidden sm:block" />
                 )}
-                {sections.indexOf(currentSection) < sections.length - 1 ? (
+
+                {currentIndex < sections.length - 1 ? (
                   <button
-                    onClick={() => setActiveSection(sections[sections.indexOf(currentSection) + 1].id)}
-                    className="flex items-center gap-3 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-200"
-                    style={{
-                      background: 'var(--primary)',
-                      boxShadow: '0 8px 24px var(--primary-glow), var(--nm-raised-sm)',
-                      color: '#ffffff',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'var(--primary-hover)';
-                      e.currentTarget.style.boxShadow = '0 12px 32px var(--primary-glow), var(--nm-raised)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'var(--primary)';
-                      e.currentTarget.style.boxShadow = '0 8px 24px var(--primary-glow), var(--nm-raised-sm)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
+                    type="button"
+                    onClick={() => setActiveSection(sections[currentIndex + 1].id)}
+                    className="inline-flex items-center gap-2 bg-[var(--primary)] px-4 py-2.5 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
                   >
-                    {sections[sections.indexOf(currentSection) + 1].title[lang]}
-                    <span className="material-symbols-outlined">arrow_forward</span>
+                    {sections[currentIndex + 1].title[lang]}
+                    <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
                   </button>
                 ) : (
-                  <div />
+                  <Link
+                    href="/"
+                    className="inline-flex items-center gap-2 border border-[var(--rule-strong)] px-4 py-2.5 text-[12px] font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                  >
+                    返回首页
+                    <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                  </Link>
                 )}
               </div>
             </div>
-          </main>
+          </article>
         </div>
-      </div>
-    </div>
+      </main>
+    </StudentLayout>
   );
 }

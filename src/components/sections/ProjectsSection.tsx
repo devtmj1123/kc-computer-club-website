@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { SectionHeading } from '@/components/ui/SectionHeading';
 
 interface Project {
   id: string;
@@ -18,114 +19,70 @@ interface ProjectsSectionProps {
 }
 
 export function ProjectsSection({ projects, className }: ProjectsSectionProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const scrollAmount = 340;
-      scrollRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
-    }
-  };
-
   return (
-    <section className={cn('flex flex-col gap-4', className)}>
-      <div className="flex items-center justify-between px-1">
-        <h2 className="text-2xl font-bold text-[var(--foreground)] flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">rocket_launch</span>
-          活跃项目
-        </h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => scroll('left')}
-            className="size-9 rounded-full bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)] flex items-center justify-center text-[var(--foreground)] transition-all"
-          >
-            <span className="material-symbols-outlined text-sm">arrow_back</span>
-          </button>
-          <button
-            onClick={() => scroll('right')}
-            className="size-9 rounded-full bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] hover:shadow-[var(--nm-inset)] flex items-center justify-center text-[var(--foreground)] transition-all"
-          >
-            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </button>
+    <section className={cn('min-w-0', className)}>
+      <SectionHeading
+        index="03"
+        title="进行中的项目"
+        actionLabel="全部项目"
+        actionHref="/projects"
+      />
+
+      {projects.length === 0 ? (
+        <div className="flex items-center justify-between border-b border-[var(--border)] py-8">
+          <p className="text-[13px] text-[var(--text-secondary)]">暂无公开项目</p>
+          <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+            No projects
+          </span>
         </div>
-      </div>
-
-      <div
-        ref={scrollRef}
-        className="flex overflow-x-auto pb-4 gap-4 custom-scrollbar snap-x"
-      >
-        {projects.map((project) => (
-          <div
-            key={project.id}
-            className="min-w-70 md:min-w-80 bg-[var(--nm-bg)] rounded-[28px] overflow-hidden shadow-[var(--nm-raised)] snap-start hover:shadow-[var(--nm-raised-lg)] transition-all group"
-          >
-            <div
-              className="h-40 w-full bg-cover bg-center bg-primary/10 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]"
-              style={{
-                backgroundImage: project.coverImage
-                  ? `url('${project.coverImage}')`
-                  : 'linear-gradient(135deg, var(--primary-light) 0%, var(--surface) 100%)',
-              }}
+      ) : (
+        <div className="grid grid-cols-1 border-l border-[var(--border)] sm:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project, index) => (
+            <article
+              key={project.id}
+              className="group flex min-h-[220px] flex-col border-b border-r border-[var(--border)] p-5 transition-colors hover:bg-[var(--primary-light)] sm:p-6"
             >
-              {!project.coverImage && (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-4xl text-primary/30">
-                    code
-                  </span>
-                </div>
-              )}
-            </div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[12px] tracking-[0.12em] text-[var(--primary)]">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                  PROJECT
+                </span>
+              </div>
 
-            <div className="p-5">
-              <h3 className="font-bold text-[var(--foreground)] text-lg mb-1 group-hover:text-primary transition-colors">
-                {project.title}
-              </h3>
-              <p className="text-sm text-[var(--text-secondary)] mb-4 line-clamp-2">
+              <Link href={`/projects/${project.id}`} className="mt-5 block">
+                <h3 className="font-display text-[19px] font-semibold leading-[1.45] tracking-[-0.01em] text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]">
+                  {project.title}
+                </h3>
+              </Link>
+
+              <p className="mt-2.5 line-clamp-2 flex-1 text-[12px] leading-[1.8] text-[var(--text-secondary)]">
                 {project.description}
               </p>
-              <div className="flex items-center justify-between">
-                <div className="flex -space-x-2">
-                  {Array.from({ length: Math.min(project.contributors, 3) }).map(
-                    (_, i) => (
-                      <div
-                        key={i}
-                          className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shadow-[var(--nm-raised-sm)]"
-                      >
-                        <span className="material-symbols-outlined text-primary text-sm">
-                          person
-                        </span>
-                      </div>
-                    )
-                  )}
-                  {project.contributors > 3 && (
-                    <div className="w-8 h-8 rounded-full bg-[var(--surface-hover)] flex items-center justify-center text-[10px] text-[var(--foreground)] font-bold shadow-[var(--nm-raised-sm)]">
-                      +{project.contributors - 3}
-                    </div>
-                  )}
-                </div>
 
+              <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-3 font-mono text-[12px] tracking-[0.06em] text-[var(--text-tertiary)]">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">group</span>
+                  {project.contributors} 位成员
+                </span>
                 {project.repoUrl ? (
                   <a
                     href={project.repoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-bold text-primary hover:underline"
+                    className="text-[var(--primary)] transition-colors hover:text-[var(--primary-hover)]"
                   >
-                    查看仓库
+                    仓库 ↗
                   </a>
                 ) : (
-                  <span className="text-xs font-bold text-[var(--text-secondary)]">
-                    开发中
-                  </span>
+                  <span>开发中</span>
                 )}
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

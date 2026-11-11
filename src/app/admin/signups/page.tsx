@@ -12,6 +12,7 @@ interface Signup {
   studentName: string;
   studentEmail: string;
   signupDate: string;
+  createdAt: string;
   status: 'confirmed' | 'pending' | 'cancelled';
   grade: string;
 }
@@ -21,11 +22,11 @@ export default function AdminSignups() {
   const [signups, setSignups] = useState<Signup[]>([]);
   const [filteredSignups, setFilteredSignups] = useState<Signup[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'confirmed' | 'pending' | 'cancelled'>('all');
-  const [selectedSignups, setSelectedSignups] = useState<Set<string>>(new Set());
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
@@ -52,56 +53,51 @@ export default function AdminSignups() {
   const loadSignups = async () => {
     try {
       setIsLoadingData(true);
-      const activitiesRes = await fetch('/api/activities');
-      const activitiesData = await activitiesRes.json();
-      const activities = activitiesData.success ? (activitiesData.activities || []) : [];
-      const allSignups: Signup[] = [];
-      for (const activity of activities) {
-        try {
-          const signupsRes = await fetch(`/api/signups?activityId=${activity.$id}`);
-          const signupsData = await signupsRes.json();
-          if (signupsData.success && Array.isArray(signupsData.signups)) {
-            signupsData.signups.forEach((signup: Record<string, unknown>) => {
-              allSignups.push({
-                id: signup.$id as string,
-                activityId: activity.$id,
-                activityTitle: activity.title as string,
-                studentId: (signup.studentId as string) || '',
-                studentName: (signup.studentName as string) || '未知学生',
-                studentEmail: (signup.studentEmail as string) || '',
-                signupDate: new Date(signup.$createdAt as string).toLocaleDateString('zh-CN'),
-                status: (signup.status as 'confirmed' | 'pending' | 'cancelled') || 'pending',
-                grade: (signup.grade as string) || '',
-              });
-            });
-          }
-        } catch (err) {
-          console.error(`加载活动 ${activity.$id} 的报名失败:`, err);
-        }
+      setError('');
+      const response = await fetch('/api/signups');
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || '加载报名数据失败');
       }
-      allSignups.sort((a, b) => new Date(b.signupDate).getTime() - new Date(a.signupDate).getTime());
+      const allSignups: Signup[] = (data.signups || []).map(
+        (signup: Record<string, unknown>) => {
+          const rawStatus = String(signup.status || 'pending');
+          const status: Signup['status'] =
+            rawStatus === 'confirmed' ||
+            rawStatus === 'registered' ||
+            rawStatus === 'attended'
+              ? 'confirmed'
+              : rawStatus === 'cancelled'
+                ? 'cancelled'
+                : 'pending';
+          const createdAt = String(signup.createdAt || '');
+          return {
+            id: String(signup.id || signup.$id || ''),
+            activityId: String(signup.activityId || ''),
+            activityTitle: String(signup.activityTitle || ''),
+            studentId: String(signup.studentId || ''),
+            studentName: String(signup.studentName || '未知学生'),
+            studentEmail: String(signup.studentEmail || ''),
+            signupDate: createdAt
+              ? new Date(createdAt).toLocaleDateString('zh-CN')
+              : '',
+            createdAt,
+            status,
+            grade: String(signup.grade || ''),
+          };
+        }
+      );
+      allSignups.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
       setSignups(allSignups);
       setFilteredSignups(allSignups);
     } catch (err) {
       console.error('加载报名数据失败:', err);
+      setError(err instanceof Error ? err.message : '加载报名数据失败');
     } finally {
       setIsLoadingData(false);
-    }
-  };
-  const handleSelectSignup = (id: string) => {
-    const newSelected = new Set(selectedSignups);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedSignups(newSelected);
-  };
-  const handleSelectAll = () => {
-    if (selectedSignups.size === filteredSignups.length) {
-      setSelectedSignups(new Set());
-    } else {
-      setSelectedSignups(new Set(filteredSignups.map((s) => s.id)));
     }
   };
   const handleStatusChange = async (id: string, newStatus: string) => {
@@ -111,27 +107,30 @@ export default function AdminSignups() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (res.ok) {
-        setSignups((prev) =>
-          prev.map((s) =>
-            s.id === id ? { ...s, status: newStatus as 'confirmed' | 'pending' | 'cancelled' } : s
-          )
-        );
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || '更新报名状态失败');
       }
+      setSignups((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, status: newStatus as 'confirmed' | 'pending' | 'cancelled' } : s
+        )
+      );
     } catch (err) {
       console.error('更新报名状态失败:', err);
+      alert(err instanceof Error ? err.message : '更新报名状态失败');
     }
   };
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return 'bg-green-500/10 text-green-400';
+        return 'bg-[var(--primary)]/10 text-[var(--primary)]';
       case 'pending':
-        return 'bg-amber-500/10 text-amber-400';
+        return 'bg-[var(--warning)]/10 text-[var(--warning)]';
       case 'cancelled':
-        return 'bg-red-500/10 text-red-400';
+        return 'bg-[var(--error)]/10 text-[var(--error)]';
       default:
-        return 'bg-gray-500/10 text-gray-400';
+        return 'bg-[var(--surface-hover)]/10 text-[var(--text-secondary)]';
     }
   };
   const getStatusLabel = (status: string) => {
@@ -148,12 +147,12 @@ export default function AdminSignups() {
   };
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a1220]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <div className="text-center">
           <div className="animate-spin mb-4">
-            <span className="material-symbols-outlined text-[#137fec] text-5xl">hourglass_bottom</span>
+            <span className="material-symbols-outlined text-[var(--primary)] text-5xl">hourglass_bottom</span>
           </div>
-          <p className="text-white">加载中...</p>
+          <p className="text-[var(--foreground)]">加载中...</p>
         </div>
       </div>
     );
@@ -164,27 +163,27 @@ export default function AdminSignups() {
   return (
     <AdminLayout adminName="管理员">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-white mb-2">活动报名管理</h1>
-        <p className="text-gray-400">管理所有学生的活动报名申请</p>
+        <h1 className="text-3xl font-black text-[var(--foreground)] mb-2">活动报名管理</h1>
+        <p className="text-[var(--text-secondary)]">管理所有学生的活动报名申请</p>
       </div>
-      <div className="mb-6 bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
+      <div className="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-300 mb-2">搜索学生或活动</label>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">搜索学生或活动</label>
             <input
               type="text"
               placeholder="输入学生名字、邮箱或活动名称..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 bg-[#0f1a25] border border-[#283946] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#137fec]"
+              className="w-full px-4 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)]"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">状态</label>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">状态</label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as 'all' | 'confirmed' | 'pending' | 'cancelled')}
-              className="w-full px-4 py-2 bg-[#0f1a25] border border-[#283946] rounded-lg text-white focus:outline-none focus:border-[#137fec]"
+              className="w-full px-4 py-2 bg-[var(--background)] border border-[var(--border)] rounded-lg text-[var(--foreground)] focus:outline-none focus:border-[var(--primary)]"
             >
               <option value="all">全部</option>
               <option value="pending">待确认</option>
@@ -196,7 +195,7 @@ export default function AdminSignups() {
             <Button
               variant="primary"
               onClick={loadSignups}
-              className="w-full bg-[#137fec] hover:bg-[#0f5fcc]"
+              className="w-full bg-[var(--primary)] hover:bg-[var(--primary-hover)]"
             >
               <span className="material-symbols-outlined mr-2">refresh</span>
               刷新
@@ -205,63 +204,63 @@ export default function AdminSignups() {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#1a2632] border border-[#283946] rounded-xl p-4">
-          <p className="text-gray-400 text-sm mb-1">总报名数</p>
-          <p className="text-3xl font-black text-white">{signups.length}</p>
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+          <p className="text-[var(--text-secondary)] text-sm mb-1">总报名数</p>
+          <p className="text-3xl font-black text-[var(--foreground)]">{signups.length}</p>
         </div>
-        <div className="bg-[#1a2632] border border-[#283946] rounded-xl p-4">
-          <p className="text-gray-400 text-sm mb-1">待确认</p>
-          <p className="text-3xl font-black text-amber-400">{signups.filter((s) => s.status === 'pending').length}</p>
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+          <p className="text-[var(--text-secondary)] text-sm mb-1">待确认</p>
+          <p className="text-3xl font-black text-[var(--warning)]">{signups.filter((s) => s.status === 'pending').length}</p>
         </div>
-        <div className="bg-[#1a2632] border border-[#283946] rounded-xl p-4">
-          <p className="text-gray-400 text-sm mb-1">已确认</p>
-          <p className="text-3xl font-black text-green-400">{signups.filter((s) => s.status === 'confirmed').length}</p>
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+          <p className="text-[var(--text-secondary)] text-sm mb-1">已确认</p>
+          <p className="text-3xl font-black text-[var(--primary)]">{signups.filter((s) => s.status === 'confirmed').length}</p>
         </div>
       </div>
-      <div className="bg-[#1a2632] border border-[#283946] rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#283946] flex items-center gap-4">
-          <input
-            type="checkbox"
-            checked={selectedSignups.size === filteredSignups.length && filteredSignups.length > 0}
-            onChange={handleSelectAll}
-            className="w-4 h-4 cursor-pointer"
-          />
-          <h2 className="text-lg font-bold text-white flex-1">报名列表</h2>
-          <span className="text-gray-400 text-sm">{filteredSignups.length} 条结果</span>
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-[var(--border)] flex items-center gap-4">
+          <h2 className="text-lg font-bold text-[var(--foreground)] flex-1">报名列表</h2>
+          <span className="text-[var(--text-secondary)] text-sm">{filteredSignups.length} 条结果</span>
         </div>
-        <div className="divide-y divide-[#283946]">
-          {filteredSignups.length === 0 ? (
+        {error && (
+          <div className="px-6 py-3 bg-[var(--error)]/10 border-b border-[var(--error)]/20">
+            <p className="text-[var(--error)] text-sm">{error}</p>
+          </div>
+        )}
+        <div className="divide-y divide-[var(--border)]">
+          {isLoadingData ? (
             <div className="px-6 py-12 text-center">
-              <span className="material-symbols-outlined text-4xl text-gray-600 mb-4 block">
+              <span className="material-symbols-outlined text-4xl text-[var(--text-secondary)] mb-4 block animate-spin">
+                hourglass_bottom
+              </span>
+              <p className="text-[var(--text-secondary)]">加载报名记录中...</p>
+            </div>
+          ) : filteredSignups.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <span className="material-symbols-outlined text-4xl text-[var(--text-secondary)] mb-4 block">
                 inbox
               </span>
-              <p className="text-gray-400">没有找到匹配的报名记录</p>
+              <p className="text-[var(--text-secondary)]">没有找到匹配的报名记录</p>
             </div>
           ) : (
             filteredSignups.map((signup) => (
               <div
                 key={signup.id}
-                className="px-6 py-4 hover:bg-[#1f2d39] transition-colors flex items-center gap-4"
+                className="px-6 py-4 hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-4"
               >
-                <input
-                  type="checkbox"
-                  checked={selectedSignups.has(signup.id)}
-                  onChange={() => handleSelectSignup(signup.id)}
-                  className="w-4 h-4 cursor-pointer"
-                />
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-4 mb-2">
                     <div>
-                      <h3 className="text-white font-semibold">{signup.studentName}</h3>
-                      <p className="text-gray-500 text-sm">{signup.studentEmail}</p>
+                      <h3 className="text-[var(--foreground)] font-semibold">{signup.studentName}</h3>
+                      <p className="text-[var(--text-secondary)] text-sm">{signup.studentEmail}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-white font-semibold">{signup.activityTitle}</p>
-                      <p className="text-gray-500 text-sm">{signup.signupDate}</p>
+                      <p className="text-[var(--foreground)] font-semibold">{signup.activityTitle}</p>
+                      <p className="text-[var(--text-secondary)] text-sm">{signup.signupDate}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-[var(--text-secondary)] text-sm">
                       {signup.grade && <span>{signup.grade}</span>}
                     </div>
                     <div className="flex items-center gap-2">

@@ -11,23 +11,23 @@ export interface BadgeProps {
 }
 
 const variantStyles = {
-  default: 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-white/10',
+  default: 'bg-[var(--surface-hover)] text-[var(--text-secondary)] border-[var(--border)]',
   primary: 'bg-primary/10 text-primary border-primary/20',
-  success: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-  warning: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-  danger: 'bg-red-500/10 text-red-500 border-red-500/20',
-  info: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  success: 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20',
+  warning: 'bg-[var(--warning)]/10 text-[var(--warning)] border-[var(--warning)]/20',
+  danger: 'bg-[var(--error)]/10 text-[var(--error)] border-[var(--error)]/20',
+  info: 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20',
+  purple: 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20',
 };
 
 const dotColors = {
-  default: 'bg-gray-400',
+  default: 'bg-[var(--border)]',
   primary: 'bg-primary',
-  success: 'bg-emerald-500',
-  warning: 'bg-amber-500',
-  danger: 'bg-red-500',
-  info: 'bg-blue-500',
-  purple: 'bg-purple-400',
+  success: 'bg-[var(--primary)]',
+  warning: 'bg-[var(--warning)]',
+  danger: 'bg-[var(--error)]',
+  info: 'bg-[var(--primary)]',
+  purple: 'bg-[var(--primary)]',
 };
 
 export function Badge({
@@ -40,8 +40,8 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full font-medium border shadow-[var(--nm-raised-sm)]',
-        size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-0.5 text-xs',
+        'inline-flex items-center gap-1.5 border font-mono uppercase tracking-[0.06em]',
+        size === 'sm' ? 'px-2 py-0.5 text-[12px]' : 'px-2.5 py-0.5 text-xs',
         variantStyles[variant],
         className
       )}

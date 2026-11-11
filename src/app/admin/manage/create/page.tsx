@@ -1,8 +1,13 @@
 'use client';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { AdminLayout } from '@/components/layout/AdminLayout';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+
 export default function CreateAdminPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -14,11 +19,13 @@ export default function CreateAdminPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -52,7 +59,7 @@ export default function CreateAdminPage() {
       });
       const data = await response.json();
       if (data.success) {
-        setSuccess('管理员创建成功！');
+        setSuccess('管理员创建成功');
         setUsername('');
         setPassword('');
         setConfirmPassword('');
@@ -66,161 +73,150 @@ export default function CreateAdminPage() {
       setIsSubmitting(false);
     }
   };
+
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen bg-[#0a1220] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin mb-4">
-            <span className="material-symbols-outlined text-[#137fec] text-5xl">
-              hourglass_bottom
-            </span>
-          </div>
-          <p className="text-white">加载中...</p>
+      <AdminLayout adminName={user?.name || '管理员'}>
+        <div className="flex items-center gap-3 border border-[var(--rule-strong)] px-5 py-10">
+          <span className="size-4 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
+          <span className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+            Loading editor
+          </span>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
+
   return (
-    <div className="min-h-screen bg-[#0a1220] py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
-          <Link
-            href="/admin/manage"
-            className="inline-flex items-center gap-2 text-[#7a8fa5] hover:text-white transition-colors mb-6"
-          >
-            <span className="material-symbols-outlined">arrow_back</span>
-            返回管理员列表
-          </Link>
-          <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-8">
-            <div className="mb-6">
-              <div className="w-16 h-16 rounded-full bg-[#137fec]/20 flex items-center justify-center mb-4">
-                <span className="material-symbols-outlined text-[#137fec] text-3xl">
-                  person_add
-                </span>
-              </div>
-              <h1 className="text-2xl font-bold text-white mb-2">添加新管理员</h1>
-              <p className="text-[#7a8fa5]">创建新的管理员账户</p>
-            </div>
-            {error && (
-              <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="mb-6 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
-                ✓ {success}
-              </div>
-            )}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  管理员用户名
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a8fa5] material-symbols-outlined">
-                    person
-                  </span>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="输入用户名"
-                    required
-                    disabled={isSubmitting}
-                    className="w-full pl-10 pr-4 py-3 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-[#5a6b7f] focus:outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-colors disabled:opacity-50"
-                  />
-                </div>
-                <p className="text-xs text-[#7a8fa5] mt-1">3-20 个字符</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  密码
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a8fa5] material-symbols-outlined">
-                    lock
-                  </span>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="输入密码"
-                    required
-                    disabled={isSubmitting}
-                    className="w-full pl-10 pr-12 py-3 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-[#5a6b7f] focus:outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-colors disabled:opacity-50"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7a8fa5] hover:text-white transition-colors"
-                  >
-                    <span className="material-symbols-outlined">
-                      {showPassword ? 'visibility_off' : 'visibility'}
-                    </span>
-                  </button>
-                </div>
-                <p className="text-xs text-[#7a8fa5] mt-1">至少 6 个字符</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  确认密码
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7a8fa5] material-symbols-outlined">
-                    check_circle
-                  </span>
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="重新输入密码"
-                    required
-                    disabled={isSubmitting}
-                    className="w-full pl-10 pr-12 py-3 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-[#5a6b7f] focus:outline-none focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] transition-colors disabled:opacity-50"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7a8fa5] hover:text-white transition-colors"
-                  >
-                    <span className="material-symbols-outlined">
-                      {showConfirmPassword ? 'visibility_off' : 'visibility'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
+    <AdminLayout adminName={user?.name || '管理员'}>
+      <div className="max-w-2xl">
+        <div className="mb-7">
+          <div className="flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+            <Link
+              href="/admin/manage"
+              className="transition-colors hover:text-[var(--foreground)]"
+            >
+              管理员管理
+            </Link>
+            <span className="text-[var(--border)]">/</span>
+            <span className="text-[var(--foreground)]">添加管理员</span>
+          </div>
+          <h1 className="mt-3 font-display text-[30px] font-bold leading-tight tracking-[-0.03em] text-[var(--foreground)] sm:text-[34px]">
+            添加新管理员
+          </h1>
+          <p className="mt-2 max-w-xl text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            创建新的后台管理员账户，并设置初始登录凭据。
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-5 flex items-start gap-3 border border-[var(--error)]/40 bg-[var(--error-light)] px-4 py-3">
+            <span className="material-symbols-outlined text-[17px] text-[var(--error)]">
+              error
+            </span>
+            <p className="text-[12px] text-[var(--error)]">{error}</p>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-5 flex items-start gap-3 border border-[var(--primary)]/40 bg-[var(--primary-light)] px-4 py-3">
+            <span className="material-symbols-outlined text-[17px] text-[var(--primary)]">
+              check_circle
+            </span>
+            <p className="text-[12px] text-[var(--primary)]">{success}，正在跳转…</p>
+          </div>
+        )}
+
+        <section className="border border-[var(--rule-strong)]">
+          <div className="flex items-baseline justify-between gap-3 border-b border-[var(--border)] px-5 py-3.5">
+            <h2 className="font-display text-[16px] font-bold text-[var(--foreground)]">
+              账户凭据
+            </h2>
+            <span className="mono-label">Admin account</span>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5 p-5">
+            <Input
+              label="管理员用户名"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="输入用户名"
+              leftIcon="person"
+              required
+              disabled={isSubmitting}
+              hint="3–20 个字符"
+            />
+
+            <Input
+              label="密码"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="输入密码"
+              leftIcon="lock"
+              required
+              disabled={isSubmitting}
+              hint="至少 6 个字符"
+              rightIcon={
                 <button
                   type="button"
-                  onClick={() => router.back()}
-                  className="flex-1 px-4 py-3 bg-[#283a4f] text-white rounded-lg hover:bg-[#354860] transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[var(--text-tertiary)] transition-colors hover:text-[var(--foreground)]"
+                  aria-label={showPassword ? '隐藏密码' : '显示密码'}
                 >
-                  取消
+                  <span className="material-symbols-outlined text-[17px]">
+                    {showPassword ? 'visibility_off' : 'visibility'}
+                  </span>
                 </button>
+              }
+            />
+
+            <Input
+              label="确认密码"
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="重新输入密码"
+              leftIcon="check_circle"
+              required
+              disabled={isSubmitting}
+              rightIcon={
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-3 bg-[#137fec] text-white rounded-lg hover:bg-[#0f6ecf] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="text-[var(--text-tertiary)] transition-colors hover:text-[var(--foreground)]"
+                  aria-label={showConfirmPassword ? '隐藏密码' : '显示密码'}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <span className="animate-spin material-symbols-outlined">
-                        hourglass_bottom
-                      </span>
-                      创建中...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined">person_add</span>
-                      创建管理员
-                    </>
-                  )}
+                  <span className="material-symbols-outlined text-[17px]">
+                    {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                  </span>
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              }
+            />
+
+            <div className="flex gap-2 border-t border-[var(--border)] pt-4">
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1"
+                onClick={() => router.back()}
+                disabled={isSubmitting}
+              >
+                取消
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                className="flex-1"
+                isLoading={isSubmitting}
+                disabled={isSubmitting}
+              >
+                创建管理员
+              </Button>
+            </div>
+          </form>
+        </section>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

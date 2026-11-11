@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { setAdminSessionCookie } from '@/lib/admin-session';
+import { setAdminSessionCookie, clearAdminSessionCookie } from '@/lib/admin-session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,15 +8,7 @@ export async function POST(request: NextRequest) {
       message: '已成功退出登录',
     });
 
-    response.cookies.set('kc_admin_session', '', {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 0,
-    });
-
-    return response;
+    return clearAdminSessionCookie(response);
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('Admin logout error:', err);

@@ -18,7 +18,7 @@ interface AdminIdentity {
 }
 
 function getSessionSecret(): string {
-  return process.env.ADMIN_SESSION_SECRET || process.env.APPWRITE_API_KEY || '';
+  return process.env.ADMIN_SESSION_SECRET || '';
 }
 
 function base64UrlEncode(value: string): string {
@@ -128,6 +128,18 @@ export function setAdminSessionCookie(response: NextResponse, admin: AdminIdenti
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: ADMIN_SESSION_TTL_SECONDS,
+  });
+
+  return response;
+}
+
+export function clearAdminSessionCookie(response: NextResponse): NextResponse {
+  response.cookies.set(ADMIN_SESSION_COOKIE, '', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
   });
 
   return response;

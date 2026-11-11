@@ -1,4 +1,4 @@
-import { serverDatabases, Query } from '@/services/appwrite-server';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export interface Comment {
   $id: string;
@@ -30,36 +30,58 @@ export interface ReplyCommentInput {
   replyAuthor: string;
 }
 
-const mapToComment = (doc: Record<string, unknown>): Comment => {
-  return {
-    $id: doc.$id as string,
-    contentType: doc.contentType as 'notice' | 'activity',
-    contentId: doc.contentId as string,
-    nickname: doc.nickname as string,
-    email: (doc.email as string) || '',
-    content: doc.content as string,
-    status: doc.status as 'pending' | 'approved' | 'rejected',
-    reply: (doc.reply as string) || undefined,
-    replyAuthor: (doc.replyAuthor as string) || undefined,
-    replyAt: (doc.replyAt as string) || undefined,
-    isDeleted: (doc.isDeleted as boolean) || false,
-    createdAt: doc.createdAt as string,
-    updatedAt: doc.updatedAt as string,
-  };
-};
+interface CommentRow {
+  id: string;
+  content_type: 'notice' | 'activity';
+  content_id: string;
+  nickname: string;
+  email: string | null;
+  content: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reply: string | null;
+  reply_author_name: string | null;
+  reply_at: string | null;
+  is_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+const COMMENT_SELECT =
+  'id, content_type, content_id, nickname, email, content, status, reply, reply_author_name, reply_at, is_deleted, created_at, updated_at';
+
+const mapToComment = (row: CommentRow): Comment => ({
+  $id: row.id,
+  contentType: row.content_type,
+  contentId: row.content_id,
+  nickname: row.nickname,
+  email: row.email || '',
+  content: row.content,
+  status: row.status,
+  reply: row.reply || undefined,
+  replyAuthor: row.reply_author_name || undefined,
+  replyAt: row.reply_at || undefined,
+  isDeleted: row.is_deleted,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
 
 export const commentService = {
-
   async getAllComments(onlyApproved: boolean = false): Promise<Comment[]> {
     try {
-      const queries = onlyApproved ? [Query.equal('status', 'approved')] : [];
-      const response = await serverDatabases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        'comments',
-        queries
-      );
-      const comments = (response.documents || []).map(mapToComment);
-      return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const admin = getSupabaseAdminClient();
+      let query = admin
+        .from('comments')
+        .select(COMMENT_SELECT)
+        .order('created_at', { ascending: false });
+
+      if (onlyApproved) {
+        query = query.eq('status', 'approved').eq('is_deleted', false);
+      }
+
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+
+      return ((data ?? []) as unknown as CommentRow[]).map(mapToComment);
     } catch (error) {
       console.error('Failed to fetch comments:', error);
       throw error;
@@ -68,12 +90,17 @@ export const commentService = {
 
   async getCommentById(id: string): Promise<Comment> {
     try {
-      const response = await serverDatabases.getDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        'comments',
-        id
-      );
-      return mapToComment(response);
+      const admin = getSupabaseAdminClient();
+      const { data, error } = await admin
+        .from('comments')
+        .select(COMMENT_SELECT)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('评论不存在');
+
+      return mapToComment(data as unknown as CommentRow);
     } catch (error) {
       console.error(`Failed to fetch comment ${id}:`, error);
       throw error;
@@ -82,21 +109,24 @@ export const commentService = {
 
   async createComment(input: CreateCommentInput): Promise<Comment> {
     try {
-      const response = await serverDatabases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        'comments',
-        'unique()',
-        {
-          contentType: input.contentType,
-          contentId: input.contentId,
+      const admin = getSupabaseAdminClient();
+      const { data, error } = await admin
+        .from('comments')
+        .insert({
+          content_type: input.contentType,
+          content_id: input.contentId,
           nickname: input.nickname,
-          email: input.email || '',
+          email: input.email || null,
           content: input.content,
-          status: input.status || 'approved',
-          isDeleted: false,
-        }
-      );
-      return mapToComment(response);
+          // Anonymous comments stay hidden until an admin approves them.
+          status: input.status || 'pending',
+          is_deleted: false,
+        })
+        .select(COMMENT_SELECT)
+        .single();
+
+      if (error) throw new Error(error.message);
+      return mapToComment(data as unknown as CommentRow);
     } catch (error) {
       console.error('Failed to create comment:', error);
       throw error;
@@ -105,15 +135,30 @@ export const commentService = {
 
   async updateComment(id: string, input: Partial<Comment>): Promise<Comment> {
     try {
-      const response = await serverDatabases.updateDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        'comments',
-        id,
-        {
-          ...input,
-        }
-      );
-      return mapToComment(response);
+      const admin = getSupabaseAdminClient();
+      const updateData: Record<string, unknown> = {};
+
+      if (input.content !== undefined) updateData.content = input.content;
+      if (input.nickname !== undefined) updateData.nickname = input.nickname;
+      if (input.status !== undefined) updateData.status = input.status;
+      if (input.isDeleted !== undefined) updateData.is_deleted = input.isDeleted;
+      if (input.reply !== undefined) updateData.reply = input.reply;
+      if (input.replyAuthor !== undefined) {
+        updateData.reply_author_name = input.replyAuthor;
+      }
+      if (input.replyAt !== undefined) updateData.reply_at = input.replyAt;
+
+      const { data, error } = await admin
+        .from('comments')
+        .update(updateData)
+        .eq('id', id)
+        .select(COMMENT_SELECT)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('评论不存在');
+
+      return mapToComment(data as unknown as CommentRow);
     } catch (error) {
       console.error(`Failed to update comment ${id}:`, error);
       throw error;
@@ -122,18 +167,11 @@ export const commentService = {
 
   async replyToComment(id: string, input: ReplyCommentInput): Promise<Comment> {
     try {
-      const response = await serverDatabases.updateDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        'comments',
-        id,
-        {
-          reply: input.reply,
-          replyAuthor: input.replyAuthor,
-          replyAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-      );
-      return mapToComment(response);
+      return this.updateComment(id, {
+        reply: input.reply,
+        replyAuthor: input.replyAuthor,
+        replyAt: new Date().toISOString(),
+      });
     } catch (error) {
       console.error(`Failed to reply to comment ${id}:`, error);
       throw error;
@@ -151,11 +189,9 @@ export const commentService = {
 
   async deleteComment(id: string): Promise<void> {
     try {
-      await serverDatabases.deleteDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        'comments',
-        id
-      );
+      const admin = getSupabaseAdminClient();
+      const { error } = await admin.from('comments').delete().eq('id', id);
+      if (error) throw new Error(error.message);
     } catch (error) {
       console.error(`Failed to delete comment ${id}:`, error);
       throw error;
@@ -168,17 +204,22 @@ export const commentService = {
     onlyApproved: boolean = true
   ): Promise<Comment[]> {
     try {
-      const queries = [Query.equal('contentType', contentType), Query.equal('contentId', contentId)];
+      const admin = getSupabaseAdminClient();
+      let query = admin
+        .from('comments')
+        .select(COMMENT_SELECT)
+        .eq('content_type', contentType)
+        .eq('content_id', contentId)
+        .order('created_at', { ascending: false });
+
       if (onlyApproved) {
-        queries.push(Query.equal('status', 'approved'));
+        query = query.eq('status', 'approved').eq('is_deleted', false);
       }
-      const response = await serverDatabases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        'comments',
-        queries
-      );
-      const comments = (response.documents || []).map(mapToComment);
-      return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+
+      return ((data ?? []) as unknown as CommentRow[]).map(mapToComment);
     } catch (error) {
       console.error(
         `Failed to fetch comments for ${contentType} ${contentId}:`,
@@ -190,13 +231,15 @@ export const commentService = {
 
   async getCommentsByStatus(status: string): Promise<Comment[]> {
     try {
-      const response = await serverDatabases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        'comments',
-        [Query.equal('status', status)]
-      );
-      const comments = (response.documents || []).map(mapToComment);
-      return comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const admin = getSupabaseAdminClient();
+      const { data, error } = await admin
+        .from('comments')
+        .select(COMMENT_SELECT)
+        .eq('status', status)
+        .order('created_at', { ascending: false });
+
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as unknown as CommentRow[]).map(mapToComment);
     } catch (error) {
       console.error(`Failed to fetch comments with status ${status}:`, error);
       throw error;
@@ -232,12 +275,16 @@ export const commentService = {
 
   async searchComments(query: string): Promise<Comment[]> {
     try {
-      const allComments = await this.getAllComments(false);
-      return allComments.filter(
-        (comment) =>
-          comment.content.toLowerCase().includes(query.toLowerCase()) ||
-          comment.nickname.toLowerCase().includes(query.toLowerCase())
-      );
+      const admin = getSupabaseAdminClient();
+      const pattern = `%${query}%`;
+      const { data, error } = await admin
+        .from('comments')
+        .select(COMMENT_SELECT)
+        .or(`content.ilike.${pattern},nickname.ilike.${pattern}`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as unknown as CommentRow[]).map(mapToComment);
     } catch (error) {
       console.error('Failed to search comments:', error);
       throw error;
@@ -246,8 +293,16 @@ export const commentService = {
 
   async getCommentCount(contentId: string): Promise<number> {
     try {
-      const allComments = await this.getAllComments(true);
-      return allComments.filter((c) => c.contentId === contentId).length;
+      const admin = getSupabaseAdminClient();
+      const { count, error } = await admin
+        .from('comments')
+        .select('id', { count: 'exact', head: true })
+        .eq('content_id', contentId)
+        .eq('status', 'approved')
+        .eq('is_deleted', false);
+
+      if (error) throw new Error(error.message);
+      return count ?? 0;
     } catch (error) {
       console.error(`Failed to get comment count for target ${contentId}:`, error);
       throw error;
@@ -256,8 +311,14 @@ export const commentService = {
 
   async getPendingCommentCount(): Promise<number> {
     try {
-      const pendingComments = await this.getPendingComments();
-      return pendingComments.length;
+      const admin = getSupabaseAdminClient();
+      const { count, error } = await admin
+        .from('comments')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      if (error) throw new Error(error.message);
+      return count ?? 0;
     } catch (error) {
       console.error('Failed to get pending comment count:', error);
       throw error;

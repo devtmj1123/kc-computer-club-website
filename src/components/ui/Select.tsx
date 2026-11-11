@@ -48,10 +48,10 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={selectId || undefined}
-            className="text-sm font-medium text-gray-700 dark:text-gray-200"
+            className="text-[12px] font-medium tracking-[0.01em] text-[var(--text-secondary)]"
           >
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="text-[var(--error)] ml-1">*</span>}
           </label>
         )}
 
@@ -60,12 +60,10 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId || undefined}
             className={cn(
-              'w-full cursor-pointer rounded-2xl px-4 py-3 pr-10 text-base outline-none transition-all duration-200',
-              'bg-[var(--nm-bg)] text-[var(--foreground)] shadow-[var(--nm-inset)]',
-              'focus:shadow-[var(--nm-inset),0_0_0_2px_var(--primary-light),inset_0_0_0_1.5px_var(--primary)]',
-              'hover:shadow-[var(--nm-inset),0_0_0_1px_var(--primary-light)]',
+              'h-[46px] w-full cursor-pointer rounded-[3px] border border-[var(--input-border)] bg-[var(--input-bg)] px-3.5 pr-10 text-[15px] font-medium text-[var(--foreground)] outline-none transition-colors',
+              'focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-light)]',
               'disabled:cursor-not-allowed disabled:opacity-60',
-              error && 'shadow-[var(--nm-inset),0_0_0_2px_rgba(239,68,68,0.18)]',
+              error && 'border-[var(--error)]',
               className
             )}
             {...props}
@@ -92,14 +90,14 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         </div>
 
         {error && (
-          <p className="text-xs text-red-500 flex items-center gap-1">
+          <p className="flex items-center gap-1 text-[12px] text-[var(--error)]">
             <span className="material-symbols-outlined text-[14px]">error</span>
             {error}
           </p>
         )}
 
         {hint && !error && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+          <p className="text-[12px] text-[var(--text-secondary)]">{hint}</p>
         )}
       </div>
     );

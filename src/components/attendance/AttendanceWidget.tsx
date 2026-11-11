@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 interface AttendanceStatus {
   isAttendanceOpen: boolean;
@@ -27,15 +27,14 @@ interface AttendanceWidgetProps {
   studentName?: string;
   studentEmail?: string;
   onCheckInSuccess?: () => void;
-  showDebugButton?: boolean;
 }
+
+const DAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
 export default function AttendanceWidget({
   studentId = '',
   studentName = '',
   studentEmail = '',
-  onCheckInSuccess,
-  showDebugButton = false,
 }: AttendanceWidgetProps) {
   const [status, setStatus] = useState<AttendanceStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,14 +42,15 @@ export default function AttendanceWidget({
   const [completedSessions, setCompletedSessions] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [debugMode, setDebugMode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [requireCode, setRequireCode] = useState(false);
 
   const loadStudentRecords = async (weekNumber: number) => {
     if (!studentEmail) return;
     try {
-      const res = await fetch(`/api/attendance/my-records?email=${encodeURIComponent(studentEmail)}`);
+      const res = await fetch(
+        `/api/attendance/my-records?email=${encodeURIComponent(studentEmail)}&studentId=${encodeURIComponent(studentId)}`
+      );
       const data = await res.json();
       if (data.success && data.recordsByWeek[weekNumber]) {
         const done: string[] = data.recordsByWeek[weekNumber]
@@ -60,6 +60,7 @@ export default function AttendanceWidget({
         if (done.length > 0) setHasCheckedIn(false);
       }
     } catch {
+      // ignore record preload failures
     }
   };
 
@@ -68,7 +69,6 @@ export default function AttendanceWidget({
       const response = await fetch('/api/attendance');
       const data = await response.json();
       setStatus(data);
-      setDebugMode(data.debugMode || false);
       if (data.codeEnabled && data.hasCode) {
         setRequireCode(true);
       } else {
@@ -81,29 +81,6 @@ export default function AttendanceWidget({
     } catch (err) {
       const error = err as Error & { message?: string };
       setError('无法获取点名状态：' + (error.message || '未知错误'));
-    }
-  };
-
-  const toggleDebugMode = async () => {
-    try {
-      const response = await fetch('/api/attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'toggle-debug',
-          enabled: !debugMode,
-        }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        setDebugMode(data.debugMode);
-        setMessage(data.message);
-        await fetchAttendanceStatus();
-        setTimeout(() => setMessage(''), 3000);
-      }
-    } catch (err) {
-      const error = err as Error & { message?: string };
-      setError('切换调试模式失败：' + (error.message || '未知错误'));
     }
   };
 
@@ -142,7 +119,7 @@ export default function AttendanceWidget({
           setVerificationCode('');
           const sessionMatch = (data.error as string).match(/(\d{1,2}:\d{2})/);
           if (sessionMatch) {
-            setCompletedSessions(prev => [...new Set([...prev, sessionMatch[1]])]);
+            setCompletedSessions((prev) => [...new Set([...prev, sessionMatch[1]])]);
           }
           setTimeout(() => {
             setMessage('');
@@ -157,7 +134,7 @@ export default function AttendanceWidget({
 
       const sessionTime: string = data.record?.sessionTime || '';
       setMessage(`点名成功！时段: ${sessionTime}`);
-      if (sessionTime) setCompletedSessions(prev => [...new Set([...prev, sessionTime])]);
+      if (sessionTime) setCompletedSessions((prev) => [...new Set([...prev, sessionTime])]);
       setVerificationCode('');
 
       setTimeout(() => {
@@ -181,163 +158,159 @@ export default function AttendanceWidget({
         clearInterval(interval);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!status) {
     return (
-      <div className="bg-[var(--nm-bg)] shadow-[var(--nm-raised)] rounded-[28px] p-6 text-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="mt-3 text-[var(--text-secondary)]">加载中...</p>
+      <div className="border border-[var(--rule-strong)] px-5 py-10 text-center">
+        <span className="material-symbols-outlined animate-spin text-[22px] text-[var(--primary)]">
+          hourglass_empty
+        </span>
+        <p className="mt-3 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          正在读取点名状态…
+        </p>
       </div>
     );
   }
 
   return (
-    <div className={`relative rounded-[28px] transition-all duration-300 overflow-hidden shadow-[var(--nm-raised-lg)] ${
-      status.isAttendanceOpen
-        ? 'bg-[linear-to-br] from-[var(--nm-bg)] to-primary/10'
-        : 'bg-[var(--nm-bg)]'
-    }`}>
-      <div className={`h-1 w-full ${status.isAttendanceOpen ? 'bg-primary' : 'bg-[var(--surface-hover)]'}`}></div>
+    <div className="border border-[var(--rule-strong)]">
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+        <span>ATTENDANCE / 点名</span>
+        <span className="inline-flex items-center gap-1.5 text-[var(--primary)]">
+          <span className="size-1 rounded-full bg-[var(--primary)]" />
+          WEEK {String(status.weekNumber).padStart(2, '0')}
+        </span>
+      </div>
 
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="flex items-center gap-2 text-lg font-bold text-[var(--foreground)]">
-            <span className="material-symbols-outlined text-primary">assignment</span>
-            点名系统
-            {debugMode && (
-              <span className="ml-2 px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">
-                调试模式
-              </span>
-            )}
-          </h3>
-          <span className="px-3 py-1.5 bg-primary/10 text-primary text-sm font-semibold rounded-full border border-primary/20">
-            第 {status.weekNumber} 周
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
+              {status.isAttendanceOpen ? 'OPEN · 点名进行中' : 'CLOSED · 非点名时段'}
+            </p>
+            <h3 className="mt-2 font-display text-[24px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
+              {status.isAttendanceOpen ? '今天，你到了吗？' : '今天不是点名日'}
+            </h3>
+          </div>
+          <span
+            className={`shrink-0 border px-2 py-1 font-mono text-[12px] uppercase tracking-[0.1em] ${
+              status.isAttendanceOpen
+                ? 'border-[var(--primary)]/40 text-[var(--primary)]'
+                : 'border-[var(--border)] text-[var(--text-tertiary)]'
+            }`}
+          >
+            {status.isAttendanceOpen ? 'LIVE' : 'IDLE'}
           </span>
         </div>
 
-        <div className="space-y-4">
-          {status.isAttendanceOpen ? (
-            <>
-              <div className="bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] rounded-2xl p-4 flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-2xl">today</span>
-                <div>
-                  <p className="text-[var(--foreground)] font-bold">今天是点名日</p>
-                  <p className="text-[var(--text-secondary)] text-sm">请输入老师公布的验证码完成签到</p>
-                </div>
+        {status.isAttendanceOpen ? (
+          <div className="mt-5 space-y-4">
+            <p className="text-[12px] leading-[1.9] text-[var(--text-secondary)]">
+              请输入老师公布的验证码完成签到。签到时间以服务器记录为准。
+            </p>
+
+            {completedSessions.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 border border-[var(--primary)]/30 bg-[var(--primary-light)] px-3 py-2.5">
+                <span className="material-symbols-outlined text-[15px] text-[var(--primary)]">
+                  check_circle
+                </span>
+                <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-[var(--primary)]">
+                  本周已签到
+                </span>
+                {completedSessions.map((session) => (
+                  <span
+                    key={session}
+                    className="border border-[var(--primary)]/40 px-1.5 py-0.5 font-mono text-[12px] text-[var(--primary)]"
+                  >
+                    {session}
+                  </span>
+                ))}
               </div>
+            )}
 
-              {completedSessions.length > 0 && (
-                <div className="bg-primary/10 shadow-[var(--nm-inset-sm)] rounded-2xl p-3 flex flex-wrap gap-2">
-                  <span className="material-symbols-outlined text-primary text-sm">check_circle</span>
-                  <span className="text-primary text-sm font-medium">本周已签到：</span>
-                  {completedSessions.map(s => (
-                    <span key={s} className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full font-mono">{s}</span>
-                  ))}
-                </div>
-              )}
-
-              {requireCode && !isLoading && (
-                <div className="bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="material-symbols-outlined text-amber-400">pin</span>
-                    <p className="text-amber-400 font-medium">请输入验证码</p>
-                  </div>
-                  <input
-                    type="text"
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    placeholder="输入4位验证码"
-                    maxLength={4}
-                    disabled={isLoading}
-                    className="w-full px-4 py-3 bg-[var(--nm-bg)] shadow-[var(--nm-inset)] rounded-2xl text-[var(--foreground)] text-center text-2xl font-mono tracking-widest placeholder:text-[var(--text-secondary)] focus:outline-none disabled:opacity-60"
-                  />
-                  <p className="text-[var(--text-secondary)] text-xs mt-2 text-center">
-                    时段1 和 时段2 各有不同验证码，请向在场老师获取
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={handleCheckIn}
-                disabled={isLoading || (requireCode && verificationCode.length !== 4)}
-                className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-[var(--nm-raised-sm)] ${
-                  isLoading
-                    ? 'bg-primary/50 text-[var(--surface)] cursor-wait'
-                    : (requireCode && verificationCode.length !== 4)
-                    ? 'bg-[var(--border)] text-[var(--text-secondary)] cursor-not-allowed'
-                    : 'bg-primary hover:bg-primary-hover text-[var(--surface)] hover:shadow-[0_0_24px_rgba(19,236,128,0.45)] active:scale-[0.98]'
-                }`}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="material-symbols-outlined animate-spin">hourglass_bottom</span>
-                    点名中...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined">touch_app</span>
-                    立即点名
-                  </>
-                )}
-              </button>
-            </>
-          ) : (
-            <div className="bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] rounded-2xl p-5 text-center">
-              <span className="material-symbols-outlined text-[var(--text-secondary)] text-4xl mb-3">event_busy</span>
-              <p className="text-[var(--foreground)] font-medium mb-2">今天不是点名日</p>
-              <div className="text-[var(--text-secondary)] text-sm space-y-1">
-                {status.config ? (
-                  <p>点名日：每{['周日', '周一', '周二', '周三', '周四', '周五', '周六'][status.config.dayOfWeek]}</p>
-                ) : (
-                  <p>加载点名配置中...</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {message && (
-            <div className="flex items-center gap-2 p-3 bg-primary/10 shadow-[var(--nm-inset-sm)] rounded-2xl">
-              <span className="material-symbols-outlined text-primary">check_circle</span>
-              <p className="text-primary text-sm font-medium">{message}</p>
-            </div>
-          )}
-          {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 shadow-[var(--nm-inset-sm)] rounded-2xl">
-              <span className="material-symbols-outlined text-red-400">error</span>
-              <p className="text-red-400 text-sm font-medium">{error}</p>
-            </div>
-          )}
-
-          {showDebugButton && (
-            <div className="pt-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <button
-                onClick={toggleDebugMode}
-                className={`w-full py-2.5 rounded-2xl text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-[var(--nm-raised-sm)] ${
-                  debugMode
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30'
-                    : 'bg-[var(--nm-bg)] text-[var(--text-secondary)] hover:shadow-[var(--nm-raised)] hover:text-[var(--foreground)]'
-                }`}
-              >
-                <span className="material-symbols-outlined text-sm">bug_report</span>
-                {debugMode ? '关闭调试模式' : '开启调试模式（测试点名）'}
-              </button>
-              {debugMode && (
-                <p className="mt-2 text-xs text-amber-400/70 text-center">
-                  调试模式已开启，可在任何时间进行点名测试
+            {requireCode && !isLoading && (
+              <div>
+                <label
+                  htmlFor="attendance-code"
+                  className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]"
+                >
+                  验证码
+                </label>
+                <input
+                  id="attendance-code"
+                  type="text"
+                  inputMode="numeric"
+                  value={verificationCode}
+                  onChange={(e) =>
+                    setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 4))
+                  }
+                  placeholder="0000"
+                  maxLength={4}
+                  disabled={isLoading}
+                  className="mt-1.5 h-14 w-full rounded-[3px] border border-[var(--input-border)] bg-[var(--input-bg)] text-center font-mono text-[24px] tracking-[0.5em] text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--text-tertiary)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-light)] disabled:opacity-60"
+                />
+                <p className="mt-2 font-mono text-[12px] leading-relaxed tracking-[0.04em] text-[var(--text-tertiary)]">
+                  时段 1 和时段 2 各有不同验证码，请向在场老师获取。
                 </p>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {!showDebugButton && (
-            <div className="pt-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <p className="text-xs text-[var(--text-secondary)] text-center">
-                💡 提示：按 <kbd className="px-2 py-1 bg-[var(--nm-bg)] shadow-[var(--nm-inset-sm)] rounded-xl text-xs font-mono">Ctrl+Shift+D</kbd> 显示调试功能
-              </p>
-            </div>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={handleCheckIn}
+              disabled={isLoading || (requireCode && verificationCode.length !== 4)}
+              className={`inline-flex w-full items-center justify-center gap-2 px-4 py-3 text-[12px] font-semibold transition-colors ${
+                isLoading
+                  ? 'cursor-wait bg-[var(--primary)]/50 text-[var(--primary-contrast)]'
+                  : requireCode && verificationCode.length !== 4
+                    ? 'cursor-not-allowed border border-[var(--border)] bg-[var(--surface-hover)] text-[var(--text-tertiary)]'
+                    : 'bg-[var(--primary)] text-[var(--primary-contrast)] hover:bg-[var(--primary-hover)]'
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[15px]">
+                    hourglass_empty
+                  </span>
+                  点名中…
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[15px]">touch_app</span>
+                  立即点名
+                </>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="mt-5 border border-[var(--border)] px-4 py-4">
+            <p className="text-[12px] leading-[1.9] text-[var(--text-secondary)]">
+              {status.config
+                ? `点名日：每${DAY_NAMES[status.config.dayOfWeek]}。请在点名时段内回到此页面签到。`
+                : (status.message || '正在读取点名配置…')}
+            </p>
+          </div>
+        )}
+
+        {message && (
+          <div className="mt-4 flex items-start gap-2.5 border border-[var(--primary)]/30 bg-[var(--primary-light)] px-3.5 py-2.5">
+            <span className="material-symbols-outlined mt-0.5 text-[15px] text-[var(--primary)]">
+              check_circle
+            </span>
+            <p className="text-[12px] leading-relaxed text-[var(--primary)]">{message}</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-4 flex items-start gap-2.5 border border-[var(--error)]/30 bg-[var(--error-light)] px-3.5 py-2.5">
+            <span className="material-symbols-outlined mt-0.5 text-[15px] text-[var(--error)]">
+              error
+            </span>
+            <p className="text-[12px] leading-relaxed text-[var(--error)]">{error}</p>
+          </div>
+        )}
       </div>
     </div>
   );

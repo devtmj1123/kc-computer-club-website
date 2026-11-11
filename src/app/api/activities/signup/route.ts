@@ -1,31 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client, Databases, Query, ID } from 'appwrite';
 import { activityService } from '@/services/activity.service';
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-const databases = new Databases(client);
-const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
-const SIGNUPS_COLLECTION = 'signups';
+import { getSessionStudent } from '@/lib/student-identity';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
+import { verifyPublicFormToken } from '@/lib/recaptcha';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface SignupRequestBody {
+  activityId?: unknown;
+  fullName?: unknown;
+  email?: unknown;
+  studentId?: unknown;
+  grade?: unknown;
+  phone?: unknown;
+  additionalInfo?: unknown;
+  recaptchaToken?: unknown;
+}
+
+function readString(value: unknown, maxLength: number): string {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const {
-      activityId,
-      fullName,
-      email,
-      studentId,
-      grade,
-      phone,
-      additionalInfo,
-      userId,
-    } = body;
+    const body = (await request.json()) as SignupRequestBody;
+
+    const activityId = readString(body.activityId, 64);
+    const fullName = readString(body.fullName, 100);
+    const email = readString(body.email, 255).toLowerCase();
+    const studentId = readString(body.studentId, 50);
+    const grade = readString(body.grade, 50);
+    const phone = readString(body.phone, 30);
+    const additionalInfo = readString(body.additionalInfo, 1000);
+
     if (!activityId || !fullName || !email || !grade || !phone) {
       return NextResponse.json(
         { success: false, error: '请填写所有必填字段' },
         { status: 400 }
       );
     }
+
+    if (!EMAIL_PATTERN.test(email)) {
+      return NextResponse.json(
+        { success: false, error: '请输入有效的邮箱地址' },
+        { status: 400 }
+      );
+    }
+
+    const remoteIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
+    const captchaOk = await verifyPublicFormToken(
+      body.recaptchaToken,
+      remoteIp
+    );
+    if (!captchaOk) {
+      return NextResponse.json(
+        { success: false, error: '人机验证失败，请刷新后重试' },
+        { status: 400 }
+      );
+    }
+
     let activity;
     try {
       activity = await activityService.getActivityById(activityId);
@@ -35,122 +69,119 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
     if (activity.status !== 'published') {
       return NextResponse.json(
         { success: false, error: '此活动暂不开放报名' },
         { status: 400 }
       );
     }
-    if (activity.visibility === 'internal' && !userId) {
+
+    const deadline = new Date(activity.signupDeadline).getTime();
+    if (Number.isFinite(deadline) && deadline < Date.now()) {
       return NextResponse.json(
-        { success: false, error: '此活动仅限登录用户报名' },
-        { status: 401 }
+        { success: false, error: '此活动报名已截止' },
+        { status: 400 }
       );
     }
-    if (activity.maxParticipants && activity.maxParticipants > 0 && activity.currentParticipants >= activity.maxParticipants) {
+
+    const student = await getSessionStudent(request);
+
+    if (activity.visibility === 'internal') {
+      if (!student) {
+        return NextResponse.json(
+          { success: false, error: '此活动仅限登录用户报名' },
+          { status: 401 }
+        );
+      }
+      if (student.email !== email) {
+        return NextResponse.json(
+          { success: false, error: '请使用当前登录账号的邮箱报名' },
+          { status: 403 }
+        );
+      }
+    }
+
+    const linkedUserId = student && student.email === email ? student.id : null;
+
+    if (
+      (activity.maxParticipants ?? 0) > 0 &&
+      activity.currentParticipants >= (activity.maxParticipants ?? 0)
+    ) {
       return NextResponse.json(
         { success: false, error: '此活动报名人数已满' },
         { status: 400 }
       );
     }
-    try {
-      const existingSignups = await databases.listDocuments(
-        DATABASE_ID,
-        SIGNUPS_COLLECTION,
-        [
-          Query.equal('activityId', activityId),
-          Query.equal('email', email),
-        ]
+
+    const admin = getSupabaseAdminClient();
+    const { data: existing, error: existingError } = await admin
+      .from('signups')
+      .select('id')
+      .eq('activity_id', activityId)
+      .eq('email', email)
+      .limit(1);
+
+    if (existingError) {
+      console.error('查询报名记录失败:', existingError.message);
+      return NextResponse.json(
+        { success: false, error: '报名失败，请稍后重试' },
+        { status: 500 }
       );
-      if (existingSignups.documents.length > 0) {
+    }
+    if ((existing ?? []).length > 0) {
+      return NextResponse.json(
+        { success: false, error: '您已经报名过此活动' },
+        { status: 400 }
+      );
+    }
+
+    const { data: signup, error: insertError } = await admin
+      .from('signups')
+      .insert({
+        activity_id: activityId,
+        user_id: linkedUserId,
+        full_name: fullName,
+        email,
+        phone,
+        student_no: studentId || null,
+        grade,
+        additional_info: additionalInfo || null,
+        form_data: {
+          fullName,
+          studentId,
+          grade,
+          additionalInfo,
+          userId: linkedUserId,
+        },
+        status: 'pending',
+        notes: '',
+      })
+      .select('id, status')
+      .single();
+
+    if (insertError) {
+      if (insertError.code === '23505') {
         return NextResponse.json(
           { success: false, error: '您已经报名过此活动' },
           { status: 400 }
         );
       }
-    } catch (error) {
-      console.error('Failed to check existing signups:', error);
+      console.error('创建报名失败:', insertError.message);
+      return NextResponse.json(
+        { success: false, error: '报名失败，请稍后重试' },
+        { status: 500 }
+      );
     }
-    const formData = {
-      fullName,
-      studentId: studentId || '',
-      grade,
-      additionalInfo: additionalInfo || '',
-      userId: userId || null,
-    };
-    const now = new Date().toISOString();
-    const signup = await databases.createDocument(
-      DATABASE_ID,
-      SIGNUPS_COLLECTION,
-      ID.unique(),
-      {
-        activityId,
-        formData: JSON.stringify(formData),
-        email,
-        phone,
-        status: 'pending',
-        notes: '',
-        createdAt: now,
-        updatedAt: now,
-      }
-    );
-    try {
-      await activityService.incrementRegisteredCount(activityId);
-    } catch (error) {
-      console.error('Failed to increment participant count:', error);
-    }
+
     return NextResponse.json({
       success: true,
-      signup: {
-        id: signup.$id,
-        activityId: signup.activityId,
-        email: signup.email,
-        status: signup.status,
-        createdAt: signup.createdAt,
-      },
+      signup,
     });
   } catch (error) {
     console.error('Failed to create signup:', error);
     return NextResponse.json(
       { success: false, error: '报名失败，请稍后重试' },
-      { status: 500 }
-    );
-  }
-}
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const activityId = searchParams.get('activityId');
-    const queries: ReturnType<typeof Query.equal>[] = [];
-    if (activityId) {
-      queries.push(Query.equal('activityId', activityId));
-    }
-    queries.push(Query.orderDesc('createdAt'));
-    const response = await databases.listDocuments(
-      DATABASE_ID,
-      SIGNUPS_COLLECTION,
-      queries
-    );
-    const signups = response.documents.map((doc) => ({
-      id: doc.$id,
-      activityId: doc.activityId,
-      email: doc.email,
-      phone: doc.phone,
-      formData: doc.formData ? JSON.parse(doc.formData) : {},
-      status: doc.status,
-      notes: doc.notes,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-    }));
-    return NextResponse.json({
-      success: true,
-      signups,
-      total: response.total,
-    });
-  } catch (error) {
-    console.error('Failed to fetch signups:', error);
-    return NextResponse.json(
-      { success: false, error: '获取报名列表失败' },
       { status: 500 }
     );
   }

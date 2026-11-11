@@ -1,10 +1,23 @@
 'use client';
+
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useEffect, useState, useCallback, use } from 'react';
 import { Notice } from '@/services/notice.service';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  use,
+  useCallback,
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
+
 interface NoticeFormData {
   title: string;
   category: string;
@@ -14,7 +27,82 @@ interface NoticeFormData {
   tags: string;
   images: string[];
 }
+
 const categories = ['活动通知', '课程公告', '会议通知', '其他'];
+
+function EditorSection({
+  index,
+  title,
+  children,
+}: {
+  index: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="border border-[var(--rule-strong)] bg-[var(--surface)]">
+      <div className="flex items-baseline justify-between border-b border-[var(--border)] px-4 py-2.5 sm:px-5">
+        <h2 className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+          {title}
+        </h2>
+        <span className="font-mono text-[12px] tracking-[0.08em] text-[var(--text-tertiary)]">
+          {index}
+        </span>
+      </div>
+      <div className="px-4 py-4 sm:px-5 sm:py-5">{children}</div>
+    </section>
+  );
+}
+
+function ChoiceRow({
+  id,
+  name,
+  value,
+  label,
+  note,
+  checked,
+  onChange,
+}: {
+  id: string;
+  name: string;
+  value: string;
+  label: string;
+  note: string;
+  checked: boolean;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className={`flex cursor-pointer items-center justify-between border px-3 py-2.5 transition-colors ${
+        checked
+          ? 'border-[var(--primary)] bg-[var(--primary-light)]'
+          : 'border-[var(--border)] hover:bg-[var(--surface-hover)]'
+      }`}
+    >
+      <span className="flex items-center gap-2">
+        <input
+          id={id}
+          type="radio"
+          name={name}
+          value={value}
+          checked={checked}
+          onChange={onChange}
+          className="size-3.5 accent-[var(--primary)]"
+        />
+        <span className="text-[12px] text-[var(--foreground)]">{label}</span>
+      </span>
+      <span
+        className={`font-mono text-[12px] uppercase tracking-[0.08em] ${
+          checked ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'
+        }`}
+      >
+        {note}
+      </span>
+    </label>
+  );
+}
+
 export default function EditNotice({ params }: { params: Promise<{ id: string }> }) {
   const { id: noticeId } = use(params);
   const { user, isLoading } = useAuth();
@@ -31,7 +119,12 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
   const [instagramImporting, setInstagramImporting] = useState(false);
   const [instagramError, setInstagramError] = useState('');
   const [instagramHint, setInstagramHint] = useState<string | null>(null);
-  const [instagramPreview, setInstagramPreview] = useState<{ image?: string | null; images?: string[]; caption?: string; sourceUrl?: string } | null>(null);
+  const [instagramPreview, setInstagramPreview] = useState<{
+    image?: string | null;
+    images?: string[];
+    caption?: string;
+    sourceUrl?: string;
+  } | null>(null);
   const [formData, setFormData] = useState<NoticeFormData>({
     title: '',
     category: '活动通知',
@@ -41,11 +134,13 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
     tags: '',
     images: [],
   });
+
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
+
   const loadNotice = useCallback(async (id: string) => {
     try {
       setIsLoadingNotice(true);
@@ -73,12 +168,14 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
       setIsLoadingNotice(false);
     }
   }, []);
+
   useEffect(() => {
     if (user && 'role' in user && user.role === 'admin' && noticeId) {
       loadNotice(noticeId);
     }
   }, [user, noticeId, loadNotice]);
-  const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setIsSaving(true);
@@ -103,9 +200,12 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
           category: formData.category,
           status: formData.status,
           visibility: formData.visibility,
-          images: formData.images.length > 0 ? formData.images : undefined,
+          images: formData.images,
           tags: formData.tags
-            ? formData.tags.split(/[,，]/).map(tag => tag.trim()).filter(tag => tag)
+            ? formData.tags
+                .split(/[,，]/)
+                .map((tag) => tag.trim())
+                .filter((tag) => tag)
             : [],
         }),
       });
@@ -121,6 +221,7 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
       setIsSaving(false);
     }
   };
+
   const handleDelete = async () => {
     setError('');
     setIsSaving(true);
@@ -144,8 +245,9 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
       setDeleteConfirm(false);
     }
   };
+
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -153,7 +255,8 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
       [name]: value,
     }));
   };
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     for (let i = 0; i < Math.min(files.length, 5 - formData.images.length); i++) {
@@ -178,6 +281,7 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
     }
     e.target.value = '';
   };
+
   const handleAddImageLink = () => {
     if (newImageLink.trim() && formData.images.length < 5) {
       setFormData((prev) => ({
@@ -187,12 +291,14 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
       setNewImageLink('');
     }
   };
+
   const handleRemoveImage = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
   };
+
   const handleImportInstagram = async () => {
     if (!instagramUrl.trim()) return;
     setInstagramImporting(true);
@@ -207,7 +313,12 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
       });
       const data = await res.json();
       if (data.success) {
-        setInstagramPreview({ image: data.image, images: data.images, caption: data.caption, sourceUrl: data.sourceUrl });
+        setInstagramPreview({
+          image: data.image,
+          images: data.images,
+          caption: data.caption,
+          sourceUrl: data.sourceUrl,
+        });
       } else {
         setInstagramError(data.error || '导入失败');
         setInstagramHint(data.hint || null);
@@ -218,6 +329,7 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
       setInstagramImporting(false);
     }
   };
+
   const handleTogglePin = async () => {
     setIsPinning(true);
     try {
@@ -238,167 +350,220 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
       setIsPinning(false);
     }
   };
+
   const handleApplyInstagram = () => {
     if (!instagramPreview) return;
-    const imgsToAdd = (instagramPreview.images && instagramPreview.images.length > 0)
-      ? instagramPreview.images
-      : (instagramPreview.image ? [instagramPreview.image] : []);
+    const imgsToAdd =
+      instagramPreview.images && instagramPreview.images.length > 0
+        ? instagramPreview.images
+        : instagramPreview.image
+          ? [instagramPreview.image]
+          : [];
     if (imgsToAdd.length > 0) {
       const remaining = 5 - formData.images.length;
       const toAdd = imgsToAdd.slice(0, remaining);
       setFormData((prev) => ({ ...prev, images: [...prev.images, ...toAdd] }));
     }
     if (instagramPreview.caption) {
-      setFormData((prev) => ({ ...prev, content: prev.content ? prev.content + '\n\n' + instagramPreview.caption : instagramPreview.caption! }));
+      setFormData((prev) => ({
+        ...prev,
+        content: prev.content
+          ? prev.content + '\n\n' + instagramPreview.caption
+          : instagramPreview.caption!,
+      }));
     }
     setInstagramPreview(null);
     setInstagramUrl('');
   };
+
   if (isLoading || !user || isLoadingNotice) {
     return (
       <AdminLayout adminName={user?.name || '管理员'}>
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin mb-4">
-              <span className="material-symbols-outlined text-[#137fec] text-5xl">
-                hourglass_bottom
-              </span>
-            </div>
-            <p className="text-white">加载中...</p>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="border border-[var(--border)] bg-[var(--surface)] px-8 py-6 text-center">
+            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
+            <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+              Loading notice
+            </p>
           </div>
         </div>
       </AdminLayout>
     );
   }
+
   return (
     <AdminLayout adminName={user?.name || '管理员'}>
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-7 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white mb-2">编辑公告</h1>
-          <p className="text-gray-400">修改公告内容并保存更改。</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--primary)]">
+            Content · Notices · Edit
+          </p>
+          <h1 className="mt-2 font-display text-[30px] font-bold leading-tight tracking-[-0.03em] text-[var(--foreground)] sm:text-[34px]">
+            编辑公告
+          </h1>
+          <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            修改公告内容并保存更改。
+            {isPinned && (
+              <span className="ml-2 border border-[var(--warning)]/40 bg-[var(--warning-light)] px-1.5 py-0.5 font-mono text-[12px] uppercase tracking-[0.06em] text-[var(--warning)]">
+                已置顶
+              </span>
+            )}
+          </p>
         </div>
-        <Link href="/admin/notices">
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <span className="material-symbols-outlined text-2xl">close</span>
-          </button>
+        <Link
+          href="/admin/notices"
+          aria-label="返回公告管理"
+          className="flex size-9 shrink-0 items-center justify-center border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:border-[var(--rule-strong)] hover:text-[var(--foreground)]"
+        >
+          <span className="material-symbols-outlined text-[18px]">close</span>
         </Link>
       </div>
-      <form onSubmit={handleSubmit} className="max-w-4xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">
-                {error}
-              </div>
-            )}
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <label htmlFor="title" className="block text-white font-semibold mb-3">
-                公告标题 *
-              </label>
-              <input
+
+      <form onSubmit={handleSubmit} className="max-w-6xl">
+        {error && (
+          <div className="mb-4 flex items-start gap-2 border border-[var(--error)]/40 bg-[var(--error-light)] px-4 py-3">
+            <span className="material-symbols-outlined text-[16px] text-[var(--error)]">
+              error
+            </span>
+            <p className="text-[12px] leading-relaxed text-[var(--error)]">{error}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-4">
+            <EditorSection index="01" title="标题">
+              <Input
                 id="title"
                 name="title"
+                label="公告标题"
+                required
                 value={formData.title}
                 onChange={handleChange}
-                placeholder="输入公告标题..."
-                required
-                className="w-full px-4 py-3 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#137fec]"
+                placeholder="输入公告标题…"
+                hint="标题字数建议 10–100 字"
               />
-              <p className="text-gray-500 text-sm mt-2">标题字数建议 10-100 字</p>
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <label htmlFor="category" className="block text-white font-semibold mb-3">
-                公告分类 *
-              </label>
-              <select
-                id="category"
-                name="category"
+            </EditorSection>
+
+            <EditorSection index="02" title="分类">
+              <NeumorphicSelect
+                label="公告分类"
+                options={categories.map((cat) => ({ value: cat, label: cat }))}
                 value={formData.category}
-                onChange={handleChange}
-                className="w-full bg-[#1f2d39] border border-[#283946] rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#137fec] transition-colors"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <label htmlFor="content" className="block text-white font-semibold mb-3">
-                公告内容 *
-              </label>
-              <textarea
-                id="content"
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-                placeholder="输入公告内容...支持 Markdown 格式"
-                required
-                rows={10}
-                className="w-full bg-[#1f2d39] border border-[#283946] rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#137fec] transition-colors resize-none"
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, category: value }))
+                }
               />
-              <p className="text-gray-500 text-sm mt-2">
-                支持 Markdown 格式，包括标题、列表、链接等
-              </p>
-            </div>
-            <div className="bg-[#1a2632] border border-[#e1306c]/30 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-1">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <defs><linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#f09433"/><stop offset="25%" stopColor="#e6683c"/><stop offset="50%" stopColor="#dc2743"/><stop offset="75%" stopColor="#cc2366"/><stop offset="100%" stopColor="#bc1888"/></linearGradient></defs>
-                  <rect x="2" y="2" width="20" height="20" rx="6" fill="url(#ig-grad)"/>
-                  <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="1.8" fill="none"/>
-                  <circle cx="17.5" cy="6.5" r="1.2" fill="white"/>
-                </svg>
-                <h3 className="text-white font-semibold">从 Instagram 导入</h3>
+            </EditorSection>
+
+            <EditorSection index="03" title="正文">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="content"
+                  className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]"
+                >
+                  公告内容 <span className="text-[var(--error)]">*</span>
+                </label>
+                <textarea
+                  id="content"
+                  name="content"
+                  value={formData.content}
+                  onChange={handleChange}
+                  placeholder="输入公告内容…支持 Markdown 格式"
+                  required
+                  rows={12}
+                  className="w-full resize-y rounded-[3px] border border-[var(--input-border)] bg-[var(--input-bg)] px-3.5 py-2.5 text-[13px] leading-7 text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--input-placeholder)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-light)]"
+                />
+                <p className="font-mono text-[12px] tracking-[0.04em] text-[var(--text-tertiary)]">
+                  支持标题、列表、链接等 Markdown 语法
+                </p>
               </div>
-              <p className="text-gray-500 text-sm mb-4">粘贴 Instagram 帖子链接，自动提取图片和说明文字</p>
-              <div className="flex gap-2 mb-3">
-                <input
+            </EditorSection>
+
+            <EditorSection index="04" title="Import / Instagram">
+              <div className="flex items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center border border-[var(--border)] text-[var(--text-secondary)]">
+                  <span className="material-symbols-outlined text-[18px]">
+                    photo_camera
+                  </span>
+                </span>
+                <div>
+                  <p className="text-[12px] font-semibold text-[var(--foreground)]">
+                    从 Instagram 导入
+                  </p>
+                  <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                    粘贴 Instagram 帖子链接，自动提取图片和说明文字。
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <Input
                   type="url"
                   value={instagramUrl}
                   onChange={(e) => setInstagramUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleImportInstagram())}
-                  placeholder="https://www.instagram.com/p/..."
-                  className="flex-1 px-4 py-3 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#e1306c] text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleImportInstagram();
+                    }
+                  }}
+                  placeholder="https://www.instagram.com/p/…"
+                  containerClassName="flex-1"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={handleImportInstagram}
+                  isLoading={instagramImporting}
                   disabled={instagramImporting || !instagramUrl.trim()}
-                  className="px-4 py-3 bg-gradient-to-r from-[#f09433] via-[#dc2743] to-[#bc1888] text-white rounded-lg font-medium disabled:opacity-50 transition-opacity text-sm whitespace-nowrap"
+                  className="sm:w-24"
                 >
-                  {instagramImporting ? '导入中...' : '导入'}
-                </button>
+                  导入
+                </Button>
               </div>
+
               {instagramError && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-sm mb-3">
+                <div className="mt-3 border border-[var(--error)]/40 bg-[var(--error-light)] px-3 py-2.5 text-[12px] text-[var(--error)]">
                   {instagramError}
                   {instagramHint === 'setup_required' && (
-                    <div className="mt-2 pt-2 border-t border-red-500/20 text-gray-400 text-xs space-y-1">
-                      <p className="font-semibold text-gray-300">手动导入方法：</p>
-                      <p>1. 在 Instagram 打开帖子，右键点击图片 → "复制图片地址"</p>
-                      <p>2. 点击下方「图片链接」标签，粘贴图片 URL 并添加</p>
+                    <div className="mt-2 space-y-1 border-t border-[var(--error)]/30 pt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                      <p className="font-semibold text-[var(--text-secondary)]">
+                        手动导入方法：
+                      </p>
+                      <p>1. 在 Instagram 打开帖子，右键点击图片 → “复制图片地址”</p>
+                      <p>2. 在下方「图片链接」中粘贴 URL 并添加</p>
                       <p>3. 复制帖子说明文字粘贴到「公告内容」</p>
                       <p>4. 轮播帖子请逐张复制每张图片的地址</p>
                     </div>
                   )}
                 </div>
               )}
+
               {instagramPreview && (
-                <div className="border border-[#e1306c]/30 rounded-xl p-4 space-y-3">
-                  <p className="text-[#e1306c] text-xs font-semibold uppercase tracking-wide">
-                    预览 {instagramPreview.images && instagramPreview.images.length > 1 && `(${instagramPreview.images.length} 张图片)`}
+                <div className="mt-4 border border-[var(--border)] p-3">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    Preview
+                    {instagramPreview.images && instagramPreview.images.length > 1
+                      ? ` · ${instagramPreview.images.length} 张图片`
+                      : ''}
                   </p>
                   {instagramPreview.images && instagramPreview.images.length > 0 ? (
-                    <div className={instagramPreview.images.length > 1 ? "grid grid-cols-2 gap-2" : ""}>
+                    <div
+                      className={
+                        instagramPreview.images.length > 1
+                          ? 'mt-3 grid grid-cols-2 gap-2'
+                          : 'mt-3'
+                      }
+                    >
                       {instagramPreview.images.map((img, idx) => (
                         <img
                           key={idx}
                           src={img}
                           alt={`Instagram 图片 ${idx + 1}`}
-                          className="w-full max-h-48 object-cover rounded-lg border border-[#283946]"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          className="max-h-48 w-full border border-[var(--border)] object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
                         />
                       ))}
                     </div>
@@ -406,56 +571,71 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
                     <img
                       src={instagramPreview.image}
                       alt="Instagram 图片"
-                      className="w-full max-h-48 object-cover rounded-lg border border-[#283946]"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      className="mt-3 max-h-48 w-full border border-[var(--border)] object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                     />
                   ) : null}
                   {instagramPreview.caption && (
-                    <p className="text-gray-300 text-sm leading-relaxed line-clamp-4">{instagramPreview.caption}</p>
+                    <p className="mt-3 line-clamp-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                      {instagramPreview.caption}
+                    </p>
                   )}
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
                     onClick={handleApplyInstagram}
-                    className="w-full py-2 bg-[#e1306c] hover:bg-[#c62a60] text-white rounded-lg text-sm font-medium transition-colors"
+                    className="mt-3 w-full"
                   >
                     应用到公告（添加 {instagramPreview.images?.length || 1} 张图片 + 说明文字）
-                  </button>
+                  </Button>
                 </div>
               )}
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <label className="block text-white font-semibold mb-3">
-                配图（最多 5 张）{formData.images.length > 0 && `(${formData.images.length}/5)`}
-              </label>
-              <p className="text-gray-500 text-sm mb-4">建议图片大小：1200x600px 或 1920x1080px，支持 JPG、PNG 格式</p>
-              <div className="flex gap-3 mb-4">
+            </EditorSection>
+
+            <EditorSection index="05" title="配图">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]">
+                  配图（最多 5 张）
+                </p>
+                <span className="font-mono text-[12px] text-[var(--text-tertiary)]">
+                  {formData.images.length} / 5
+                </span>
+              </div>
+              <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                建议图片大小 1200×600px 或 1920×1080px，支持 JPG、PNG 格式。
+              </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:w-64">
                 <button
                   type="button"
                   onClick={() => setImageInputType('upload')}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
+                  className={`flex h-9 items-center justify-center gap-1.5 border text-[12px] font-medium transition-colors ${
                     imageInputType === 'upload'
-                      ? 'bg-[#137fec] text-white'
-                      : 'bg-[#1f2d39] text-gray-400 hover:text-white'
+                      ? 'border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)]'
+                      : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-sm">upload</span>
+                  <span className="material-symbols-outlined text-[15px]">upload</span>
                   上传图片
                 </button>
                 <button
                   type="button"
                   onClick={() => setImageInputType('link')}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
+                  className={`flex h-9 items-center justify-center gap-1.5 border text-[12px] font-medium transition-colors ${
                     imageInputType === 'link'
-                      ? 'bg-[#137fec] text-white'
-                      : 'bg-[#1f2d39] text-gray-400 hover:text-white'
+                      ? 'border-[var(--primary)] bg-[var(--primary-light)] text-[var(--primary)]'
+                      : 'border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-sm">link</span>
+                  <span className="material-symbols-outlined text-[15px]">link</span>
                   图片链接
                 </button>
               </div>
+
               {imageInputType === 'upload' ? (
-                <div className="border-2 border-dashed border-[#283946] rounded-lg p-6 text-center">
+                <div className="mt-3 border border-dashed border-[var(--rule-strong)] px-4 py-7 text-center">
                   <input
                     type="file"
                     multiple
@@ -464,256 +644,267 @@ export default function EditNotice({ params }: { params: Promise<{ id: string }>
                     className="hidden"
                     id="image-upload"
                   />
-                  <label htmlFor="image-upload" className="cursor-pointer block">
-                    <span className="material-symbols-outlined text-4xl text-gray-500 block mb-2">
+                  <label htmlFor="image-upload" className="block cursor-pointer">
+                    <span className="material-symbols-outlined block text-[26px] text-[var(--text-tertiary)]">
                       image
                     </span>
-                    <p className="text-gray-400 text-sm">
-                      点击选择或拖拽图片上传
+                    <p className="mt-2 text-[12px] text-[var(--text-secondary)]">
+                      点击选择图片上传
+                    </p>
+                    <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                      最多 5 张
                     </p>
                   </label>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <input
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <Input
                     type="url"
                     value={newImageLink}
                     onChange={(e) => setNewImageLink(e.target.value)}
                     placeholder="输入图片链接 URL"
-                    className="flex-1 px-4 py-3 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#137fec]"
+                    containerClassName="flex-1"
                     disabled={formData.images.length >= 5}
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
                     onClick={handleAddImageLink}
                     disabled={formData.images.length >= 5 || !newImageLink.trim()}
-                    className="px-4 py-3 bg-[#137fec] text-white rounded-lg hover:bg-[#0f6ecf] disabled:opacity-50 transition-colors"
+                    className="sm:w-24"
                   >
                     添加
-                  </button>
+                  </Button>
                 </div>
               )}
+
               {formData.images.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-gray-400 text-sm">已选择的图片：</p>
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="mt-4">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    已选择
+                  </p>
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {formData.images.map((img, idx) => (
-                      <div key={idx} className="relative group">
+                      <div key={idx} className="group relative">
                         <img
                           src={img}
                           alt={`图片 ${idx + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border border-[#283946]"
+                          className="h-24 w-full border border-[var(--border)] object-cover"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23333" width="100" height="100"/%3E%3Ctext x="50" y="50" dominant-baseline="middle" text-anchor="middle" font-size="12" fill="%23999"%3E图片加载失败%3C/text%3E%3C/svg%3E';
+                            (e.target as HTMLImageElement).src =
+                              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23333" width="100" height="100"/%3E%3Ctext x="50" y="50" dominant-baseline="middle" text-anchor="middle" font-size="12" fill="%23999"%3E图片加载失败%3C/text%3E%3C/svg%3E';
                           }}
                         />
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(idx)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label={`移除图片 ${idx + 1}`}
+                          className="absolute right-1 top-1 flex size-6 items-center justify-center bg-[var(--error)] text-[var(--error-contrast)] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                         >
-                          <span className="material-symbols-outlined text-sm">close</span>
+                          <span className="material-symbols-outlined text-[14px]">
+                            close
+                          </span>
                         </button>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-            </div>
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6">
-              <label htmlFor="tags" className="block text-white font-semibold mb-3">
-                标签（用逗号或中文逗号分隔）
-              </label>
-              <input
+            </EditorSection>
+
+            <EditorSection index="06" title="标签">
+              <Input
                 id="tags"
                 name="tags"
+                label="标签"
                 value={formData.tags}
                 onChange={handleChange}
-                placeholder="例如：重要, 新闻, 活动 或 重要，新闻，活动"
-                className="w-full px-4 py-3 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#137fec]"
+                placeholder="例如：重要, 新闻, 活动"
+                hint="用逗号或中文逗号分隔"
               />
-            </div>
+            </EditorSection>
           </div>
-          <div className="space-y-6">
-            <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6 sticky top-6">
-              <h2 className="text-white font-semibold mb-4">预览</h2>
-              {formData.images.length > 0 && (
-                <div className="mb-4">
-                  <img
-                    src={formData.images[0]}
-                    alt="预览"
-                    className="w-full h-32 object-cover rounded-lg border border-[#283946] mb-2"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                  {formData.images.length > 1 && (
-                    <p className="text-gray-500 text-xs text-center">
-                      +{formData.images.length - 1} 张图片
-                    </p>
-                  )}
-                </div>
-              )}
-              <div className="bg-[#1f2d39] rounded-xl p-4 mb-4 space-y-2">
-                {formData.title && (
-                  <h3 className="text-white font-semibold text-sm line-clamp-2">
-                    {formData.title}
-                  </h3>
-                )}
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span className="material-symbols-outlined text-sm">label</span>
-                  <span>{formData.category}</span>
-                </div>
-                {formData.content && (
-                  <p className="text-gray-400 text-xs line-clamp-3">
-                    {formData.content.replace(/[#*`]/g, '')}
-                  </p>
+
+          <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+            <section className="border border-[var(--rule-strong)] bg-[var(--surface)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
+                <h2 className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                  Preview
+                </h2>
+                {isPinned && (
+                  <span className="font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--warning)]">
+                    Pinned
+                  </span>
                 )}
               </div>
-              <div className="space-y-3 mb-6">
-                <div className="flex gap-2">
-                  <input
-                    type="radio"
+              <div className="px-4 py-4">
+                {formData.images.length > 0 && (
+                  <div className="mb-3">
+                    <img
+                      src={formData.images[0]}
+                      alt="预览"
+                      className="h-32 w-full border border-[var(--border)] object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    {formData.images.length > 1 && (
+                      <p className="mt-1 font-mono text-[12px] text-[var(--text-tertiary)]">
+                        +{formData.images.length - 1} 张图片
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className="border border-[var(--border)] bg-[var(--background)] p-3">
+                  <h3 className="font-display text-[15px] font-bold leading-snug text-[var(--foreground)]">
+                    {formData.title || '未命名公告'}
+                  </h3>
+                  <p className="mt-2 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                    {formData.category}
+                  </p>
+                  <p className="mt-2 line-clamp-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                    {formData.content
+                      ? formData.content.replace(/[#*`]/g, '')
+                      : '公告摘要会显示在这里。'}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="border border-[var(--rule-strong)] bg-[var(--surface)]">
+              <div className="border-b border-[var(--border)] px-4 py-2.5">
+                <h2 className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                  Publishing
+                </h2>
+              </div>
+              <div className="space-y-5 px-4 py-4">
+                <div className="space-y-2">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    发布状态
+                  </p>
+                  <ChoiceRow
                     id="draft"
                     name="status"
                     value="draft"
+                    label="保存为草稿"
+                    note="Draft"
                     checked={formData.status === 'draft'}
                     onChange={handleChange}
-                    className="cursor-pointer"
                   />
-                  <label htmlFor="draft" className="text-gray-400 text-sm cursor-pointer flex-1">
-                    保存为草稿
-                  </label>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="radio"
+                  <ChoiceRow
                     id="published"
                     name="status"
                     value="published"
+                    label="立即发布"
+                    note="Live"
                     checked={formData.status === 'published'}
                     onChange={handleChange}
-                    className="cursor-pointer"
                   />
-                  <label htmlFor="published" className="text-gray-400 text-sm cursor-pointer flex-1">
-                    立即发布
-                  </label>
                 </div>
-              </div>
-              <div className="mb-6">
-                <h3 className="text-white font-semibold mb-3 text-sm">可见范围</h3>
+
                 <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      type="radio"
-                      id="public"
-                      name="visibility"
-                      value="public"
-                      checked={formData.visibility === 'public'}
-                      onChange={handleChange}
-                      className="cursor-pointer"
-                    />
-                    <label htmlFor="public" className="text-gray-400 text-sm cursor-pointer flex-1 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-green-400 text-base">public</span>
-                      公开（所有人可见）
-                    </label>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="radio"
-                      id="internal"
-                      name="visibility"
-                      value="internal"
-                      checked={formData.visibility === 'internal'}
-                      onChange={handleChange}
-                      className="cursor-pointer"
-                    />
-                    <label htmlFor="internal" className="text-gray-400 text-sm cursor-pointer flex-1 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-blue-400 text-base">lock</span>
-                      内部（仅学生可见）
-                    </label>
-                  </div>
+                  <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    可见范围
+                  </p>
+                  <ChoiceRow
+                    id="public"
+                    name="visibility"
+                    value="public"
+                    label="公开（所有人）"
+                    note="Public"
+                    checked={formData.visibility === 'public'}
+                    onChange={handleChange}
+                  />
+                  <ChoiceRow
+                    id="internal"
+                    name="visibility"
+                    value="internal"
+                    label="内部（仅学生）"
+                    note="Internal"
+                    checked={formData.visibility === 'internal'}
+                    onChange={handleChange}
+                  />
                 </div>
-              </div>
-              <div className="mb-6">
-                <h3 className="text-white font-semibold mb-3 text-sm">置顶设置</h3>
-                <button
-                  type="button"
-                  onClick={handleTogglePin}
-                  disabled={isPinning}
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors text-sm ${
-                    isPinned
-                      ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30 border border-yellow-500/30'
-                      : 'bg-[#1f2d39] text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 border border-[#283946]'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-lg">
-                    {isPinning ? 'hourglass_bottom' : 'push_pin'}
-                  </span>
-                  {isPinning ? '设置中...' : isPinned ? '已置顶（点击取消）' : '置顶此公告'}
-                </button>
-              </div>
-              <div className="space-y-2">
-                <button
-                  type="submit"
-                  disabled={isSaving || !formData.title || !formData.content}
-                  className="w-full px-4 py-2 bg-[#137fec] hover:bg-[#0f6ecf] text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isSaving ? (
-                    <>
-                      <span className="material-symbols-outlined animate-spin">
-                        hourglass_bottom
-                      </span>
-                      保存中...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined">check</span>
-                      保存修改
-                    </>
-                  )}
-                </button>
-                <Link href="/admin/notices" className="w-full">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-2 bg-[#1f2d39] hover:bg-[#283946] text-gray-400 rounded-lg font-medium transition-colors"
+
+                <div className="space-y-2 border-t border-[var(--border)] pt-4">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    className="w-full"
+                    isLoading={isSaving}
+                    disabled={
+                      isSaving || !formData.title || !formData.content
+                    }
+                  >
+                    保存修改
+                  </Button>
+                  <Link
+                    href="/admin/notices"
+                    className="flex h-10 w-full items-center justify-center border border-[var(--border)] text-[12px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
                   >
                     取消
-                  </button>
-                </Link>
-              </div>
-              <div className="mt-6 pt-6 border-t border-[#283946]">
-                {deleteConfirm ? (
-                  <div className="space-y-2">
-                    <p className="text-red-400 text-sm mb-3">确定删除此公告？此操作无法撤销。</p>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={isSaving}
-                      className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                    >
-                      {isSaving ? '删除中...' : '确认删除'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirm(false)}
-                      className="w-full px-4 py-2 bg-[#1f2d39] hover:bg-[#283946] text-gray-400 rounded-lg font-medium transition-colors"
-                    >
-                      取消
-                    </button>
-                  </div>
-                ) : (
+                  </Link>
+                </div>
+
+                <div className="border-t border-[var(--border)] pt-4">
                   <button
                     type="button"
-                    onClick={() => setDeleteConfirm(true)}
-                    className="w-full px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg font-medium transition-colors"
+                    onClick={handleTogglePin}
+                    disabled={isPinning}
+                    className={`flex w-full items-center justify-between border px-3 py-2.5 text-[12px] transition-colors disabled:opacity-50 ${
+                      isPinned
+                        ? 'border-[var(--warning)] bg-[var(--warning-light)] text-[var(--warning)]'
+                        : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--rule-strong)] hover:text-[var(--foreground)]'
+                    }`}
                   >
-                    删除公告
+                    <span className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px]">
+                        {isPinning ? 'hourglass_bottom' : 'push_pin'}
+                      </span>
+                      {isPinning ? '设置中…' : isPinned ? '已置顶（点击取消）' : '置顶此公告'}
+                    </span>
+                    <span className="font-mono text-[12px] uppercase tracking-[0.06em]">
+                      {isPinned ? 'Pinned' : 'Pin'}
+                    </span>
                   </button>
-                )}
+                </div>
+
+                <div className="border-t border-[var(--border)] pt-4">
+                  {deleteConfirm ? (
+                    <div className="space-y-2 border border-[var(--error)]/40 bg-[var(--error-light)] p-3">
+                      <p className="text-[12px] leading-relaxed text-[var(--error)]">
+                        确定删除此公告？此操作无法撤销。
+                      </p>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        className="w-full"
+                        isLoading={isSaving}
+                        onClick={handleDelete}
+                      >
+                        确认删除
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirm(false)}
+                        className="h-9 w-full border border-[var(--border)] text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)]"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm(true)}
+                      className="h-9 w-full border border-[var(--error)]/40 text-[12px] text-[var(--error)] transition-colors hover:bg-[var(--error-light)]"
+                    >
+                      删除公告
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
+            </section>
+          </aside>
         </div>
       </form>
     </AdminLayout>

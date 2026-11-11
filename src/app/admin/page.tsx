@@ -1,398 +1,404 @@
 'use client';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
-interface StatCard {
-  label: string;
-  value: number;
-  trend: number;
-  trendLabel: string;
-  icon: string;
-  color: string;
-}
-interface Activity {
+
+interface ActivityRow {
   id: string;
   title: string;
-  date: string;
-  attendees: number;
-  status: 'published' | 'draft' | 'planned';
+  startTime: string;
+  location: string;
+  status: string;
+  signupCount: number;
+  maxParticipants: number;
 }
-interface RecentActivityItem {
-  id: string;
-  type: 'member_join' | 'event_created' | 'notice_published';
-  title: string;
-  description: string;
-  timestamp: string;
-  icon: string;
+
+interface DashboardStats {
+  notices: number;
+  activities: number;
+  signups: number;
+  pendingComments: number;
+  pendingProjects: number;
 }
-const defaultStats: StatCard[] = [
-  {
-    label: '公告总数',
-    value: 0,
-    trend: 0,
-    trendLabel: '+0 本月',
-    icon: 'campaign',
-    color: 'from-blue-500 to-blue-600',
-  },
-  {
-    label: '活动总数',
-    value: 0,
-    trend: 0,
-    trendLabel: '+0 本月',
-    icon: 'event',
-    color: 'from-green-500 to-green-600',
-  },
-  {
-    label: '参与成员',
-    value: 0,
-    trend: 0,
-    trendLabel: '+0 本月',
-    icon: 'people',
-    color: 'from-purple-500 to-purple-600',
-  },
+
+const emptyStats: DashboardStats = {
+  notices: 0,
+  activities: 0,
+  signups: 0,
+  pendingComments: 0,
+  pendingProjects: 0,
+};
+
+const quickActions = [
+  { href: '/admin/notices/create', icon: 'campaign', label: '发布公告', note: '新建公告' },
+  { href: '/admin/activities/create', icon: 'event', label: '创建活动', note: '安排活动' },
+  { href: '/admin/comments', icon: 'chat', label: '评论审核', note: '处理待审评论' },
+  { href: '/admin/projects', icon: 'folder_check', label: '项目审核', note: '处理待审项目' },
 ];
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '待定';
+  return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+}
+
+function statusLabel(status: string): { label: string; className: string } {
+  switch (status) {
+    case 'published':
+      return { label: '已发布', className: 'border-[var(--primary)]/40 bg-[var(--primary-light)] text-[var(--primary)]' };
+    case 'draft':
+      return { label: '草稿', className: 'border-[var(--rule-strong)] text-[var(--text-secondary)]' };
+    case 'cancelled':
+      return { label: '已取消', className: 'border-[var(--error)]/40 bg-[var(--error-light)] text-[var(--error)]' };
+    case 'ended':
+      return { label: '已结束', className: 'border-[var(--rule-strong)] text-[var(--text-tertiary)]' };
+    default:
+      return { label: status || '未知', className: 'border-[var(--rule-strong)] text-[var(--text-secondary)]' };
+  }
+}
+
 export default function AdminDashboard() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isAdmin } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState<StatCard[]>(defaultStats);
-  const [upcomingActivities, setUpcomingActivities] = useState<Activity[]>([]);
-  const [recentActivities, setRecentActivities] = useState<RecentActivityItem[]>([]);
+  const [stats, setStats] = useState<DashboardStats>(emptyStats);
+  const [upcomingActivities, setUpcomingActivities] = useState<ActivityRow[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && (!user || !isAdmin)) {
       router.push('/admin/login');
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, isAdmin, router]);
+
   useEffect(() => {
-    if (user && 'role' in user && user.role === 'admin') {
-      loadDashboardData();
-    }
-  }, [user]);
-  const loadDashboardData = async () => {
-    try {
-      setIsLoadingData(true);
-      const [noticesRes, activitiesRes] = await Promise.all([
-        fetch('/api/notices'),
-        fetch('/api/activities'),
-      ]);
-      const noticesData = await noticesRes.json();
-      const activitiesData = await activitiesRes.json();
-      const notices = noticesData.success ? (noticesData.notices || []) : [];
-      const activities = activitiesData.success ? (activitiesData.activities || []) : [];
-      const noticeCount = notices.length;
-      const activityCount = activities.length;
-      const totalParticipants = activities.reduce(
-        (sum: number, a: Record<string, unknown>) => sum + (Number(a.currentParticipants) || 0),
-        0
-      );
-      setStats([
-        {
-          label: '公告总数',
-          value: noticeCount,
-          trend: 0,
-          trendLabel: `${noticeCount} 个`,
-          icon: 'campaign',
-          color: 'from-blue-500 to-blue-600',
-        },
-        {
-          label: '活动总数',
-          value: activityCount,
-          trend: 0,
-          trendLabel: `${activityCount} 个`,
-          icon: 'event',
-          color: 'from-green-500 to-green-600',
-        },
-        {
-          label: '参与成员',
-          value: totalParticipants,
-          trend: 0,
-          trendLabel: `${totalParticipants} 人`,
-          icon: 'people',
-          color: 'from-purple-500 to-purple-600',
-        },
-      ]);
-      const recent = activities
-        .filter((a: Record<string, unknown>) => a.status === 'published' || a.status === 'draft')
-        .slice(0, 4)
-        .map((a: Record<string, unknown>) => ({
-          id: a.$id,
-          title: a.title,
-          date: new Date(a.startTime as string).toLocaleDateString('zh-CN'),
-          attendees: a.currentParticipants || 0,
-          status: a.status,
-        }));
-      setUpcomingActivities(recent);
-      setRecentActivities([
-        {
-          id: '1',
-          type: 'notice_published',
-          title: '发布了新公告',
-          description: `共有 ${noticeCount} 个公告`,
-          timestamp: '最近',
-          icon: 'campaign',
-        },
-        {
-          id: '2',
-          type: 'event_created',
-          title: '创建了新活动',
-          description: `共有 ${activityCount} 个活动`,
-          timestamp: '最近',
-          icon: 'event',
-        },
-        {
-          id: '3',
-          type: 'member_join',
-          title: '成员参与',
-          description: `共有 ${totalParticipants} 名参与者`,
-          timestamp: '最近',
-          icon: 'person_add',
-        },
-      ]);
-    } catch (err) {
-      console.error('加载仪表板数据失败:', err);
-      setStats(defaultStats);
-      setUpcomingActivities([]);
-      setRecentActivities([]);
-    } finally {
-      setIsLoadingData(false);
-    }
-  };
-  if (isLoading) {
+    if (!user || !isAdmin) return;
+
+    const loadDashboardData = async () => {
+      try {
+        setIsLoadingData(true);
+        const [noticesRes, activitiesRes, commentsRes, projectsRes] = await Promise.all([
+          fetch('/api/notices'),
+          fetch('/api/activities'),
+          fetch('/api/comments?onlyApproved=false'),
+          fetch('/api/projects?status=pending'),
+        ]);
+
+        const noticesData = noticesRes.ok ? await noticesRes.json() : { notices: [] };
+        const activitiesData = activitiesRes.ok ? await activitiesRes.json() : { activities: [] };
+        const commentsData = commentsRes.ok ? await commentsRes.json() : { comments: [] };
+        const projectsData = projectsRes.ok ? await projectsRes.json() : { projects: [] };
+
+        const notices = Array.isArray(noticesData.notices) ? noticesData.notices : [];
+        const activities = Array.isArray(activitiesData.activities) ? activitiesData.activities : [];
+        const comments = Array.isArray(commentsData.comments) ? commentsData.comments : [];
+        const pendingProjects = Array.isArray(projectsData.projects) ? projectsData.projects : [];
+
+        const totalSignups = activities.reduce(
+          (sum: number, activity: Record<string, unknown>) =>
+            sum + (Number(activity.currentParticipants) || 0),
+          0
+        );
+        const pendingComments = comments.filter(
+          (comment: Record<string, unknown>) => comment.status === 'pending'
+        ).length;
+
+        setStats({
+          notices: notices.length,
+          activities: activities.length,
+          signups: totalSignups,
+          pendingComments,
+          pendingProjects: pendingProjects.length,
+        });
+
+        const now = Date.now();
+        const upcoming = activities
+          .map((activity: Record<string, unknown>) => {
+            const startTime = String(activity.startTime || '');
+            const timestamp = new Date(startTime).getTime();
+            return {
+              id: String(activity.$id || activity.id || ''),
+              title: String(activity.title || '未命名活动'),
+              startTime,
+              location: String(activity.location || '待定'),
+              status: String(activity.status || ''),
+              signupCount: Number(activity.currentParticipants) || 0,
+              maxParticipants: Number(activity.maxParticipants) || 0,
+              timestamp,
+            };
+          })
+          .filter(
+            (activity: { id: string; timestamp: number }) =>
+              activity.id && !Number.isNaN(activity.timestamp) && activity.timestamp >= now - 86400000
+          )
+          .sort((a: { timestamp: number }, b: { timestamp: number }) => a.timestamp - b.timestamp)
+          .slice(0, 4)
+          .map((activity: Record<string, unknown>) => ({
+            id: activity.id as string,
+            title: activity.title as string,
+            startTime: activity.startTime as string,
+            location: activity.location as string,
+            status: activity.status as string,
+            signupCount: activity.signupCount as number,
+            maxParticipants: activity.maxParticipants as number,
+          }));
+
+        setUpcomingActivities(upcoming);
+      } catch (error) {
+        console.error('加载仪表板数据失败:', error);
+        setStats(emptyStats);
+        setUpcomingActivities([]);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    loadDashboardData();
+  }, [user, isAdmin]);
+
+  if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
-        <div className="nm-panel text-center px-8 py-7">
-          <div className="animate-spin mb-4 text-[var(--admin-primary)]">
-            <span className="material-symbols-outlined text-5xl">
-              hourglass_bottom
-            </span>
-          </div>
-          <p className="text-[var(--foreground)]">加载中...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
+        <div className="border border-[var(--border)] bg-[var(--surface)] px-10 py-8 text-center">
+          <div className="mx-auto mb-4 size-7 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
+          <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+            Loading dashboard
+          </p>
         </div>
       </div>
     );
   }
-  if (!user) {
-    return null;
-  }
+
+  const displayName = user.name || '管理员';
+  const dateLabel = new Date().toLocaleDateString('zh-CN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const pendingTotal = stats.pendingComments + stats.pendingProjects;
+
   return (
-    <AdminLayout adminName="管理员">
-      <div className="mb-8 nm-panel p-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(79,163,247,0.16),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(79,163,247,0.1),transparent_32%)]" />
-        <div className="relative">
-          <h1 className="text-3xl font-black text-[var(--foreground)] mb-2">欢迎回来！</h1>
-          <p className="text-[var(--text-secondary)] max-w-2xl">
-            这是电脑学会的管理后台。您可以在这里管理公告、活动、评论和成员信息。
+    <AdminLayout adminName={displayName}>
+      <div className="mb-7 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div>
+          <div className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--primary)]">
+            {dateLabel}
+          </div>
+          <h1 className="mt-3 font-display text-[30px] font-bold leading-tight tracking-[-0.03em] text-[var(--foreground)] sm:text-[34px]">
+            下午好，{displayName}。
+          </h1>
+          <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            {pendingTotal > 0
+              ? `今天有 ${stats.pendingComments} 条待审核评论、${stats.pendingProjects} 个待审核项目。`
+              : '当前没有待审核事项，可以开始安排新的内容。'}
           </p>
         </div>
+        <Link
+          href="/admin/notices/create"
+          className="inline-flex w-fit items-center gap-3 bg-[var(--primary)] px-4 py-2.5 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
+        >
+          <span className="text-[14px] leading-none">+</span>
+          发布公告
+        </Link>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="card nm-hover-raise p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="size-12 rounded-2xl nm-raised-sm flex items-center justify-center bg-[var(--nm-bg)]">
-                <span className="material-symbols-outlined text-[var(--foreground)] text-2xl">
-                  {stat.icon}
+
+      <section className="border border-[var(--rule-strong)]">
+        <div className="grid grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              label: '公告总数',
+              note: 'NOTICES',
+              value: isLoadingData ? '—' : String(stats.notices).padStart(2, '0'),
+            },
+            {
+              label: '活动总数',
+              note: 'ACTIVITIES',
+              value: isLoadingData ? '—' : String(stats.activities).padStart(2, '0'),
+            },
+            {
+              label: '活动报名',
+              note: 'SIGNUPS',
+              value: isLoadingData ? '—' : String(stats.signups),
+            },
+            {
+              label: '待审核',
+              note: 'PENDING',
+              value: isLoadingData ? '—' : String(pendingTotal).padStart(2, '0'),
+            },
+          ].map((stat, index) => (
+            <div
+              key={stat.label}
+              className={
+                index % 2 === 0
+                  ? 'border-b border-r border-[var(--border)] px-5 py-5 lg:border-b-0 lg:border-r'
+                  : 'border-b border-[var(--border)] px-5 py-5 lg:border-b-0 lg:border-r'
+              }
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+                  {stat.label}
+                </span>
+                <span className="hidden font-mono text-[7px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
+                  {stat.note}
                 </span>
               </div>
-              <span className="text-[var(--admin-primary)] text-sm font-semibold nm-inset-sm px-3 py-1 rounded-full">
-                {stat.trendLabel}
-              </span>
+              <div className="mt-3 font-display text-[30px] font-bold leading-none tracking-[-0.04em] text-[var(--foreground)]">
+                {stat.value}
+              </div>
+              <div className="mt-2 h-px w-8 bg-[var(--primary)]" />
             </div>
-            <h3 className="text-[var(--text-secondary)] text-sm font-medium mb-1">{stat.label}</h3>
-            <p className="text-4xl font-black text-[var(--foreground)]">{stat.value}</p>
-            <div className="mt-4 pt-4 border-t border-[var(--border)]">
-              <p className="text-xs text-[var(--text-tertiary)]">
-                环比增长 {stat.trend > 0 ? '+' : ''}{stat.trend}%
-              </p>
-            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="border border-[var(--rule-strong)]">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3.5">
+            <h2 className="font-display text-[16px] font-bold text-[var(--foreground)]">近期活动</h2>
+            <Link
+              href="/admin/activities"
+              className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] transition-colors hover:text-[var(--primary)]"
+            >
+              全部活动 →
+            </Link>
           </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div className="nm-panel overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
-              <h2 className="text-xl font-bold text-[var(--foreground)]">近期活动</h2>
-              <Link href="/admin/activities">
-                <Button 
-                  variant="primary" 
-                  size="sm"
-                  className="!bg-[var(--admin-primary)] !text-[#111814]"
-                >
-                  查看全部
-                </Button>
+
+          {upcomingActivities.length === 0 ? (
+            <div className="flex items-center justify-between px-5 py-10">
+              <p className="text-[12px] text-[var(--text-secondary)]">
+                {isLoadingData ? '正在加载活动…' : '暂无即将进行的活动'}
+              </p>
+              <Link
+                href="/admin/activities/create"
+                className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--primary)]"
+              >
+                + 创建活动
               </Link>
             </div>
-            <div className="divide-y divide-[var(--border)]">
+          ) : (
+            <div>
               {upcomingActivities.map((activity) => {
-                let statusBg = '';
-                let statusText = '';
-                let statusLabel = '';
-                if (activity.status === 'published') {
-                  statusBg = 'bg-green-500/10';
-                  statusText = 'text-green-400';
-                  statusLabel = '已发布';
-                } else if (activity.status === 'draft') {
-                  statusBg = 'bg-amber-500/10';
-                  statusText = 'text-amber-400';
-                  statusLabel = '草稿';
-                } else {
-                  statusBg = 'bg-[color:rgba(79,163,247,0.12)]';
-                  statusText = 'text-[var(--admin-primary)]';
-                  statusLabel = '计划中';
-                }
+                const status = statusLabel(activity.status);
                 return (
-                  <div
+                  <Link
                     key={activity.id}
-                    className="px-6 py-4 hover:bg-[var(--surface-hover)] transition-colors"
+                    href={`/admin/activities/${activity.id}/edit`}
+                    className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 border-b border-[var(--border)] px-5 py-3.5 transition-colors last:border-b-0 hover:bg-[var(--primary-light)] sm:grid-cols-[minmax(0,1fr)_92px_70px_76px]"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-[var(--foreground)] font-semibold max-w-xs truncate">
+                    <div className="min-w-0">
+                      <p className="truncate text-[12px] font-semibold text-[var(--foreground)]">
                         {activity.title}
-                      </h3>
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium nm-inset-sm ${statusBg} ${statusText}`}
-                      >
-                        {statusLabel}
-                      </span>
+                      </p>
+                      <p className="mt-1 font-mono text-[12px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+                        {activity.location}
+                      </p>
                     </div>
-                    <div className="flex items-center justify-between text-sm text-[var(--text-secondary)]">
-                      <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">
-                          calendar_today
-                        </span>
-                        {activity.date}
-                      </span>
-                      {activity.status === 'published' && (
-                        <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm">
-                            group
-                          </span>
-                          {activity.attendees} 人已报名
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                    <span className="font-mono text-[12px] text-[var(--text-secondary)]">
+                      {formatDate(activity.startTime)}
+                    </span>
+                    <span className="text-right font-mono text-[12px] text-[var(--text-secondary)]">
+                      {activity.signupCount}
+                      {activity.maxParticipants > 0 ? ` / ${activity.maxParticipants}` : ''} 人
+                    </span>
+                    <span
+                      className={`justify-self-end border px-2 py-1 font-mono text-[12px] uppercase tracking-[0.06em] ${status.className}`}
+                    >
+                      {status.label}
+                    </span>
+                  </Link>
                 );
               })}
             </div>
+          )}
+        </section>
+
+        <section className="border border-[var(--rule-strong)]">
+          <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3.5">
+            <h2 className="font-display text-[16px] font-bold text-[var(--foreground)]">待处理</h2>
+            <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--primary)]">
+              {String(pendingTotal).padStart(2, '0')}
+            </span>
           </div>
-        </div>
-        <div className="nm-panel overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border)]">
-            <h2 className="text-xl font-bold text-[var(--foreground)]">最近活动</h2>
-          </div>
-          <div className="divide-y divide-[var(--border)]">
-            {recentActivities.map((item, index) => (
-              <div key={item.id} className="px-6 py-4 hover:bg-[var(--surface-hover)] transition-colors">
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="size-10 rounded-full nm-raised-sm flex items-center justify-center mb-2 text-[var(--primary)]">
-                      <span className="material-symbols-outlined text-lg">
-                        {item.icon}
-                      </span>
-                    </div>
-                    {index < recentActivities.length - 1 && (
-                      <div className="w-0.5 h-12 bg-[var(--border)]" />
-                    )}
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <p className="text-[var(--foreground)] font-medium text-sm">{item.title}</p>
-                    <p className="text-[var(--text-secondary)] text-xs mt-1">{item.description}</p>
-                    <p className="text-[var(--text-tertiary)] text-xs mt-2">{item.timestamp}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+
+          <Link
+            href="/admin/comments"
+            className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-4 transition-colors hover:bg-[var(--primary-light)]"
+          >
+            <span className="pt-0.5 font-mono text-[12px] text-[var(--primary)]">01</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12px] font-semibold text-[var(--foreground)]">
+                审核 {stats.pendingComments} 条匿名评论
+              </span>
+              <span className="mt-1 block font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                COMMENTS · 待审核
+              </span>
+            </span>
+            <span className="text-[12px] text-[var(--text-tertiary)]">↗</span>
+          </Link>
+
+          <Link
+            href="/admin/projects"
+            className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-4 transition-colors hover:bg-[var(--primary-light)]"
+          >
+            <span className="pt-0.5 font-mono text-[12px] text-[var(--primary)]">02</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12px] font-semibold text-[var(--foreground)]">
+                审核 {stats.pendingProjects} 个学生项目
+              </span>
+              <span className="mt-1 block font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                PROJECTS · 待审核
+              </span>
+            </span>
+            <span className="text-[12px] text-[var(--text-tertiary)]">↗</span>
+          </Link>
+
+          <Link
+            href="/admin/settings"
+            className="flex items-start gap-3 px-5 py-4 transition-colors hover:bg-[var(--primary-light)]"
+          >
+            <span className="pt-0.5 font-mono text-[12px] text-[var(--primary)]">03</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12px] font-semibold text-[var(--foreground)]">
+                更新社团公开信息
+              </span>
+              <span className="mt-1 block font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                SETTINGS · 社团信息
+              </span>
+            </span>
+            <span className="text-[12px] text-[var(--text-tertiary)]">↗</span>
+          </Link>
+        </section>
       </div>
-      <div className="mt-8 nm-panel p-6">
-        <h2 className="text-xl font-bold text-[var(--foreground)] mb-4">快速操作</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link href="/admin/notices/create">
-            <button className="w-full p-4 rounded-2xl nm-raised-sm hover:shadow-[var(--nm-raised)] transition-all text-left group">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-2xl nm-inset-sm flex items-center justify-center group-hover:shadow-[var(--nm-inset)] transition-shadow text-[var(--admin-primary)]">
-                  <span className="material-symbols-outlined">
-                    add_circle
-                  </span>
-                </div>
-                <div>
-                  <p className="text-[var(--foreground)] font-semibold text-sm">发布公告</p>
-                  <p className="text-[var(--text-secondary)] text-xs">创建新的公告信息</p>
-                </div>
-              </div>
-            </button>
-          </Link>
-          <Link href="/admin/activities/create">
-            <button className="w-full p-4 rounded-2xl nm-raised-sm hover:shadow-[var(--nm-raised)] transition-all text-left group">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-2xl nm-inset-sm flex items-center justify-center group-hover:shadow-[var(--nm-inset)] transition-shadow text-[var(--admin-primary)]">
-                  <span className="material-symbols-outlined">
-                    event_note
-                  </span>
-                </div>
-                <div>
-                  <p className="text-[var(--foreground)] font-semibold text-sm">创建活动</p>
-                  <p className="text-[var(--text-secondary)] text-xs">安排新的社团活动</p>
-                </div>
-              </div>
-            </button>
-          </Link>
-          <Link href="/admin/comments">
-            <button className="w-full p-4 rounded-2xl nm-raised-sm hover:shadow-[var(--nm-raised)] transition-all text-left group">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-2xl nm-inset-sm flex items-center justify-center group-hover:shadow-[var(--nm-inset)] transition-shadow text-[var(--admin-primary)]">
-                  <span className="material-symbols-outlined">
-                    chat
-                  </span>
-                </div>
-                <div>
-                  <p className="text-[var(--foreground)] font-semibold text-sm">管理评论</p>
-                  <p className="text-[var(--text-secondary)] text-xs">审核和删除评论</p>
-                </div>
-              </div>
-            </button>
-          </Link>
-          <Link href="/admin/manage">
-            <button className="w-full p-4 rounded-2xl nm-raised-sm hover:shadow-[var(--nm-raised)] transition-all text-left group">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-2xl nm-inset-sm flex items-center justify-center group-hover:shadow-[var(--nm-inset)] transition-shadow text-[var(--admin-primary)]">
-                  <span className="material-symbols-outlined">
-                    admin_panel_settings
-                  </span>
-                </div>
-                <div>
-                  <p className="text-[var(--foreground)] font-semibold text-sm">管理员管理</p>
-                  <p className="text-[var(--text-secondary)] text-xs">添加/删除管理员</p>
-                </div>
-              </div>
-            </button>
-          </Link>
-          <Link href="/admin/settings">
-            <button className="w-full p-4 rounded-2xl nm-raised-sm hover:shadow-[var(--nm-raised)] transition-all text-left group">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-2xl nm-inset-sm flex items-center justify-center group-hover:shadow-[var(--nm-inset)] transition-shadow text-[var(--admin-primary)]">
-                  <span className="material-symbols-outlined">
-                    settings
-                  </span>
-                </div>
-                <div>
-                  <p className="text-[var(--foreground)] font-semibold text-sm">社团设置</p>
-                  <p className="text-[var(--text-secondary)] text-xs">管理社团信息</p>
-                </div>
-              </div>
-            </button>
-          </Link>
+
+      <section className="mt-5 border border-[var(--rule-strong)]">
+        <div className="border-b border-[var(--border)] px-5 py-3.5">
+          <h2 className="font-display text-[16px] font-bold text-[var(--foreground)]">快捷操作</h2>
         </div>
-      </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {quickActions.map((action) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              className="group flex items-center gap-3 border-b border-[var(--border)] px-5 py-4 transition-colors hover:bg-[var(--primary-light)] sm:border-r lg:border-b-0"
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center border border-[var(--border)] text-[var(--primary)] transition-colors group-hover:border-[var(--primary)]">
+                <span className="material-symbols-outlined text-[16px]">{action.icon}</span>
+              </span>
+              <span>
+                <span className="block text-[12px] font-semibold text-[var(--foreground)]">
+                  {action.label}
+                </span>
+                <span className="mt-0.5 block font-mono text-[12px] uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+                  {action.note}
+                </span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
     </AdminLayout>
   );
 }

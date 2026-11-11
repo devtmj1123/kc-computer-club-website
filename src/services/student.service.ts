@@ -1,11 +1,4 @@
-import { databases } from './appwrite';
-import { ID, Query } from 'appwrite';
-import bcrypt from 'bcryptjs';
-
-const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
-const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
-const ATTENDANCE_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_ATTENDANCE_COLLECTION || '';
-const PROJECTS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_PROJECTS_COLLECTION || '';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export interface StudentFullInfo {
   $id: string;
@@ -24,6 +17,7 @@ export interface StudentFullInfo {
   position: string;
   notes: string;
   role: string;
+  requirePasswordChange: boolean;
   createdAt: string;
   attendanceStats: {
     total: number;
@@ -57,15 +51,53 @@ export interface ImportStudentData {
   password?: string;
 }
 
+interface ProfileRow {
+  id: string;
+  email: string;
+  student_no: string | null;
+  chinese_name: string | null;
+  english_name: string | null;
+  class_name_cn: string | null;
+  class_name_en: string | null;
+  class_code: string | null;
+  group_level: string | null;
+  level: string | null;
+  phone: string | null;
+  instagram: string | null;
+  group_name: string | null;
+  position: string | null;
+  notes: string | null;
+  role: string;
+  require_password_change: boolean;
+  created_at: string;
+}
+
+interface ProjectSummaryRow {
+  title: string;
+  team_name: string;
+  status: string;
+  leader_id: string | null;
+  leader_email: string;
+}
+
+interface ProjectMembershipRow {
+  project_id: string;
+  user_id: string | null;
+  email: string;
+  role: string;
+  projects: ProjectSummaryRow | ProjectSummaryRow[] | null;
+}
+
 export const DEFAULT_STUDENT_PASSWORD = '11111111';
+const STUDENT_EMAIL_DOMAIN = 'kuencheng.edu.my';
 
 export function extractStudentIdFromEmail(email: string): string {
-  const match = email.match(/^(\d+)@/);
+  const match = String(email || '').match(/^(\d+)@/);
   return match ? match[1] : '';
 }
 
 export function generateEmailFromStudentId(studentId: string): string {
-  return `${studentId}@kuencheng.edu.my`;
+  return `${String(studentId || '').trim()}@${STUDENT_EMAIL_DOMAIN}`;
 }
 
 export function detectColumnMapping(headers: string[]): Record<string, string> {
@@ -107,7 +139,10 @@ export function detectColumnMapping(headers: string[]): Record<string, string> {
   return mapping;
 }
 
-export function validateStudentData(data: ImportStudentData): { valid: boolean; errors: string[] } {
+export function validateStudentData(data: ImportStudentData): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (!data.studentId || data.studentId.trim().length < 3) {
@@ -119,6 +154,93 @@ export function validateStudentData(data: ImportStudentData): { valid: boolean; 
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+function profileInsertPayload(
+  data: ImportStudentData,
+  requirePasswordChange: boolean
+) {
+  const trimmedId = data.studentId.trim();
+  return {
+    student_no: trimmedId,
+    chinese_name: data.chineseName.trim(),
+    english_name: (data.englishName || '').trim(),
+    class_name_cn: (data.classNameCn || '').trim(),
+    class_name_en: (data.classNameEn || '').trim(),
+    class_code: (data.classCode || '').trim(),
+    group_level: (data.groupLevel || '').trim(),
+    level: (data.level || '').trim(),
+    phone: (data.phone || '').trim(),
+    instagram: (data.instagram || '').trim(),
+    group_name: (data.group || '').trim(),
+    position: (data.position || '').trim(),
+    notes: (data.notes || '').trim(),
+    role: 'student' as const,
+    require_password_change: requirePasswordChange,
+    is_active: true,
+  };
+}
+
+async function deleteAuthUserSafe(userId: string): Promise<void> {
+  try {
+    const admin = getSupabaseAdminClient();
+    await admin.auth.admin.deleteUser(userId);
+  } catch (error) {
+    console.error('回滚学生账号失败:', error);
+  }
+}
+
+export async function createStudent(
+  data: ImportStudentData,
+  defaultPassword?: string
+): Promise<{ id: string; email: string; requirePasswordChange: boolean }> {
+  const validation = validateStudentData(data);
+  if (!validation.valid) {
+    throw new Error(validation.errors.join('; '));
+  }
+
+  const admin = getSupabaseAdminClient();
+  const studentId = data.studentId.trim();
+  const email = generateEmailFromStudentId(studentId).toLowerCase();
+  const password = data.password || defaultPassword || studentId;
+  const requirePasswordChange =
+    password === studentId || password === DEFAULT_STUDENT_PASSWORD;
+
+  const { data: existing } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+  if (existing) {
+    throw new Error('该学号已注册');
+  }
+
+  const { data: created, error: authError } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (authError || !created.user) {
+    throw new Error(authError?.message || '创建登录账号失败');
+  }
+
+  const payload = profileInsertPayload(data, requirePasswordChange);
+
+  const { error: profileError } = await admin
+    .from('profiles')
+    .update(payload)
+    .eq('id', created.user.id);
+
+  if (profileError) {
+    await deleteAuthUserSafe(created.user.id);
+    throw new Error(profileError.message || '保存学生资料失败');
+  }
+
+  return {
+    id: created.user.id,
+    email,
+    requirePasswordChange,
+  };
 }
 
 export async function bulkImportStudents(
@@ -137,59 +259,7 @@ export async function bulkImportStudents(
 
   for (const student of students) {
     try {
-      const validation = validateStudentData(student);
-      if (!validation.valid) {
-        results.failed++;
-        results.errors.push({
-          studentId: student.studentId || 'unknown',
-          error: validation.errors.join('; '),
-        });
-        continue;
-      }
-
-      const email = generateEmailFromStudentId(student.studentId);
-
-      const existing = await databases.listDocuments(APPWRITE_DATABASE_ID, USERS_COLLECTION_ID, [
-        Query.equal('email', email),
-      ]);
-
-      if (existing.documents.length > 0) {
-        results.failed++;
-        results.errors.push({ studentId: student.studentId, error: '该学号已注册' });
-        continue;
-      }
-
-      const now = new Date().toISOString();
-      const studentIdTrimmed = student.studentId.trim();
-      const password = student.password || defaultPassword || studentIdTrimmed;
-      const passwordHash = await bcrypt.hash(password, 10);
-      const requirePasswordChange =
-        password === studentIdTrimmed || password === DEFAULT_STUDENT_PASSWORD;
-
-      await databases.createDocument(APPWRITE_DATABASE_ID, USERS_COLLECTION_ID, ID.unique(), {
-        email: email.toLowerCase().trim(),
-        name: student.chineseName.trim(),
-        studentId: student.studentId.trim(),
-        chineseName: student.chineseName.trim(),
-        englishName: (student.englishName || '').trim(),
-        classNameCn: (student.classNameCn || '').trim(),
-        classNameEn: (student.classNameEn || '').trim(),
-        classCode: (student.classCode || '').trim(),
-        groupLevel: (student.groupLevel || '').trim(),
-        level: (student.level || '').trim(),
-        phone: (student.phone || '').trim(),
-        instagram: (student.instagram || '').trim(),
-        group: (student.group || '').trim(),
-        position: (student.position || '').trim(),
-        notes: (student.notes || '').trim(),
-        role: 'student',
-        passwordHash: passwordHash,
-        requirePasswordChange: requirePasswordChange,
-        emailVerified: true,
-        createdAt: now,
-        updatedAt: now,
-      });
-
+      await createStudent(student, defaultPassword);
       results.success++;
     } catch (error) {
       results.failed++;
@@ -204,325 +274,327 @@ export async function bulkImportStudents(
   return results;
 }
 
-export async function getAllStudents(): Promise<StudentFullInfo[]> {
-  try {
-    const response = await databases.listDocuments(APPWRITE_DATABASE_ID, USERS_COLLECTION_ID, [
-      Query.equal('role', 'student'),
-      Query.limit(500),
-    ]);
+function mapProjectRole(role: string): string {
+  if (role === 'leader') return '组长';
+  if (role === 'tech_lead') return '技术负责人';
+  if (role === 'design_lead') return '设计负责人';
+  return '成员';
+}
 
-    const [attendanceResponse, projectResponse] = await Promise.all([
-      databases.listDocuments(APPWRITE_DATABASE_ID, ATTENDANCE_COLLECTION_ID, [Query.limit(5000)]),
-      databases.listDocuments(APPWRITE_DATABASE_ID, PROJECTS_COLLECTION_ID, [Query.limit(500)]),
-    ]).catch((err) => {
-      console.warn('批量获取出勤或项目记录失败，将回退使用空数据:', err);
-      return [{ documents: [] }, { documents: [] }] as any;
-    });
+function normalizeProject(
+  projects: ProjectMembershipRow['projects']
+): ProjectSummaryRow | null {
+  if (!projects) return null;
+  return Array.isArray(projects) ? projects[0] || null : projects;
+}
 
-    const allAttendance = attendanceResponse.documents;
-    const allProjects = projectResponse.documents;
-
-    const attendanceByStudent = new Map<
-      string,
-      { total: number; present: number; late: number; absent: number }
-    >();
-    for (const record of allAttendance) {
-      const sId = record.studentId || '';
-      if (!sId) continue;
-
-      if (!attendanceByStudent.has(sId)) {
-        attendanceByStudent.set(sId, { total: 0, present: 0, late: 0, absent: 0 });
-      }
-      const stats = attendanceByStudent.get(sId)!;
-      stats.total++;
-      if (record.status === 'present') stats.present++;
-      else if (record.status === 'late') stats.late++;
-      else if (record.status === 'absent') stats.absent++;
-    }
-
-    const projectsByEmail = new Map<
-      string,
-      Array<{ projectId: string; title: string; teamName: string; role: string; status: string }>
-    >();
-
-    for (const project of allProjects) {
-      const leaderEmail = (project.leaderEmail || '').toLowerCase().trim();
-      if (leaderEmail) {
-        if (!projectsByEmail.has(leaderEmail)) {
-          projectsByEmail.set(leaderEmail, []);
-        }
-        projectsByEmail.get(leaderEmail)!.push({
-          projectId: project.$id,
-          title: project.title,
-          teamName: project.teamName,
-          role: '组长',
-          status: project.status,
-        });
-      }
-
-      if (project.members) {
-        try {
-          const members =
-            typeof project.members === 'string' ? JSON.parse(project.members) : project.members;
-          if (Array.isArray(members)) {
-            for (const member of members) {
-              const mEmail = (member.email || '').toLowerCase().trim();
-              if (mEmail) {
-                if (!projectsByEmail.has(mEmail)) {
-                  projectsByEmail.set(mEmail, []);
-                }
-                projectsByEmail.get(mEmail)!.push({
-                  projectId: project.$id,
-                  title: project.title,
-                  teamName: project.teamName,
-                  role: member.role || '成员',
-                  status: project.status,
-                });
-              }
-            }
-          }
-        } catch {
-        }
-      }
-    }
-
-    const students: StudentFullInfo[] = response.documents.map((doc) => {
-      const studentId = doc.studentId || extractStudentIdFromEmail(doc.email);
-      const email = (doc.email || '').toLowerCase().trim();
-
-      const attendanceStats = attendanceByStudent.get(studentId) ||
-        attendanceByStudent.get(doc.$id) ||
-        attendanceByStudent.get(extractStudentIdFromEmail(doc.email)) || {
-          total: 0,
-          present: 0,
-          late: 0,
-          absent: 0,
-        };
-
-      const projects = projectsByEmail.get(email) || [];
-
-      return {
-        $id: doc.$id,
-        studentId,
-        chineseName: doc.chineseName || doc.name || '',
-        englishName: doc.englishName || '',
-        email: doc.email,
-        classNameCn: doc.classNameCn || doc.className || '',
-        classNameEn: doc.classNameEn || '',
-        classCode: doc.classCode || '',
-        groupLevel: doc.groupLevel || '',
-        level: doc.level || '',
-        phone: doc.phone || '',
-        instagram: doc.instagram || '',
-        group: doc.group || '',
-        position: doc.position || '',
-        notes: doc.notes || '',
-        role: doc.role,
-        createdAt: doc.createdAt || doc.$createdAt,
-        attendanceStats,
-        projects,
-      };
-    });
-
-    return students;
-  } catch (error) {
-    console.error('获取学生列表失败:', error);
-    throw error;
+async function loadProjectMemberships(): Promise<ProjectMembershipRow[]> {
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin
+    .from('project_members')
+    .select(
+      'project_id, user_id, email, role, projects(title, team_name, status, leader_id, leader_email)'
+    );
+  if (error) {
+    console.warn('读取项目成员失败，将使用空数据:', error.message);
+    return [];
   }
+  return (data ?? []) as unknown as ProjectMembershipRow[];
+}
+
+async function loadProjectLeaders(): Promise<
+  Array<{
+    id: string;
+    title: string;
+    team_name: string;
+    status: string;
+    leader_id: string | null;
+    leader_email: string;
+  }>
+> {
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin
+    .from('projects')
+    .select('id, title, team_name, status, leader_id, leader_email');
+  if (error) {
+    console.warn('读取项目列表失败，将使用空数据:', error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+function projectsForStudent(
+  profile: Pick<ProfileRow, 'id' | 'email'>,
+  leaders: Awaited<ReturnType<typeof loadProjectLeaders>>,
+  memberships: ProjectMembershipRow[]
+): StudentFullInfo['projects'] {
+  const result: StudentFullInfo['projects'] = [];
+  const email = String(profile.email || '').toLowerCase().trim();
+
+  for (const project of leaders) {
+    const isLeader =
+      project.leader_id === profile.id ||
+      String(project.leader_email || '').toLowerCase().trim() === email;
+    if (!isLeader) continue;
+    result.push({
+      projectId: project.id,
+      title: project.title,
+      teamName: project.team_name,
+      role: '组长',
+      status: project.status,
+    });
+  }
+
+  for (const membership of memberships) {
+    const project = normalizeProject(membership.projects);
+    if (!project) continue;
+
+    const isMember =
+      membership.user_id === profile.id ||
+      String(membership.email || '').toLowerCase().trim() === email;
+    if (!isMember) continue;
+
+    if (result.some((item) => item.projectId === membership.project_id)) {
+      continue;
+    }
+
+    result.push({
+      projectId: membership.project_id,
+      title: project.title,
+      teamName: project.team_name,
+      role: mapProjectRole(membership.role),
+      status: project.status,
+    });
+  }
+
+  return result;
+}
+
+function mapProfile(
+  profile: ProfileRow,
+  attendanceStats: StudentFullInfo['attendanceStats'],
+  projects: StudentFullInfo['projects']
+): StudentFullInfo {
+  return {
+    $id: profile.id,
+    studentId: profile.student_no || extractStudentIdFromEmail(profile.email),
+    chineseName: profile.chinese_name || '',
+    englishName: profile.english_name || '',
+    email: profile.email,
+    classNameCn: profile.class_name_cn || '',
+    classNameEn: profile.class_name_en || '',
+    classCode: profile.class_code || '',
+    groupLevel: profile.group_level || '',
+    level: profile.level || '',
+    phone: profile.phone || '',
+    instagram: profile.instagram || '',
+    group: profile.group_name || '',
+    position: profile.position || '',
+    notes: profile.notes || '',
+    role: profile.role,
+    requirePasswordChange: profile.require_password_change ?? true,
+    createdAt: profile.created_at,
+    attendanceStats,
+    projects,
+  };
+}
+
+async function loadAttendanceStats(): Promise<
+  Map<string, StudentFullInfo['attendanceStats']>
+> {
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin
+    .from('attendance_records')
+    .select('student_id, status');
+  if (error) {
+    console.warn('读取出勤记录失败，将使用空数据:', error.message);
+    return new Map();
+  }
+
+  const statsByStudent = new Map<string, StudentFullInfo['attendanceStats']>();
+  for (const record of data ?? []) {
+    const studentId = String(record.student_id || '');
+    if (!studentId) continue;
+    if (!statsByStudent.has(studentId)) {
+      statsByStudent.set(studentId, { total: 0, present: 0, late: 0, absent: 0 });
+    }
+    const stats = statsByStudent.get(studentId)!;
+    stats.total++;
+    if (record.status === 'present') stats.present++;
+    else if (record.status === 'late') stats.late++;
+    else if (record.status === 'absent') stats.absent++;
+  }
+  return statsByStudent;
+}
+
+export async function getAllStudents(): Promise<StudentFullInfo[]> {
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin
+    .from('profiles')
+    .select('*')
+    .eq('role', 'student')
+    .order('student_no', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('获取学生列表失败:', error.message);
+    throw new Error('获取学生列表失败');
+  }
+
+  const [attendanceByStudent, leaders, memberships] = await Promise.all([
+    loadAttendanceStats(),
+    loadProjectLeaders(),
+    loadProjectMemberships(),
+  ]);
+
+  const emptyStats = { total: 0, present: 0, late: 0, absent: 0 };
+
+  return ((data ?? []) as unknown as ProfileRow[]).map((profile) =>
+    mapProfile(
+      profile,
+      attendanceByStudent.get(profile.id) || emptyStats,
+      projectsForStudent(profile, leaders, memberships)
+    )
+  );
 }
 
 export async function getStudentById(studentId: string): Promise<StudentFullInfo | null> {
-  try {
-    const doc = await databases.getDocument(APPWRITE_DATABASE_ID, USERS_COLLECTION_ID, studentId);
-
-    const attendanceStats = { total: 0, present: 0, late: 0, absent: 0 };
-    try {
-      const possibleStudentIds: string[] = [];
-      const extractedId = extractStudentIdFromEmail(doc.email);
-      if (extractedId) possibleStudentIds.push(extractedId);
-      if (doc.studentId && !possibleStudentIds.includes(doc.studentId)) {
-        possibleStudentIds.push(doc.studentId);
-      }
-      if (doc.$id && !possibleStudentIds.includes(doc.$id)) {
-        possibleStudentIds.push(doc.$id);
-      }
-
-      await Promise.all(
-        possibleStudentIds.map(async (studentIdToFind) => {
-          try {
-            const attendanceResponse = await databases.listDocuments(
-              APPWRITE_DATABASE_ID,
-              ATTENDANCE_COLLECTION_ID,
-              [Query.equal('studentId', studentIdToFind), Query.limit(200)]
-            );
-
-            if (attendanceResponse.documents.length > 0) {
-              attendanceStats.total += attendanceResponse.documents.length;
-              attendanceStats.present += attendanceResponse.documents.filter(
-                (a) => a.status === 'present'
-              ).length;
-              attendanceStats.late += attendanceResponse.documents.filter(
-                (a) => a.status === 'late'
-              ).length;
-              attendanceStats.absent += attendanceResponse.documents.filter(
-                (a) => a.status === 'absent'
-              ).length;
-            }
-          } catch (queryError) {
-            console.warn(`查询 studentId=${studentIdToFind} 失败:`, queryError);
-          }
-        })
-      );
-    } catch (e) {
-      console.warn('获取出勤记录失败:', e);
-    }
-
-    const projects: StudentFullInfo['projects'] = [];
-    try {
-      const projectResponse = await databases.listDocuments(
-        APPWRITE_DATABASE_ID,
-        PROJECTS_COLLECTION_ID,
-        [Query.limit(100)]
-      );
-      const studentEmail = doc.email.toLowerCase().trim();
-
-      for (const project of projectResponse.documents) {
-        const leaderEmail = (project.leaderEmail || '').toLowerCase().trim();
-
-        if (leaderEmail === studentEmail) {
-          projects.push({
-            projectId: project.$id,
-            title: project.title,
-            teamName: project.teamName,
-            role: '组长',
-            status: project.status,
-          });
-        } else if (project.members) {
-          try {
-            const members =
-              typeof project.members === 'string' ? JSON.parse(project.members) : project.members;
-            const member = members.find(
-              (m: { email?: string }) => m.email && m.email.toLowerCase().trim() === studentEmail
-            );
-            if (member) {
-              projects.push({
-                projectId: project.$id,
-                title: project.title,
-                teamName: project.teamName,
-                role: member.role || '成员',
-                status: project.status,
-              });
-            }
-          } catch (e) {
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('获取项目记录失败:', e);
-    }
-
-    return {
-      $id: doc.$id,
-      studentId: doc.studentId || extractStudentIdFromEmail(doc.email),
-      chineseName: doc.chineseName || doc.name || '',
-      englishName: doc.englishName || '',
-      email: doc.email,
-      classNameCn: doc.classNameCn || doc.className || '',
-      classNameEn: doc.classNameEn || '',
-      classCode: doc.classCode || '',
-      groupLevel: doc.groupLevel || '',
-      level: doc.level || '',
-      phone: doc.phone || '',
-      instagram: doc.instagram || '',
-      group: doc.group || '',
-      position: doc.position || '',
-      notes: doc.notes || '',
-      role: doc.role,
-      createdAt: doc.createdAt || doc.$createdAt,
-      attendanceStats,
-      projects,
-    };
-  } catch (error) {
-    console.error('获取学生详情失败:', error);
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin
+    .from('profiles')
+    .select('*')
+    .eq('id', studentId)
+    .maybeSingle();
+  if (error) {
+    console.error('获取学生详情失败:', error.message);
     return null;
   }
+  if (!data) return null;
+
+  const [attendanceByStudent, leaders, memberships] = await Promise.all([
+    loadAttendanceStats(),
+    loadProjectLeaders(),
+    loadProjectMemberships(),
+  ]);
+
+  const profile = data as unknown as ProfileRow;
+  return mapProfile(
+    profile,
+    attendanceByStudent.get(profile.id) || {
+      total: 0,
+      present: 0,
+      late: 0,
+      absent: 0,
+    },
+    projectsForStudent(profile, leaders, memberships)
+  );
 }
 
 export async function deleteStudent(studentId: string): Promise<void> {
-  try {
-    await databases.deleteDocument(APPWRITE_DATABASE_ID, USERS_COLLECTION_ID, studentId);
-  } catch (error) {
-    console.error('删除学生失败:', error);
-    throw error;
+  const admin = getSupabaseAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(studentId);
+  if (error) {
+    console.error('删除学生失败:', error.message);
+    throw new Error(error.message || '删除学生失败');
   }
 }
 
 export async function deleteAllStudents(): Promise<{ deleted: number; failed: number }> {
-  try {
-    const response = await databases.listDocuments(APPWRITE_DATABASE_ID, USERS_COLLECTION_ID, [
-      Query.equal('role', 'student'),
-      Query.limit(500),
-    ]);
-
-    let deleted = 0;
-    let failed = 0;
-
-    for (const doc of response.documents) {
-      try {
-        await databases.deleteDocument(APPWRITE_DATABASE_ID, USERS_COLLECTION_ID, doc.$id);
-        deleted++;
-      } catch (e) {
-        failed++;
-        console.error('删除学生失败:', doc.$id, e);
-      }
-    }
-
-    return { deleted, failed };
-  } catch (error) {
-    console.error('批量删除学生失败:', error);
-    throw error;
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('role', 'student');
+  if (error) {
+    console.error('批量删除学生失败:', error.message);
+    throw new Error('批量删除学生失败');
   }
+
+  let deleted = 0;
+  let failed = 0;
+
+  for (const profile of data ?? []) {
+    const { error: deleteError } = await admin.auth.admin.deleteUser(profile.id);
+    if (deleteError) {
+      failed++;
+      console.error('删除学生失败:', profile.id, deleteError.message);
+    } else {
+      deleted++;
+    }
+  }
+
+  return { deleted, failed };
 }
 
 export async function updateStudent(
   docId: string,
-  data: Partial<Omit<StudentFullInfo, '$id' | 'attendanceStats' | 'projects' | 'createdAt'>>
+  data: Partial<
+    Omit<StudentFullInfo, '$id' | 'attendanceStats' | 'projects' | 'createdAt' | 'email'>
+  >
 ): Promise<void> {
-  try {
-    const updateData: Record<string, unknown> = {
-      updatedAt: new Date().toISOString(),
-    };
+  const admin = getSupabaseAdminClient();
+  const update: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
 
-    const allowedFields = [
-      'studentId',
-      'chineseName',
-      'englishName',
-      'email',
-      'classNameCn',
-      'classNameEn',
-      'classCode',
-      'groupLevel',
-      'level',
-      'phone',
-      'instagram',
-      'group',
-      'position',
-      'notes',
-      'role',
-    ];
+  const fieldMap: Record<string, string> = {
+    studentId: 'student_no',
+    chineseName: 'chinese_name',
+    englishName: 'english_name',
+    classNameCn: 'class_name_cn',
+    classNameEn: 'class_name_en',
+    classCode: 'class_code',
+    groupLevel: 'group_level',
+    level: 'level',
+    phone: 'phone',
+    instagram: 'instagram',
+    group: 'group_name',
+    position: 'position',
+    notes: 'notes',
+    role: 'role',
+    requirePasswordChange: 'require_password_change',
+  };
 
-    for (const field of allowedFields) {
-      if (data[field as keyof typeof data] !== undefined) {
-        updateData[field] = data[field as keyof typeof data];
-        if (field === 'chineseName') {
-          updateData['name'] = data.chineseName;
-        }
-      }
+  for (const [field, column] of Object.entries(fieldMap)) {
+    const value = data[field as keyof typeof data];
+    if (value !== undefined) {
+      update[column] = value;
     }
+  }
 
-    await databases.updateDocument(APPWRITE_DATABASE_ID, USERS_COLLECTION_ID, docId, updateData);
-  } catch (error) {
-    console.error('更新学生信息失败:', error);
-    throw error;
+  const { error } = await admin.from('profiles').update(update).eq('id', docId);
+  if (error) {
+    console.error('更新学生信息失败:', error.message);
+    throw new Error(error.message || '更新学生信息失败');
+  }
+}
+
+export async function setStudentPassword(input: {
+  userId: string;
+  newPassword: string;
+  requirePasswordChange?: boolean;
+}): Promise<void> {
+  if (input.newPassword.length < 6) {
+    throw new Error('密码至少需要 6 位');
+  }
+
+  const admin = getSupabaseAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(input.userId, {
+    password: input.newPassword,
+  });
+  if (error) {
+    console.error('更新学生密码失败:', error.message);
+    throw new Error('更新学生密码失败');
+  }
+
+  const { error: profileError } = await admin
+    .from('profiles')
+    .update({
+      require_password_change: input.requirePasswordChange ?? false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.userId);
+  if (profileError) {
+    console.error('更新密码状态失败:', profileError.message);
+    throw new Error('更新密码状态失败');
   }
 }

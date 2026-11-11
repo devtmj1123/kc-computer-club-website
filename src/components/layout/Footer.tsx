@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 interface FooterLink {
   label: string;
   href: string;
-  icon?: string;
 }
 
 interface SocialLink {
@@ -32,26 +31,25 @@ interface FooterProps {
   className?: string;
 }
 
-const defaultQuickLinks: FooterLink[] = [
-  { label: '关于我们', href: '/about', icon: 'info' },
-  { label: '公告通知', href: '/notices', icon: 'campaign' },
-  { label: '活动列表', href: '/activities', icon: 'event' },
-  { label: '项目展示', href: '/projects', icon: 'folder' },
+const quickLinks: FooterLink[] = [
+  { label: '关于我们', href: '/about' },
+  { label: '公告通知', href: '/notices' },
+  { label: '活动列表', href: '/activities' },
+  { label: '项目展示', href: '/projects' },
 ];
 
-const defaultResourceLinks: FooterLink[] = [
-  { label: '签到系统', href: '/attendance', icon: 'event_available' },
-  { label: '群聊讨论', href: '/chat', icon: 'chat' },
-  { label: '提交项目', href: '/projects/submit', icon: 'lightbulb' },
-  { label: '开发者教程', href: '/tutorial', icon: 'school' },
-  { label: '帮助中心', href: '/help', icon: 'help' },
+const resourceLinks: FooterLink[] = [
+  { label: '签到系统', href: '/attendance' },
+  { label: '提交项目', href: '/projects/submit' },
+  { label: '开发者教程', href: '/tutorial' },
+  { label: '成员登录', href: '/auth/login' },
 ];
 
 const SocialIcon = ({ platform }: { platform: SocialLink['platform'] }) => {
   switch (platform) {
     case 'github':
       return (
-        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path
             fillRule="evenodd"
             clipRule="evenodd"
@@ -60,17 +58,40 @@ const SocialIcon = ({ platform }: { platform: SocialLink['platform'] }) => {
         </svg>
       );
     case 'discord':
-      return <span className="material-symbols-outlined text-[20px]">forum</span>;
+      return <span className="material-symbols-outlined text-[17px]">forum</span>;
     case 'instagram':
-      return <span className="material-symbols-outlined text-[20px]">photo_camera</span>;
+      return <span className="material-symbols-outlined text-[17px]">photo_camera</span>;
     case 'youtube':
-      return <span className="material-symbols-outlined text-[20px]">play_circle</span>;
+      return <span className="material-symbols-outlined text-[17px]">play_circle</span>;
     case 'email':
-      return <span className="material-symbols-outlined text-[20px]">mail</span>;
+      return <span className="material-symbols-outlined text-[17px]">mail</span>;
     default:
       return null;
   }
 };
+
+function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) {
+  return (
+    <div>
+      <h3 className="mono-label mb-4 text-[var(--text-tertiary)]">{title}</h3>
+      <ul>
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              className="group flex items-center justify-between border-b border-[var(--border)] py-2.5 text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--foreground)]"
+            >
+              <span>{link.label}</span>
+              <span className="text-[12px] text-[var(--text-tertiary)] transition-all group-hover:translate-x-0.5 group-hover:text-[var(--primary)]">
+                ↗
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function Footer({ className }: FooterProps) {
   const [settings, setSettings] = useState<ClubSettings | null>(null);
@@ -93,8 +114,10 @@ export function Footer({ className }: FooterProps) {
     fetchSettings();
   }, []);
 
-  const clubName = settings?.aboutTitle || '康中电脑学会';
-  const description = settings?.aboutDescription || '培养学生编程能力和创新思维，推动校园信息技术教育。加入我们，一起探索技术的无限可能。';
+  const clubName = settings?.aboutTitle || '坤成中学电脑学会';
+  const description =
+    settings?.aboutDescription ||
+    '培养学生编程能力与创新思维，推动校园信息技术教育。加入我们，一起探索技术的无限可能。';
   const email = settings?.aboutEmail || 'computerclub@kuencheng.edu.my';
   const address = settings?.aboutLocation || '电脑室 A304，科学楼三楼';
   const meetingTime = settings?.aboutMeetingTime || '每周五 16:00 - 18:00';
@@ -112,176 +135,111 @@ export function Footer({ className }: FooterProps) {
   if (settings?.youtubeUrl) {
     socialLinks.push({ platform: 'youtube', href: settings.youtubeUrl, label: 'YouTube' });
   }
-  if (socialLinks.length === 0) {
-    socialLinks.push(
-      { platform: 'github', href: 'https://github.com', label: 'GitHub' },
-      { platform: 'discord', href: 'https://discord.gg', label: 'Discord' },
-      { platform: 'instagram', href: 'https://instagram.com', label: 'Instagram' },
-      { platform: 'youtube', href: 'https://youtube.com', label: 'YouTube' }
-    );
-  }
 
   return (
-    <footer
-      className={cn(
-        'border-t border-gray-200 dark:border-[#283930]',
-        'bg-gray-50 dark:bg-[#0d1812]',
-        'mt-12',
-        className
-      )}
-    >
-      <div className="mx-auto max-w-300 px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12">
-          <div className="lg:col-span-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-primary/20">
-                <span className="text-primary font-black text-lg">KC</span>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+    <footer className={cn('mt-20 border-t border-[var(--rule-strong)] bg-transparent', className)}>
+      <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-10 py-14 md:grid-cols-2 lg:grid-cols-12 lg:gap-8">
+          <div className="lg:col-span-5 lg:pr-12">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center bg-[var(--primary)] font-mono text-[12px] font-semibold tracking-[0.04em] text-[var(--primary-contrast)]">
+                KC
+              </span>
+              <span className="flex flex-col gap-1">
+                <span className="font-display text-[17px] font-bold leading-none tracking-[0.01em] text-[var(--foreground)]">
                   {clubName}
-                </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Kuen Cheng Computer Club
-                </p>
-              </div>
-            </div>
+                </span>
+                <span className="font-mono text-[12px] leading-none tracking-[0.18em] text-[var(--text-tertiary)]">
+                  KUEN CHENG COMPUTER CLUB · EST. 1983
+                </span>
+              </span>
+            </Link>
 
-            <p className="text-gray-600 dark:text-gray-400 text-sm max-w-sm mb-6 leading-relaxed">
+            <p className="mt-6 max-w-sm text-[13px] leading-[1.9] text-[var(--text-secondary)]">
               {description}
             </p>
 
-            <div className="flex flex-wrap gap-2">
-              {socialLinks.map((link) => (
-                <a
-                  key={link.platform}
-                  href={link.href}
-                  title={link.label || link.platform}
-                  className={cn(
-                    'w-10 h-10 rounded-xl',
-                    'bg-gray-200 dark:bg-[#1a2c23]',
-                    'flex items-center justify-center',
-                    'text-gray-600 dark:text-gray-300',
-                    'hover:bg-primary hover:text-black dark:hover:text-black',
-                    'transition-all duration-300'
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <SocialIcon platform={link.platform} />
-                </a>
-              ))}
-            </div>
+            {socialLinks.length > 0 && (
+              <div className="mt-7 flex items-center gap-2.5">
+                {socialLinks.map((link) => (
+                  <a
+                    key={link.platform}
+                    href={link.href}
+                    title={link.label || link.platform}
+                    className="flex size-9 items-center justify-center border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <SocialIcon platform={link.platform} />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-2">
-            <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">
-              快速链接
-            </h3>
-            <ul className="space-y-3">
-              {defaultQuickLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors flex items-center gap-2 group"
-                  >
-                    {link.icon && (
-                      <span className="material-symbols-outlined text-[16px] opacity-50 group-hover:opacity-100 transition-opacity">
-                        {link.icon}
-                      </span>
-                    )}
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <FooterColumn title="站点 / Index" links={quickLinks} />
           </div>
 
           <div className="lg:col-span-2">
-            <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">
-              资源
-            </h3>
-            <ul className="space-y-3">
-              {defaultResourceLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary transition-colors flex items-center gap-2 group"
-                  >
-                    {link.icon && (
-                      <span className="material-symbols-outlined text-[16px] opacity-50 group-hover:opacity-100 transition-opacity">
-                        {link.icon}
-                      </span>
-                    )}
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <FooterColumn title="资源 / Resources" links={resourceLinks} />
           </div>
 
           <div className="lg:col-span-3">
-            <h3 className="font-bold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">
-              联系我们
-            </h3>
+            <h3 className="mono-label mb-4 text-[var(--text-tertiary)]">联系 / Contact</h3>
             <ul className="space-y-4">
               <li>
                 <a
                   href={`mailto:${email}`}
-                  className="flex items-start gap-3 text-gray-600 dark:text-gray-400 hover:text-primary transition-colors group"
+                  className="group flex items-start gap-3 border-b border-[var(--border)] pb-3.5 text-[var(--text-secondary)] transition-colors hover:text-[var(--foreground)]"
                 >
-                  <span className="material-symbols-outlined text-[18px] mt-0.5 text-primary/50 group-hover:text-primary">
+                  <span className="material-symbols-outlined mt-0.5 text-[16px] text-[var(--primary)]">
                     mail
                   </span>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mb-0.5">邮箱</p>
-                    <p className="text-sm font-medium">{email}</p>
-                  </div>
+                  <span>
+                    <span className="mb-1 block font-mono text-[12px] tracking-[0.12em] text-[var(--text-tertiary)]">
+                      邮箱
+                    </span>
+                    <span className="block text-[13px] font-medium">{email}</span>
+                  </span>
                 </a>
               </li>
-              <li className="flex items-start gap-3 text-gray-600 dark:text-gray-400">
-                <span className="material-symbols-outlined text-[18px] mt-0.5 text-primary/50">
+              <li className="flex items-start gap-3 border-b border-[var(--border)] pb-3.5 text-[var(--text-secondary)]">
+                <span className="material-symbols-outlined mt-0.5 text-[16px] text-[var(--primary)]">
                   location_on
                 </span>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mb-0.5">地址</p>
-                  <p className="text-sm font-medium">{address}</p>
-                </div>
+                <span>
+                  <span className="mb-1 block font-mono text-[12px] tracking-[0.12em] text-[var(--text-tertiary)]">
+                    地址
+                  </span>
+                  <span className="block text-[13px] font-medium">{address}</span>
+                </span>
               </li>
-              <li className="flex items-start gap-3 text-gray-600 dark:text-gray-400">
-                <span className="material-symbols-outlined text-[18px] mt-0.5 text-primary/50">
+              <li className="flex items-start gap-3 text-[var(--text-secondary)]">
+                <span className="material-symbols-outlined mt-0.5 text-[16px] text-[var(--primary)]">
                   schedule
                 </span>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mb-0.5">活动时间</p>
-                  <p className="text-sm font-medium">{meetingTime}</p>
-                </div>
+                <span>
+                  <span className="mb-1 block font-mono text-[12px] tracking-[0.12em] text-[var(--text-tertiary)]">
+                    活动时间
+                  </span>
+                  <span className="block text-[13px] font-medium">{meetingTime}</span>
+                </span>
               </li>
             </ul>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-gray-200 dark:border-[#283930]">
-        <div className="mx-auto max-w-300 px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
-            <div className="flex items-center gap-2">
-              <span>© {currentYear} {clubName}</span>
-              <span className="hidden md:inline">·</span>
-              <span className="hidden md:inline">保留所有权利</span>
-            </div>
-            <div className="flex items-center gap-6">
-              <Link href="/privacy" className="hover:text-primary transition-colors">
-                隐私政策
-              </Link>
-              <Link href="/terms" className="hover:text-primary transition-colors">
-                使用条款
-              </Link>
-              <span className="text-gray-400 dark:text-gray-600">
-                用 💚 在马来西亚制作
-              </span>
-            </div>
-          </div>
+      <div className="border-t border-[var(--border)]">
+        <div className="mx-auto flex w-full max-w-[1360px] flex-col items-start justify-between gap-3 px-4 py-5 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] sm:px-6 md:flex-row md:items-center lg:px-8">
+          <span>
+            © {currentYear} {clubName} · 保留所有权利
+          </span>
+          <span className="text-[var(--text-secondary)]">
+            公告 / 活动 / 项目 / 关于 / 教程
+          </span>
+          <span>MADE BY KC COMPUTER CLUB</span>
         </div>
       </div>
     </footer>

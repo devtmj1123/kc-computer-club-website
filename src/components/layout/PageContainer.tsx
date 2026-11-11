@@ -14,19 +14,12 @@ export function PageContainer({
   light = false,
   dark = false,
 }: PageContainerProps) {
-  const containerStyle: React.CSSProperties = {
-    backgroundColor: 'var(--background)',
-    color: 'var(--foreground)',
-    minHeight: '100vh',
-  };
-
   return (
     <div
-      style={containerStyle}
       className={cn(
-        'transition-colors duration-300',
-        light && 'bg-[#f8faf9] text-[#111814]',
-        dark && 'bg-[#0d1812] text-white',
+        'min-h-screen bg-transparent text-[var(--foreground)] transition-colors duration-200',
+        light && 'bg-transparent text-[var(--foreground)]',
+        dark && 'bg-transparent text-[var(--foreground)]',
         className
       )}
     >
@@ -48,17 +41,11 @@ export function CardContainer({
   hover = true,
   compact = false,
 }: CardContainerProps) {
-  const cardStyle: React.CSSProperties = {
-    backgroundColor: 'var(--card-bg)',
-    borderColor: 'var(--card-border)',
-  };
-
   return (
     <div
-      style={cardStyle}
       className={cn(
-        'border rounded-lg transition-all duration-200',
-        hover && 'hover:border-primary hover:shadow-lg',
+        'border border-[var(--border)] bg-[var(--surface)] transition-colors duration-150',
+        hover && 'hover:border-[var(--rule-strong)]',
         compact ? 'p-3' : 'p-4',
         className
       )}
@@ -77,18 +64,14 @@ export function Text({
   variant?: 'primary' | 'secondary' | 'tertiary' | 'accent';
   className?: string;
 }) {
-  const variantStyles: Record<string, React.CSSProperties> = {
-    primary: { color: 'var(--foreground)' },
-    secondary: { color: 'var(--text-secondary)' },
-    tertiary: { color: 'var(--text-tertiary)' },
-    accent: { color: 'var(--primary)' },
+  const variantStyles: Record<string, string> = {
+    primary: 'text-[var(--foreground)]',
+    secondary: 'text-[var(--text-secondary)]',
+    tertiary: 'text-[var(--text-tertiary)]',
+    accent: 'text-[var(--primary)]',
   };
 
-  return (
-    <span style={variantStyles[variant]} className={className}>
-      {children}
-    </span>
-  );
+  return <span className={cn(variantStyles[variant], className)}>{children}</span>;
 }
 
 export function TextHeading({
@@ -100,40 +83,30 @@ export function TextHeading({
   level?: 1 | 2 | 3 | 4 | 5 | 6;
   className?: string;
 }) {
-  const headingStyle: React.CSSProperties = {
-    color: 'var(--foreground)',
-  };
-
   const headings = {
     1: (
-      <h1 style={headingStyle} className={cn('text-3xl font-bold', className)}>
+      <h1 className={cn('font-display text-3xl font-bold tracking-[-0.03em]', className)}>
         {children}
       </h1>
     ),
     2: (
-      <h2 style={headingStyle} className={cn('text-2xl font-bold', className)}>
+      <h2 className={cn('font-display text-2xl font-bold tracking-[-0.02em]', className)}>
         {children}
       </h2>
     ),
     3: (
-      <h3 style={headingStyle} className={cn('text-xl font-bold', className)}>
+      <h3 className={cn('font-display text-xl font-bold tracking-[-0.015em]', className)}>
         {children}
       </h3>
     ),
     4: (
-      <h4 style={headingStyle} className={cn('text-lg font-semibold', className)}>
-        {children}
-      </h4>
+      <h4 className={cn('font-display text-lg font-semibold', className)}>{children}</h4>
     ),
     5: (
-      <h5 style={headingStyle} className={cn('text-base font-semibold', className)}>
-        {children}
-      </h5>
+      <h5 className={cn('text-base font-semibold', className)}>{children}</h5>
     ),
     6: (
-      <h6 style={headingStyle} className={cn('text-sm font-semibold', className)}>
-        {children}
-      </h6>
+      <h6 className={cn('text-sm font-semibold', className)}>{children}</h6>
     ),
   };
 
@@ -152,14 +125,14 @@ export function Section({
   subtitle?: string;
 }) {
   return (
-    <section className={cn('py-6 px-4 md:px-6', className)}>
+    <section className={cn('px-4 py-6 md:px-6', className)}>
       {title && (
         <TextHeading level={2} className="mb-2">
           {title}
         </TextHeading>
       )}
       {subtitle && (
-        <Text variant="secondary" className="text-sm mb-4 block">
+        <Text variant="secondary" className="mb-4 block text-sm">
           {subtitle}
         </Text>
       )}
@@ -178,7 +151,7 @@ export function CardGrid({
   return (
     <div
       className={cn(
-        'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6',
+        'grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3',
         className
       )}
     >
@@ -188,11 +161,7 @@ export function CardGrid({
 }
 
 export function Divider({ className }: { className?: string }) {
-  const dividerStyle: React.CSSProperties = {
-    borderColor: 'var(--border)',
-  };
-
-  return <div style={dividerStyle} className={cn('border-t', className)} />;
+  return <div className={cn('h-px bg-[var(--border)]', className)} />;
 }
 
 export function StatusBadge({
@@ -202,35 +171,31 @@ export function StatusBadge({
   status: 'success' | 'warning' | 'error' | 'info' | 'default';
   className?: string;
 }) {
-  const statusColors: Record<string, React.CSSProperties> = {
-    success: {
-      backgroundColor: 'rgba(16, 185, 129, 0.1)',
-      color: 'var(--success)',
-    },
-    warning: {
-      backgroundColor: 'rgba(245, 158, 11, 0.1)',
-      color: 'var(--warning)',
-    },
-    error: {
-      backgroundColor: 'rgba(239, 68, 68, 0.1)',
-      color: 'var(--error)',
-    },
-    info: {
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-      color: 'var(--info)',
-    },
-    default: {
-      backgroundColor: 'rgba(0, 0, 0, 0.05)',
-      color: 'var(--foreground)',
-    },
+  const statusStyles: Record<string, string> = {
+    success: 'border-[var(--primary)]/40 bg-[var(--primary-light)] text-[var(--success)]',
+    warning: 'border-[var(--warning)]/40 bg-[var(--warning-light)] text-[var(--warning)]',
+    error: 'border-[var(--error)]/40 bg-[var(--error-light)] text-[var(--error)]',
+    info: 'border-[var(--info)]/40 bg-[var(--info-light)] text-[var(--info)]',
+    default: 'border-[var(--border)] text-[var(--text-secondary)]',
+  };
+
+  const labels: Record<string, string> = {
+    success: '成功',
+    warning: '注意',
+    error: '错误',
+    info: '信息',
+    default: '默认',
   };
 
   return (
     <span
-      style={statusColors[status]}
-      className={cn('px-2 py-1 rounded-full text-xs font-medium', className)}
+      className={cn(
+        'inline-flex items-center border px-2 py-1 font-mono text-[12px] uppercase tracking-[0.08em]',
+        statusStyles[status],
+        className
+      )}
     >
-      {status}
+      {labels[status]}
     </span>
   );
 }

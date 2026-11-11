@@ -1,17 +1,34 @@
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ClubProvider } from "@/contexts/ClubContext";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { ReCaptchaProvider } from "@/contexts/ReCaptchaContext";
+import { GridBackdrop } from "@/components/layout/GridBackdrop";
+
 const spaceGrotesk = Space_Grotesk({
-  variable: "--font-display",
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-mono-code",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+});
+const smileySans = localFont({
+  src: "./fonts/SmileySans-Oblique.woff2",
+  variable: "--font-smiley",
+  weight: "400",
+  style: "normal",
+  display: "swap",
+  fallback: ["Noto Sans SC", "sans-serif"],
 });
 export const metadata: Metadata = {
   title: "坤中电脑学会 - KC Computer Club",
@@ -23,8 +40,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html
+      lang="zh-CN"
+      suppressHydrationWarning
+      className={`${spaceGrotesk.variable} ${plexMono.variable} ${smileySans.variable}`}
+    >
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+          rel="stylesheet"
+        />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
           rel="stylesheet"
@@ -34,46 +61,32 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  // Apply theme mode from localStorage (default: dark)
-                  var mode = localStorage.getItem('theme-mode') || 'dark';
-                  if (mode === 'light') {
-                    document.documentElement.classList.add('light');
-                    document.documentElement.classList.remove('dark');
-                  } else {
-                    document.documentElement.classList.add('dark');
-                    document.documentElement.classList.remove('light');
-                  }
-                  // 加载自定义主题色
-                  var colors = localStorage.getItem('theme-colors');
-                  if (colors) {
-                    var parsed = JSON.parse(colors);
-                    if (parsed.primary) {
-                      document.documentElement.style.setProperty('--primary', parsed.primary);
-                      document.documentElement.style.setProperty('--primary-hover', parsed.primaryHover || parsed.primary);
-                      document.documentElement.style.setProperty('--primary-light', parsed.primaryLight || (parsed.primary + '1a'));
-                      document.documentElement.style.setProperty('--primary-glow', parsed.primaryGlow || (parsed.primary + '4d'));
-                    }
-                  }
+                  // Follow the system preference unless the visitor chose a mode.
+                  var stored = localStorage.getItem('theme-mode');
+                  var mode = stored === 'light' || stored === 'dark'
+                    ? stored
+                    : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                  document.documentElement.classList.toggle('light', mode === 'light');
+                  document.documentElement.classList.toggle('dark', mode === 'dark');
                 } catch (e) {}
               })();
             `,
           }}
         />
       </head>
-      <body
-        className={`${spaceGrotesk.variable} font-sans antialiased bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300`}
-      >
-        <ThemeProvider>
-          <ClubProvider>
-            <ReCaptchaProvider>
-              <AuthProvider>
-                <NotificationProvider>
+      <body className="font-sans antialiased">
+        <GridBackdrop />
+        <div className="relative z-10">
+          <ThemeProvider>
+            <ClubProvider>
+              <ReCaptchaProvider>
+                <AuthProvider>
                   {children}
-                </NotificationProvider>
-              </AuthProvider>
-            </ReCaptchaProvider>
-          </ClubProvider>
-        </ThemeProvider>
+                </AuthProvider>
+              </ReCaptchaProvider>
+            </ClubProvider>
+          </ThemeProvider>
+        </div>
         <SpeedInsights />
         <Analytics />
       </body>

@@ -1,38 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { activityService, CreateActivityInput } from '@/services/activity.service';
-import { Client, Databases, Query } from 'appwrite';
+import { requireAdminSession, getAdminSession } from '@/lib/admin-session';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const onlyPublished = searchParams.get('onlyPublished') === 'true';
-    const visibility = (searchParams.get('visibility') as 'public' | 'all') || 'all';
+    const isAdminRequest = !requireAdminSession(request);
+    const onlyPublished = isAdminRequest
+      ? searchParams.get('onlyPublished') === 'true'
+      : true;
+    const visibility = isAdminRequest
+      ? ((searchParams.get('visibility') as 'public' | 'all') || 'all')
+      : 'public';
     const activities = await activityService.getAllActivities(onlyPublished, visibility);
-    const client = new Client()
-      .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-      .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!);
-    const databases = new Databases(client);
-    const activitiesWithCount = await Promise.all(
-      activities.map(async (activity) => {
-        try {
-          const signupsResponse = await databases.listDocuments(
-            process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-            'signups',
-            [
-              Query.equal('activityId', activity.$id),
-              Query.notEqual('status', 'cancelled'),
-            ]
-          );
-          const actualCount = signupsResponse.total || 0;
-          return {
-            ...activity,
-            currentParticipants: actualCount,
-          };
-        } catch (err) {
-          console.warn(`Failed to count signups for activity ${activity.$id}:`, err);
-          return activity;
-        }
-      })
-    );
+
+    if (activities.length === 0) {
+      return NextResponse.json({ success: true, total: 0, activities: [] });
+    }
+
+    // One grouped query instead of one Appwrite request per activity.
+    const admin = getSupabaseAdminClient();
+    const { data: signups, error: signupError } = await admin
+      .from('signups')
+      .select('activity_id')
+      .in('activity_id', activities.map((activity) => activity.$id))
+      .neq('status', 'cancelled');
+
+    if (signupError) {
+      console.error('统计报名人数失败:', signupError.message);
+    }
+
+    const counts = new Map<string, number>();
+    for (const signup of signups ?? []) {
+      const activityId = String(signup.activity_id);
+      counts.set(activityId, (counts.get(activityId) ?? 0) + 1);
+    }
+
+    const activitiesWithCount = activities.map((activity) => ({
+      ...activity,
+      currentParticipants: counts.get(activity.$id) ?? 0,
+    }));
+
     return NextResponse.json({
       success: true,
       total: activitiesWithCount.length,
@@ -47,29 +56,35 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
+  const session = getAdminSession(request);
+  if (!session) return NextResponse.json({ error: '未授权' }, { status: 401 });
+
   try {
     const body = await request.json();
-    const { 
-      title, 
-      description, 
-      category, 
-      date, 
-      startTime, 
-      endDate, 
-      endTime, 
-      location, 
+    const {
+      title,
+      description,
+      category,
+      date,
+      startTime,
+      endDate,
+      endTime,
+      location,
       maxAttendees,
-      registrationDeadline, 
-      registrationDeadlineTime, 
-      organizer, 
-      organizerId, 
+      registrationDeadline,
+      registrationDeadlineTime,
+      organizer,
       status,
       coverImage,
       allowedGrades,
       visibility,
+      signupFormFields,
     } = body;
-    if (!title || !description || !date || !startTime || !endDate || !endTime || !location || !organizer || !organizerId) {
+    if (!title || !description || !date || !startTime || !endDate || !endTime || !location) {
       return NextResponse.json(
         { error: '缺少必填字段' },
         { status: 400 }
@@ -77,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
     const startDateTime = `${date}T${startTime}:00Z`;
     const endDateTime = `${endDate}T${endTime}:00Z`;
-    const signupDeadlineDateTime = `${registrationDeadline}T${registrationDeadlineTime || '23:59'}:00Z`;
+    const signupDeadlineDateTime = `${registrationDeadline || date}T${registrationDeadlineTime || '23:59'}:00Z`;
     const input: CreateActivityInput = {
       title,
       description,
@@ -88,36 +103,21 @@ export async function POST(request: NextRequest) {
       maxParticipants: maxAttendees || 0,
       currentParticipants: 0,
       signupDeadline: signupDeadlineDateTime,
-      signupFormFields: JSON.stringify([]),
-      organizer,
-      organizerId,
+      signupFormFields:
+        typeof signupFormFields === 'string'
+          ? signupFormFields
+          : JSON.stringify([]),
+      organizer: typeof organizer === 'string' && organizer.trim() ? organizer : session.username,
+      organizerId: session.sub,
       status: status || 'draft',
       coverImage: coverImage || undefined,
-      allowedGrades: allowedGrades && allowedGrades.length > 0 ? JSON.stringify(allowedGrades) : undefined,
+      allowedGrades:
+        allowedGrades && allowedGrades.length > 0
+          ? JSON.stringify(allowedGrades)
+          : undefined,
       visibility: visibility || 'public',
     };
     const activity = await activityService.createActivity(input);
-    if (status === 'published') {
-      try {
-        const userIds = ['user1', 'user2', 'user3']; 
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        for (const userId of userIds) {
-          await fetch(`${appUrl}/api/notifications`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId,
-              title: `新活动：${title}`,
-              message: `${date} 在 ${location} 举行的 "${description.substring(0, 50)}..." 活动`,
-              type: 'activity',
-              relatedId: activity.$id,
-            }),
-          }).catch((err) => console.error('发送通知失败:', err));
-        }
-      } catch (err) {
-        console.error('发送通知时出错:', err);
-      }
-    }
     return NextResponse.json({
       success: true,
       message: '活动创建成功',

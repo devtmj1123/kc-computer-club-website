@@ -1,9 +1,9 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { StudentLayout } from '@/components/layout/StudentLayout';
-import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
 import { ImageCarousel } from '@/components/notices/ImageCarousel';
 import { CommentForm } from '@/components/comments/CommentForm';
@@ -11,14 +11,7 @@ import { CommentList } from '@/components/comments/CommentList';
 import { Comment } from '@/services/comment.service';
 import { Notice } from '@/services/notice.service';
 import { decodeHtmlEntities } from '@/lib/utils';
-const TAG_STYLES: Record<string, { bg: string; text: string }> = {
-  公告: { bg: 'bg-primary/10', text: 'text-primary' },
-  比赛: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
-  紧急: { bg: 'bg-amber-500/10', text: 'text-amber-400' },
-  维护: { bg: 'bg-red-500/10', text: 'text-red-400' },
-  课程: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
-  工作坊: { bg: 'bg-cyan-500/10', text: 'text-cyan-400' },
-};
+
 function calculateReadingTime(content: string): number {
   if (!content) return 1;
   const text = content.replace(/<[^>]*>/g, '');
@@ -26,6 +19,15 @@ function calculateReadingTime(content: string): number {
   const englishWords = text.match(/\b[a-zA-Z]+\b/g)?.length || 0;
   const readingTime = Math.ceil((chineseChars / 300 + englishWords / 200) / 2);
   return Math.max(1, readingTime);
+}
+
+function formatDate(value?: string): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
+    date.getDate()
+  ).padStart(2, '0')}`;
 }
 
 function sanitizeHtmlContent(html: string): string {
@@ -106,6 +108,7 @@ function sanitizeHtmlContent(html: string): string {
 
   return doc.body.innerHTML;
 }
+
 export default function NoticeDetailPage() {
   const params = useParams();
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -116,6 +119,7 @@ export default function NoticeDetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [showComments, setShowComments] = useState(true);
+
   useEffect(() => {
     const loadNotice = async () => {
       try {
@@ -174,6 +178,7 @@ export default function NoticeDetailPage() {
       loadNotice();
     }
   }, [params.id]);
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -183,9 +188,11 @@ export default function NoticeDetailPage() {
       console.error('Failed to copy:', err);
     }
   };
+
   const handlePrint = () => {
     window.print();
   };
+
   const loadComments = async (noticeId: string) => {
     try {
       setIsLoadingComments(true);
@@ -200,368 +207,275 @@ export default function NoticeDetailPage() {
       setIsLoadingComments(false);
     }
   };
+
   useEffect(() => {
     if (notice?.$id) {
       loadComments(notice.$id);
     }
   }, [notice?.$id]);
+
   if (isLoading) {
     return (
       <StudentLayout>
-        <main
-          className="flex-1 flex items-center justify-center"
-          style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-        >
-          <Loading size="lg" text="加载公告详情..." />
+        <main className="flex items-center justify-center py-32">
+          <Loading size="lg" text="加载公告详情…" />
         </main>
       </StudentLayout>
     );
   }
+
   if (!notice || error) {
     return (
       <StudentLayout>
-        <main
-          className="flex-1 flex flex-col items-center justify-center py-20"
-          style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-        >
-          <span
-            className="material-symbols-outlined text-6xl mb-4"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            article_shortcut
-          </span>
-          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+        <main className="mx-auto flex w-full max-w-[1200px] flex-col items-start px-4 py-24 sm:px-6 lg:px-8">
+          <div className="eyebrow">404 · NOT FOUND</div>
+          <h1 className="mt-5 font-display text-[clamp(2rem,5vw,3rem)] font-bold tracking-[-0.04em] text-[var(--foreground)]">
             {error || '公告不存在'}
           </h1>
-          <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-            请检查链接是否正确，或返回公告列表
+          <p className="mt-4 max-w-md text-[13px] leading-[1.9] text-[var(--text-secondary)]">
+            请检查链接是否正确，或返回公告列表浏览其他内容。
           </p>
-          <Link href="/notices">
-            <Button variant="primary" leftIcon="arrow_back">
-              返回公告列表
-            </Button>
+          <Link
+            href="/notices"
+            className="mt-8 inline-flex items-center gap-3 bg-[var(--primary)] px-4 py-2.5 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
+          >
+            <span className="text-[13px] leading-none">←</span>
+            返回公告列表
           </Link>
         </main>
       </StudentLayout>
     );
   }
+
+  const title = decodeHtmlEntities(notice.title);
+
   return (
     <StudentLayout>
-      <main
-        className="flex-1 w-full mx-auto py-8"
-        style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            <article className="flex-1 min-w-0">
-              <nav
-                className="flex items-center text-sm mb-6 font-medium"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                <Link
-                  href="/"
-                  className="transition-colors"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  首页
-                </Link>
-                <span className="mx-2">/</span>
-                <Link
-                  href="/notices"
-                  className="transition-colors"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  公告
-                </Link>
-                <span className="mx-2">/</span>
-                <span style={{ color: 'var(--foreground)' }} className="truncate max-w-50">
-                  {decodeHtmlEntities(notice.title)}
+      <main className="mx-auto w-full max-w-[1200px] px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+        <nav className="mb-8 flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          <Link href="/" className="transition-colors hover:text-[var(--foreground)]">
+            首页
+          </Link>
+          <span>/</span>
+          <Link href="/notices" className="transition-colors hover:text-[var(--foreground)]">
+            公告
+          </Link>
+          <span>/</span>
+          <span className="truncate text-[var(--foreground)]">{title}</span>
+        </nav>
+
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-16">
+          <article className="min-w-0">
+            <header className="border-b border-[var(--rule-strong)] pb-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="border border-[var(--primary)]/40 bg-[var(--primary-light)] px-2 py-1 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--primary)]">
+                  {notice.category || '公告'}
                 </span>
-              </nav>
-              <header className="mb-8">
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {Array.isArray(notice.tags) &&
-                    notice.tags.map((tag: string) => {
-                      const style = TAG_STYLES[tag] || {
-                        bg: 'bg-gray-500/10',
-                        text: 'text-gray-400',
-                      };
-                      return (
-                        <span
-                          key={tag}
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${style.bg} ${style.text} border border-current/20`}
-                        >
-                          {tag}
-                        </span>
-                      );
-                    })}
-                </div>
-                <h1
-                  className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight mb-4 tracking-[-0.02em]"
-                  style={{ color: 'var(--foreground)' }}
-                >
-                  {decodeHtmlEntities(notice.title)}
-                </h1>
-                <div
-                  className="flex items-center gap-4 text-sm flex-wrap"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[18px]">calendar_today</span>
-                    <span>{new Date(notice.createdAt).toLocaleDateString('zh-CN')}</span>
-                  </div>
-                  <span className="w-1 h-1 rounded-full bg-[#9db9ab]"></span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[18px]">person</span>
-                    <span>{notice.author}</span>
-                  </div>
-                  <span className="w-1 h-1 rounded-full bg-[#9db9ab]"></span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[18px]">schedule</span>
-                    <span>{calculateReadingTime(notice.content)} 分钟阅读</span>
-                  </div>
-                </div>
-                {notice.lastEditorName && (
-                  <div
-                    className="mt-4 pt-4 text-xs"
-                    style={{
-                      borderTopColor: 'var(--border)',
-                      borderTopWidth: '1px',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    <span>最后编辑：{notice.lastEditorName}</span>
-                    {notice.updatedAt && notice.updatedAt !== notice.createdAt && (
-                      <span> • {new Date(notice.updatedAt).toLocaleDateString('zh-CN')}</span>
-                    )}
-                  </div>
-                )}
-              </header>
-              {notice.images && notice.images.length > 0 && (
-                <div className="my-10">
-                  <ImageCarousel
-                    images={notice.images}
-                    title={notice.title}
-                    showThumbnails={true}
-                  />
-                </div>
-              )}
-              <div
-                className="prose prose-lg max-w-none wrap-break-word whitespace-pre-wrap [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_strong]:font-bold [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:text-primary [&_p]:mb-4 [&_p]:wrap-break-word [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mt-8 [&_h2]:mb-4 [&_h2]:wrap-break-word [&_h3]:text-xl [&_h3]:font-bold [&_h3]:mt-6 [&_h3]:mb-3 [&_h3]:wrap-break-word [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2 [&_li]:wrap-break-word [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:p-4 [&_blockquote]:rounded-r-lg [&_blockquote]:my-8 [&_blockquote]:wrap-break-word"
-                style={{ color: 'var(--foreground)' }}
-                dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(notice.content) }}
-              />
-              <div
-                className="flex items-center justify-between pt-8 flex-wrap gap-4"
-                style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}
-              >
-                <Link
-                  href="/notices"
-                  className="inline-flex items-center gap-2 text-sm font-medium transition-colors"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  <span className="material-symbols-outlined text-lg">arrow_back</span>
-                  返回公告列表
-                </Link>
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    title="复制链接"
-                    className="p-2 rounded-full transition-colors"
-                    style={{
-                      color: copySuccess ? 'var(--primary)' : 'var(--text-secondary)',
-                      backgroundColor: copySuccess ? 'var(--primary-light)' : 'transparent',
-                    }}
-                    onClick={handleCopyLink}
-                  >
-                    <span className="material-symbols-outlined text-[20px]">
-                      {copySuccess ? 'check_circle' : 'link'}
+                {Array.isArray(notice.tags) &&
+                  notice.tags.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="border border-[var(--border)] px-2 py-1 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]"
+                    >
+                      {tag}
                     </span>
-                  </button>
-                  <button
-                    title="打印公告"
-                    className="p-2 rounded-full transition-colors"
-                    style={{ color: 'var(--text-secondary)' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--primary)';
-                      e.currentTarget.style.backgroundColor = 'var(--primary-light)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-secondary)';
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                    onClick={handlePrint}
-                  >
-                    <span className="material-symbols-outlined text-[20px]">print</span>
-                  </button>
-                  <button
-                    title="分享"
-                    className="p-2 rounded-full transition-colors"
-                    style={{ color: 'var(--text-secondary)' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--primary)';
-                      e.currentTarget.style.backgroundColor = 'var(--primary-light)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-secondary)';
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                    onClick={() => {
-                      alert('分享链接：' + window.location.href);
-                    }}
-                  >
-                    <span className="material-symbols-outlined text-[20px]">share</span>
-                  </button>
-                </div>
+                  ))}
+                {notice.pinned && (
+                  <span className="inline-flex items-center gap-1 border border-[var(--primary)]/40 px-2 py-1 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--primary)]">
+                    <span className="material-symbols-outlined text-[12px]">push_pin</span>
+                    置顶
+                  </span>
+                )}
               </div>
-            </article>
-            <aside className="hidden lg:block w-80 shrink-0">
-              <div className="sticky top-24 space-y-8">
-                <div
-                  className="rounded-xl border p-5 shadow-sm"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                >
-                  <h3
-                    className="text-sm font-bold uppercase tracking-wider mb-4"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    相关公告
-                  </h3>
-                  <div className="space-y-4">
-                    {relatedNotices.length > 0 ? (
-                      relatedNotices.map((relatedNotice, index) => (
-                        <div key={relatedNotice.$id}>
-                          {index > 0 && (
-                            <hr className="mb-4" style={{ borderColor: 'var(--border)' }} />
-                          )}
-                          <Link href={`/notices/${relatedNotice.$id}`} className="block group">
-                            <span
-                              className="text-xs mb-1 block"
-                              style={{ color: 'var(--primary)' }}
-                            >
-                              {new Date(relatedNotice.createdAt).toLocaleDateString('zh-CN')}
-                            </span>
-                            <h4
-                              className="text-sm font-bold transition-colors line-clamp-2"
-                              style={{ color: 'var(--foreground)' }}
-                            >
-                              {relatedNotice.title}
-                            </h4>
-                          </Link>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        暂无相关公告
-                      </p>
-                    )}
-                  </div>
-                  <Link
-                    href="/notices"
-                    className="inline-block mt-4 text-xs font-bold transition-colors"
-                    style={{ color: 'var(--primary)' }}
-                  >
-                    查看所有公告 →
-                  </Link>
-                </div>
-                <div
-                  className="rounded-xl border p-5 relative overflow-hidden"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                >
-                  <div
-                    className="absolute -right-4 -top-4 w-24 h-24 blur-2xl rounded-full"
-                    style={{ backgroundColor: 'var(--primary) / 0.2' }}
-                  ></div>
-                  <h3
-                    className="text-sm font-bold uppercase tracking-wider mb-4 relative z-10"
-                    style={{ color: 'var(--foreground)' }}
-                  >
-                    近期活动
-                  </h3>
-                  <div className="relative z-10">
-                    <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
-                      查看最新活动和报名信息
-                    </p>
-                    <Link href="/activities">
-                      <Button variant="secondary" size="sm" className="w-full">
-                        查看活动详情
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </aside>
-          </div>
-          <div
-            className="mt-12 pt-8"
-            style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}
-          >
-            <div
-              className="rounded-xl overflow-hidden"
-              style={{ backgroundColor: 'var(--surface)' }}
-            >
-              <div className="flex items-center gap-3 p-6 md:p-8">
-                <div
-                  className="size-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: 'var(--primary) / 0.2', color: 'var(--primary)' }}
-                >
-                  <span className="material-symbols-outlined">comment</span>
-                </div>
-                <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
-                  公告评论
-                </h3>
-                <span className="text-sm ml-auto" style={{ color: 'var(--text-secondary)' }}>
-                  {comments.length} 条评论
+
+              <h1 className="mt-6 font-display text-[clamp(2.1rem,5vw,3.5rem)] font-bold leading-[1.12] tracking-[-0.04em] text-[var(--foreground)]">
+                {title}
+              </h1>
+
+              <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[13px]">calendar_today</span>
+                  {formatDate(notice.publishedAt || notice.createdAt)}
                 </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[13px]">person</span>
+                  {notice.author}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[13px]">schedule</span>
+                  {calculateReadingTime(notice.content)} 分钟阅读
+                </span>
+              </div>
+
+              {notice.lastEditorName && (
+                <p className="mt-4 border-t border-[var(--border)] pt-4 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                  最后编辑：{notice.lastEditorName}
+                  {notice.updatedAt && notice.updatedAt !== notice.createdAt && (
+                    <span> · {formatDate(notice.updatedAt)}</span>
+                  )}
+                </p>
+              )}
+            </header>
+
+            {notice.images && notice.images.length > 0 && (
+              <div className="my-10">
+                <ImageCarousel images={notice.images} title={notice.title} showThumbnails={true} />
+              </div>
+            )}
+
+            <div
+              className="prose-editorial mt-10 max-w-none wrap-break-word"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtmlContent(notice.content) }}
+            />
+
+            <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--rule-strong)] pt-6">
+              <Link
+                href="/notices"
+                className="inline-flex items-center gap-2 border-b border-transparent pb-0.5 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+              >
+                <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+                返回公告列表
+              </Link>
+
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setShowComments(!showComments)}
-                  className="p-2 rounded-lg transition-colors"
-                  style={{ color: 'var(--primary)' }}
-                  title={showComments ? '隐藏评论' : '显示评论'}
+                  type="button"
+                  title="复制链接"
+                  onClick={handleCopyLink}
+                  className="inline-flex h-9 items-center gap-2 border border-[var(--border)] px-3 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
                 >
-                  <span className="material-symbols-outlined">
+                  <span className="material-symbols-outlined text-[15px]">
+                    {copySuccess ? 'check' : 'link'}
+                  </span>
+                  {copySuccess ? '已复制' : '复制链接'}
+                </button>
+                <button
+                  type="button"
+                  title="打印公告"
+                  onClick={handlePrint}
+                  className="inline-flex size-9 items-center justify-center border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                >
+                  <span className="material-symbols-outlined text-[15px]">print</span>
+                </button>
+              </div>
+            </div>
+
+            <section className="mt-12 border-t border-[var(--rule-strong)] pt-8">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-mono text-[12px] tracking-[0.14em] text-[var(--primary)]">
+                    COMMENTS
+                  </span>
+                  <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
+                    公告评论
+                  </h2>
+                  <span className="font-mono text-[12px] text-[var(--text-tertiary)]">
+                    {String(comments.length).padStart(2, '0')} 条
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowComments(!showComments)}
+                  className="inline-flex items-center gap-1.5 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] transition-colors hover:text-[var(--primary)]"
+                >
+                  {showComments ? '收起' : '展开'}
+                  <span className="material-symbols-outlined text-[15px]">
                     {showComments ? 'expand_less' : 'expand_more'}
                   </span>
                 </button>
               </div>
+
               {showComments && (
-                <>
+                <div className="pt-6">
                   {isLoadingComments ? (
-                    <div className="text-center py-8 px-6 md:px-8">
-                      <Loading size="md" text="加载评论..." />
+                    <div className="py-8 text-center">
+                      <Loading size="md" text="加载评论…" />
                     </div>
                   ) : (
-                    <div className="px-6 md:px-8 pb-6 md:pb-8">
-                      <div className="mb-8">
-                        <CommentList
-                          comments={comments}
-                          contentType="notice"
-                          contentId={notice?.$id || ''}
-                          onCommentDeleted={() => notice?.$id && loadComments(notice.$id)}
-                        />
-                      </div>
-                      <div
-                        className="pt-6"
-                        style={{ borderTopColor: 'var(--border)', borderTopWidth: '1px' }}
-                      >
-                        <h4
-                          className="text-sm font-bold mb-4 flex items-center gap-2"
-                          style={{ color: 'var(--foreground)' }}
-                        >
-                          <span className="material-symbols-outlined text-lg">edit_note</span>
+                    <>
+                      <CommentList
+                        comments={comments}
+                        contentType="notice"
+                        contentId={notice?.$id || ''}
+                        onCommentDeleted={() => notice?.$id && loadComments(notice.$id)}
+                      />
+
+                      <div className="mt-8 border-t border-[var(--border)] pt-6">
+                        <h3 className="mb-4 flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]">
+                          <span className="material-symbols-outlined text-[15px] text-[var(--primary)]">
+                            edit_note
+                          </span>
                           发表评论
-                        </h4>
+                        </h3>
                         <CommentForm
                           contentType="notice"
                           contentId={notice?.$id || ''}
                           onCommentSubmitted={() => notice?.$id && loadComments(notice.$id)}
                         />
                       </div>
-                    </div>
+                    </>
                   )}
-                </>
+                </div>
               )}
+            </section>
+          </article>
+
+          <aside className="hidden lg:block">
+            <div className="sticky top-[98px] border border-[var(--rule-strong)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+                <span>RELATED / 相关公告</span>
+                <span className="text-[var(--primary)]">
+                  {String(relatedNotices.length).padStart(2, '0')}
+                </span>
+              </div>
+
+              {relatedNotices.length > 0 ? (
+                relatedNotices.map((relatedNotice, index) => (
+                  <Link
+                    key={relatedNotice.$id}
+                    href={`/notices/${relatedNotice.$id}`}
+                    className="group grid grid-cols-[20px_minmax(0,1fr)] gap-3 border-b border-[var(--border)] px-4 py-4 transition-colors hover:bg-[var(--primary-light)]"
+                  >
+                    <span className="pt-0.5 font-mono text-[12px] text-[var(--primary)]">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-display text-[14px] font-semibold leading-[1.5] text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]">
+                        {decodeHtmlEntities(relatedNotice.title)}
+                      </span>
+                      <span className="mt-1.5 block font-mono text-[12px] tracking-[0.06em] text-[var(--text-tertiary)]">
+                        {formatDate(relatedNotice.publishedAt || relatedNotice.createdAt)}
+                      </span>
+                    </span>
+                  </Link>
+                ))
+              ) : (
+                <p className="px-4 py-8 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                  暂无相关公告。
+                </p>
+              )}
+
+              <Link
+                href="/notices"
+                className="flex items-center justify-between px-4 py-3.5 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] transition-colors hover:text-[var(--primary)]"
+              >
+                查看所有公告
+                <span>→</span>
+              </Link>
             </div>
-          </div>
+
+            <Link
+              href="/activities"
+              className="group mt-5 block border border-[var(--rule-strong)] p-4 transition-colors hover:bg-[var(--primary-light)]"
+            >
+              <span className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--primary)]">
+                UPCOMING / 近期活动
+              </span>
+              <span className="mt-3 block font-display text-[17px] font-semibold leading-[1.4] text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]">
+                查看最新活动与报名信息 →
+              </span>
+            </Link>
+          </aside>
         </div>
       </main>
     </StudentLayout>

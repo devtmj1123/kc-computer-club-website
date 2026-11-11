@@ -1,32 +1,14 @@
 import { NextResponse } from 'next/server';
-import { serverDatabases } from '@/services/appwrite-server';
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
-const USERS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION || '';
-const RESET_TOKEN_EXPIRY = 24 * 60 * 60 * 1000;
-const RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || process.env.ADMIN_SESSION_SECRET || '';
+import { verifyResetToken } from '@/lib/reset-token';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
+import {
+  getClientIp,
+  rateLimit,
+  rateLimitResponse,
+} from '@/lib/rate-limit';
+
 const DEFAULT_STUDENT_PASSWORD = '11111111';
-function verifyResetTokenSignature(token: string): { userId: string; email: string; timestamp: number } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8');
-    const parsed = JSON.parse(decoded);
-    const { data, signature } = parsed;
-    if (!data || !signature) return null;
-    const expectedSignature = crypto
-      .createHmac('sha256', RESET_TOKEN_SECRET)
-      .update(data)
-      .digest('hex');
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
-      return null;
-    }
-    const payload = JSON.parse(data) as { userId: string; email: string; timestamp: number };
-    if (!payload.userId || !payload.email || !payload.timestamp) return null;
-    return payload;
-  } catch {
-    return null;
-  }
-}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -37,41 +19,40 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const tokenData = verifyResetTokenSignature(token);
-    if (!tokenData) {
+    const ip = getClientIp(request);
+    const limit = rateLimit(`reset-password:${ip}`, 10, 15 * 60 * 1000);
+    if (!limit.allowed) {
+      return rateLimitResponse(limit.retryAfter);
+    }
+    const tokenResult = verifyResetToken(token);
+    if (!tokenResult.ok) {
       return NextResponse.json(
-        { error: '无效的重置链接' },
+        { error: tokenResult.error },
         { status: 400 }
       );
     }
-    const { userId, email, timestamp } = tokenData;
-    const currentTime = Date.now();
-    const tokenAge = currentTime - timestamp;
-    if (tokenAge > RESET_TOKEN_EXPIRY) {
+
+    const { userId, email } = tokenResult.data;
+    const admin = getSupabaseAdminClient();
+    const { data: profile, error: profileError } = await admin
+      .from('profiles')
+      .select('id, email, role, is_active')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (
+      profileError ||
+      !profile ||
+      profile.role !== 'student' ||
+      profile.is_active === false ||
+      String(profile.email).toLowerCase() !== String(email).toLowerCase()
+    ) {
       return NextResponse.json(
-        { error: '重置链接已过期。请重新申请。' },
-        { status: 401 }
+        { error: '无效的重置请求' },
+        { status: 400 }
       );
     }
-    try {
-      const userRecord = await serverDatabases.getDocument(
-        APPWRITE_DATABASE_ID,
-        USERS_COLLECTION_ID,
-        tokenData.userId
-      );
-      if (!userRecord || userRecord.email !== tokenData.email) {
-        return NextResponse.json(
-          { error: '无效的重置请求' },
-          { status: 400 }
-        );
-      }
-    } catch (err) {
-      console.error('查询用户失败:', err);
-      return NextResponse.json(
-        { error: '用户不存在或已被删除' },
-        { status: 404 }
-      );
-    }
+
     const passwordErrors: string[] = [];
     if (newPassword.length < 6) {
       passwordErrors.push('密码至少需要 6 个字符');
@@ -97,39 +78,32 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    let hashedPassword: string;
-    try {
-      hashedPassword = await bcrypt.hash(newPassword, 10);
-    } catch (err) {
-      console.error('密码哈希失败:', err);
-      return NextResponse.json(
-        { error: '密码处理失败，请稍后重试' },
-        { status: 500 }
-      );
-    }
-    try {
-      await serverDatabases.updateDocument(
-        APPWRITE_DATABASE_ID,
-        USERS_COLLECTION_ID,
-        tokenData.userId,
-        {
-          passwordHash: hashedPassword,
-          requirePasswordChange: false,
-          updatedAt: new Date().toISOString(),
-        }
-      );
-      console.log(`密码重置成功: ${tokenData.email} (用户ID: ${tokenData.userId})`);
-      return NextResponse.json({
-        success: true,
-        message: '密码重置成功。请使用新密码登录。',
-      });
-    } catch (err) {
-      console.error('更新密码失败:', err);
+
+    const { error: authError } = await admin.auth.admin.updateUserById(
+      profile.id,
+      { password: newPassword }
+    );
+    if (authError) {
+      console.error('更新重置密码失败:', authError.message);
       return NextResponse.json(
         { error: '密码更新失败，请稍后重试' },
         { status: 500 }
       );
     }
+
+    const { error: profileUpdateError } = await admin
+      .from('profiles')
+      .update({ require_password_change: false })
+      .eq('id', profile.id);
+    if (profileUpdateError) {
+      console.error('更新密码重置状态失败:', profileUpdateError.message);
+    }
+
+    console.log(`密码重置成功: ${profile.email} (用户ID: ${profile.id})`);
+    return NextResponse.json({
+      success: true,
+      message: '密码重置成功。请使用新密码登录。',
+    });
   } catch (error) {
     console.error('重置密码 API 错误:', error);
     return NextResponse.json(

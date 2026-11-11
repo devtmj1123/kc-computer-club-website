@@ -1,31 +1,26 @@
-import { uploadImage } from '@/services/storage.service';
 import { NextRequest, NextResponse } from 'next/server';
+import { getImageUrl, uploadImage } from '@/services/storage.service';
 import { requireAdminSession } from '@/lib/admin-session';
+
 export async function POST(request: NextRequest) {
   const authError = requireAdminSession(request);
   if (authError) return authError;
 
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as File | null;
     if (!file) {
-      return NextResponse.json(
-        { error: '文件未提供' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '文件未提供' }, { status: 400 });
     }
-    const fileId = await uploadImage(file);
-    const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '';
-    const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '';
-    const bucketId = process.env.NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID || '';
-    const url = `${endpoint}/storage/buckets/${bucketId}/files/${fileId}/preview?project=${projectId}&width=1200&height=800&gravity=center`;
+
+    const path = await uploadImage(file, 'public-assets', 'uploads');
     return NextResponse.json({
       success: true,
-      fileId,
+      fileId: path,
       fileName: file.name,
       fileSize: file.size,
       mimeType: file.type,
-      url,
+      url: getImageUrl(path),
     });
   } catch (error: unknown) {
     const err = error as Error & { message?: string };

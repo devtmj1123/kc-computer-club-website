@@ -1,8 +1,4 @@
-import { databases } from '@/services/appwrite';
-import { ID, Query } from 'appwrite';
-
-const APPWRITE_DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || '';
-const NOTICES_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_NOTICES_COLLECTION || '';
+import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export interface Notice {
   $id: string;
@@ -16,7 +12,7 @@ export interface Notice {
   status: 'draft' | 'published';
   visibility: 'public' | 'internal';
   images?: string[];
-  tags?: string;
+  tags?: string[];
   pinned?: boolean;
   publishedAt?: string;
   createdAt: string;
@@ -49,29 +45,121 @@ export interface UpdateNoticeInput {
   pinned?: boolean;
 }
 
-export async function getAllNotices(onlyPublished = false, visibility: 'public' | 'all' = 'all'): Promise<Notice[]> {
+interface NoticeImageRow {
+  url: string;
+  sort_order: number;
+}
+
+interface NoticeTagRow {
+  tag: string;
+}
+
+interface NoticeRow {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  author_id: string | null;
+  author_name: string;
+  last_editor_id: string | null;
+  last_editor_name: string | null;
+  status: 'draft' | 'published';
+  visibility: 'public' | 'internal';
+  pinned: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+  notice_images?: NoticeImageRow[] | null;
+  notice_tags?: NoticeTagRow[] | null;
+}
+
+const NOTICE_SELECT =
+  'id, title, content, category, author_id, author_name, last_editor_id, last_editor_name, status, visibility, pinned, published_at, created_at, updated_at, notice_images(url, sort_order), notice_tags(tag)';
+
+function parseNotice(row: NoticeRow): Notice {
+  return {
+    $id: row.id,
+    title: row.title,
+    content: row.content,
+    category: row.category,
+    author: row.author_name,
+    authorId: row.author_id || '',
+    lastEditorId: row.last_editor_id || undefined,
+    lastEditorName: row.last_editor_name || undefined,
+    status: row.status,
+    visibility: row.visibility,
+    images: (row.notice_images ?? [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((image) => image.url),
+    tags: (row.notice_tags ?? []).map((tag) => tag.tag),
+    pinned: row.pinned,
+    publishedAt: row.published_at || undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+async function replaceImages(noticeId: string, images: string[]): Promise<void> {
+  const admin = getSupabaseAdminClient();
+  const { error: deleteError } = await admin
+    .from('notice_images')
+    .delete()
+    .eq('notice_id', noticeId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (images.length === 0) return;
+
+  const { error } = await admin.from('notice_images').insert(
+    images.map((url, index) => ({
+      notice_id: noticeId,
+      url,
+      sort_order: index,
+    }))
+  );
+  if (error) throw new Error(error.message);
+}
+
+async function replaceTags(noticeId: string, tags: string[]): Promise<void> {
+  const admin = getSupabaseAdminClient();
+  const { error: deleteError } = await admin
+    .from('notice_tags')
+    .delete()
+    .eq('notice_id', noticeId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  const unique = Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)));
+  if (unique.length === 0) return;
+
+  const { error } = await admin.from('notice_tags').insert(
+    unique.map((tag) => ({ notice_id: noticeId, tag }))
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function getAllNotices(
+  onlyPublished = false,
+  visibility: 'public' | 'all' = 'all'
+): Promise<Notice[]> {
   try {
-    const queries: ReturnType<typeof Query.equal>[] = [];
+    const admin = getSupabaseAdminClient();
+    let query = admin
+      .from('notices')
+      .select(NOTICE_SELECT)
+      .order('pinned', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (onlyPublished) {
-      queries.push(Query.equal('status', 'published'));
+      query = query.eq('status', 'published');
     }
-
     if (visibility === 'public') {
-      queries.push(Query.equal('visibility', 'public'));
+      query = query.eq('visibility', 'public');
     }
 
-    const response = await databases.listDocuments(
-      APPWRITE_DATABASE_ID,
-      NOTICES_COLLECTION_ID,
-      queries
-    );
-    const notices = response.documents.map(parseNotice) as unknown as Notice[];
-    return notices.sort((a, b) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+
+    return ((data ?? []) as unknown as NoticeRow[]).map(parseNotice);
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('获取公告列表失败:', err);
@@ -81,12 +169,17 @@ export async function getAllNotices(onlyPublished = false, visibility: 'public' 
 
 export async function getNoticeById(id: string): Promise<Notice> {
   try {
-    const notice = await databases.getDocument(
-      APPWRITE_DATABASE_ID,
-      NOTICES_COLLECTION_ID,
-      id
-    );
-    return parseNotice(notice) as unknown as Notice;
+    const admin = getSupabaseAdminClient();
+    const { data, error } = await admin
+      .from('notices')
+      .select(NOTICE_SELECT)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error('公告不存在');
+
+    return parseNotice(data as unknown as NoticeRow);
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('获取公告失败:', err);
@@ -94,81 +187,36 @@ export async function getNoticeById(id: string): Promise<Notice> {
   }
 }
 
-function parseNotice(doc: Record<string, unknown>): Notice {
-  let images: string[] = [];
-  if (doc.coverImage) {
-    const coverImageStr = (doc.coverImage as string).trim();
-    if (coverImageStr && coverImageStr !== '[]') {
-      try {
-        const parsed = JSON.parse(coverImageStr);
-        if (Array.isArray(parsed)) {
-          images = parsed.filter((img: unknown) => {
-            return typeof img === 'string' && img.trim().length > 0;
-          });
-        } else if (typeof parsed === 'string' && parsed.trim().length > 0) {
-          images = [parsed.trim()];
-        }
-      } catch {
-        if (typeof doc.coverImage === 'string' && coverImageStr.length > 0) {
-          images = [coverImageStr];
-        }
-      }
-    }
-  }
-
-  let tags: string[] = [];
-  if (doc.tags) {
-    const tagsStr = (doc.tags as string).trim();
-    if (tagsStr && tagsStr !== '[]') {
-      try {
-        const parsed = JSON.parse(tagsStr);
-        if (Array.isArray(parsed)) {
-          tags = parsed.filter((tag: unknown) => typeof tag === 'string' && tag.trim().length > 0);
-        }
-      } catch {
-        tags = [];
-      }
-    }
-  }
-
-  return {
-    ...doc,
-    images,
-    tags,
-    pinned: !!doc.pinned,
-  } as unknown as Notice;
-}
-
 export async function createNotice(input: CreateNoticeInput): Promise<Notice> {
   try {
-    const now = new Date().toISOString();
-    const noticeData: Record<string, unknown> = {
-      title: input.title,
-      content: input.content,
-      category: input.category || '其他',
-      author: input.author,
-      authorId: input.authorId,
-      status: input.status || 'draft',
-      visibility: input.visibility || 'public',
-      tags: input.tags ? JSON.stringify(input.tags) : '[]',
-      createdAt: now,
-      updatedAt: now,
-      publishedAt: input.status === 'published' ? now : null,
-    };
+    const admin = getSupabaseAdminClient();
+    const status = input.status || 'draft';
+    const { data, error } = await admin
+      .from('notices')
+      .insert({
+        title: input.title,
+        content: input.content,
+        category: input.category || '其他',
+        author_id: input.authorId || null,
+        author_name: input.author,
+        status,
+        visibility: input.visibility || 'public',
+        published_at: status === 'published' ? new Date().toISOString() : null,
+      })
+      .select('id')
+      .single();
 
+    if (error) throw new Error(error.message);
+
+    const noticeId = (data as { id: string }).id;
     if (input.images && input.images.length > 0) {
-      noticeData.coverImage = JSON.stringify(input.images);
-    } else {
-      noticeData.coverImage = '[]';
+      await replaceImages(noticeId, input.images);
+    }
+    if (input.tags && input.tags.length > 0) {
+      await replaceTags(noticeId, input.tags);
     }
 
-    const notice = await databases.createDocument(
-      APPWRITE_DATABASE_ID,
-      NOTICES_COLLECTION_ID,
-      ID.unique(),
-      noticeData
-    );
-    return parseNotice(notice) as unknown as Notice;
+    return getNoticeById(noticeId);
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('创建公告失败:', err);
@@ -181,41 +229,43 @@ export async function updateNotice(
   input: UpdateNoticeInput
 ): Promise<Notice> {
   try {
-    const now = new Date().toISOString();
+    const admin = getSupabaseAdminClient();
     const updateData: Record<string, unknown> = {};
 
-    if (input.title) updateData.title = input.title;
-    if (input.content) updateData.content = input.content;
-    if (input.category) updateData.category = input.category;
-    if (input.visibility) updateData.visibility = input.visibility;
-    if (input.status) {
+    if (input.title !== undefined) updateData.title = input.title;
+    if (input.content !== undefined) updateData.content = input.content;
+    if (input.category !== undefined) updateData.category = input.category;
+    if (input.visibility !== undefined) updateData.visibility = input.visibility;
+    if (input.status !== undefined) {
       updateData.status = input.status;
       if (input.status === 'published') {
-        updateData.publishedAt = now;
+        updateData.published_at = new Date().toISOString();
       }
     }
-
-    if (input.lastEditorId) updateData.lastEditorId = input.lastEditorId;
-    if (input.lastEditorName) updateData.lastEditorName = input.lastEditorName;
-
-    if (input.images !== undefined) {
-      if (input.images && input.images.length > 0) {
-        updateData.coverImage = JSON.stringify(input.images);
-      } else {
-        updateData.coverImage = '[]';
-      }
+    if (input.lastEditorId !== undefined) {
+      updateData.last_editor_id = input.lastEditorId || null;
     }
-
-    if (input.tags) updateData.tags = JSON.stringify(input.tags);
+    if (input.lastEditorName !== undefined) {
+      updateData.last_editor_name = input.lastEditorName || null;
+    }
     if (input.pinned !== undefined) updateData.pinned = input.pinned;
 
-    const notice = await databases.updateDocument(
-      APPWRITE_DATABASE_ID,
-      NOTICES_COLLECTION_ID,
-      id,
-      updateData
-    );
-    return parseNotice(notice) as unknown as Notice;
+    if (Object.keys(updateData).length > 0) {
+      const { error } = await admin
+        .from('notices')
+        .update(updateData)
+        .eq('id', id);
+      if (error) throw new Error(error.message);
+    }
+
+    if (input.images !== undefined) {
+      await replaceImages(id, input.images);
+    }
+    if (input.tags !== undefined) {
+      await replaceTags(id, input.tags);
+    }
+
+    return getNoticeById(id);
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('更新公告失败:', err);
@@ -225,11 +275,9 @@ export async function updateNotice(
 
 export async function deleteNotice(id: string): Promise<void> {
   try {
-    await databases.deleteDocument(
-      APPWRITE_DATABASE_ID,
-      NOTICES_COLLECTION_ID,
-      id
-    );
+    const admin = getSupabaseAdminClient();
+    const { error } = await admin.from('notices').delete().eq('id', id);
+    if (error) throw new Error(error.message);
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('删除公告失败:', err);
@@ -239,13 +287,15 @@ export async function deleteNotice(id: string): Promise<void> {
 
 export async function getNoticesByCategory(category: string): Promise<Notice[]> {
   try {
-    const response = await databases.listDocuments(
-      APPWRITE_DATABASE_ID,
-      NOTICES_COLLECTION_ID,
-      [Query.equal('category', category)]
-    );
-    const notices = response.documents.map(parseNotice) as unknown as Notice[];
-    return notices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const admin = getSupabaseAdminClient();
+    const { data, error } = await admin
+      .from('notices')
+      .select(NOTICE_SELECT)
+      .eq('category', category)
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as unknown as NoticeRow[]).map(parseNotice);
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('按分类获取公告失败:', err);
@@ -255,13 +305,15 @@ export async function getNoticesByCategory(category: string): Promise<Notice[]> 
 
 export async function searchNotices(query: string): Promise<Notice[]> {
   try {
-    const response = await databases.listDocuments(
-      APPWRITE_DATABASE_ID,
-      NOTICES_COLLECTION_ID,
-      [Query.search('title', query)]
-    );
-    const notices = response.documents.map(parseNotice) as unknown as Notice[];
-    return notices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const admin = getSupabaseAdminClient();
+    const { data, error } = await admin
+      .from('notices')
+      .select(NOTICE_SELECT)
+      .ilike('title', `%${query}%`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as unknown as NoticeRow[]).map(parseNotice);
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('搜索公告失败:', err);

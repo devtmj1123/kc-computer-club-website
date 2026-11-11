@@ -1,16 +1,16 @@
 'use client';
+
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { StudentLayout } from '@/components/layout/StudentLayout';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import { Loading } from '@/components/ui/Loading';
 import { CommentForm } from '@/components/comments/CommentForm';
 import { CommentList } from '@/components/comments/CommentList';
 import { useAuth } from '@/contexts/AuthContext';
 import { Comment } from '@/services/comment.service';
+import { decodeHtmlEntities } from '@/lib/utils';
+
 interface Activity {
   id?: string;
   $id?: string;
@@ -25,87 +25,74 @@ interface Activity {
   maxParticipants: number;
   currentParticipants: number;
   status: string;
-  coverImage: string;
+  coverImage?: string;
   allowedGrades?: string;
+  visibility?: 'public' | 'internal';
 }
-const YEAR_OPTIONS = [
-  { value: '', label: '选择年级' },
-  { value: 'junior_1', label: '初一' },
-  { value: 'junior_2', label: '初二' },
-  { value: 'junior_3', label: '初三' },
-  { value: 'senior_1_science', label: '高一理科' },
-  { value: 'senior_2_science', label: '高二理科' },
-  { value: 'senior_3_science', label: '高三理科' },
-  { value: 'senior_1_commerce', label: '高一纯商' },
-  { value: 'senior_2_commerce', label: '高二纯商' },
-  { value: 'senior_3_commerce', label: '高三纯商' },
-  { value: 'senior_1_arts', label: '高一文' },
-  { value: 'senior_2_arts', label: '高二文' },
-  { value: 'senior_3_arts', label: '高三文' },
-];
+
+function formatDateParts(value: string): { day: string; month: string; full: string; time: string } {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return { day: '--', month: 'TBA', full: '待定', time: '' };
+  }
+  return {
+    day: String(date.getDate()).padStart(2, '0'),
+    month: date.toLocaleDateString('en-US', { month: 'short' }),
+    full: `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
+      date.getDate()
+    ).padStart(2, '0')}`,
+    time: date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+  };
+}
+
+function stripHtml(value: string): string {
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export default function ActivityDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const { user } = useAuth();
   const [activity, setActivity] = useState<Activity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [showComments, setShowComments] = useState(true);
-  const [formData, setFormData] = useState({
-    name: '',
-    studentId: '',
-    email: '',
-    yearMajor: '',
-    className: '',
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  useEffect(() => {
-    if (user?.email) {
-      const emailPrefix = user.email.replace(/[^0-9]/g, '').slice(0, 6);
-      setFormData((prev) => ({
-        ...prev,
-        name: emailPrefix,
-        studentId: emailPrefix,
-        email: user.email,
-      }));
-    }
-  }, [user?.email]);
+
+  const activityId = Array.isArray(params.id) ? params.id[0] : String(params.id);
+
   useEffect(() => {
     const loadActivity = async () => {
       try {
         setIsLoading(true);
-        const activityId = Array.isArray(params.id) ? params.id[0] : String(params.id);
         const response = await fetch(`/api/activities/${activityId}`);
         const data = await response.json();
         if (data.success && data.activity) {
-          const activity = data.activity;
-          const signupDeadline = activity.signupDeadline ? new Date(activity.signupDeadline) : null;
+          const raw = data.activity;
+          const signupDeadline = raw.signupDeadline ? new Date(raw.signupDeadline) : null;
           const isDeadlinePassed = signupDeadline ? signupDeadline < new Date() : false;
           setActivity({
-            id: activity.$id,
-            $id: activity.$id,
-            title: activity.title,
-            description: activity.description,
-            category: activity.category,
-            startTime: activity.startTime,
-            endTime: activity.endTime,
-            signupDeadline: activity.signupDeadline,
-            location: activity.location,
-            organizer: activity.organizer || null,
-            maxParticipants: activity.maxParticipants || 0,
-            currentParticipants: activity.currentParticipants || 0,
-            status: isDeadlinePassed ? 'closed' : 'published',
-            coverImage:
-              activity.coverImage ||
-              'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800&h=450&fit=crop',
-            allowedGrades: activity.allowedGrades,
+            id: raw.$id,
+            $id: raw.$id,
+            title: raw.title,
+            description: raw.description,
+            category: raw.category,
+            startTime: raw.startTime,
+            endTime: raw.endTime,
+            signupDeadline: raw.signupDeadline,
+            location: raw.location,
+            organizer: raw.organizer || null,
+            maxParticipants: Number(raw.maxParticipants) || 0,
+            currentParticipants: Number(raw.currentParticipants) || 0,
+            status: raw.status === 'cancelled' ? 'cancelled' : isDeadlinePassed ? 'closed' : 'published',
+            coverImage: raw.coverImage || undefined,
+            allowedGrades: raw.allowedGrades,
+            visibility: raw.visibility === 'internal' ? 'internal' : 'public',
           });
-          loadComments(activity.$id);
+          loadComments(raw.$id);
         } else {
           setActivity(null);
         }
@@ -116,12 +103,15 @@ export default function ActivityDetailPage() {
         setIsLoading(false);
       }
     };
-    loadActivity();
-  }, [params.id]);
-  const loadComments = async (activityId: string) => {
+    if (activityId) {
+      loadActivity();
+    }
+  }, [activityId]);
+
+  const loadComments = async (id: string) => {
     try {
       setIsLoadingComments(true);
-      const response = await fetch(`/api/comments?contentType=activity&contentId=${activityId}`);
+      const response = await fetch(`/api/comments?contentType=activity&contentId=${id}`);
       const data = await response.json();
       if (data.success) {
         setComments(data.comments || []);
@@ -132,667 +122,406 @@ export default function ActivityDetailPage() {
       setIsLoadingComments(false);
     }
   };
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.yearMajor) {
-      newErrors.yearMajor = '请选择年级';
-    }
-    if (!formData.className.trim()) {
-      newErrors.className = '请输入班级';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) {
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const activityId = Array.isArray(params.id) ? params.id[0] : String(params.id);
-      const checkRes = await fetch(
-        `/api/signups?activityId=${activityId}&email=${encodeURIComponent(formData.email)}`
-      );
-      const checkData = await checkRes.json();
-      if (checkData.success && checkData.signups && checkData.signups.length > 0) {
-        setToastType('error');
-        setToastMessage('你已经报名过这个活动了！');
-        setShowToast(true);
-        setIsSubmitting(false);
-        return;
-      }
-      const response = await fetch('/api/signups', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          activityId: params.id,
-          activityTitle: activity?.title,
-          studentName: formData.name,
-          studentEmail: formData.email,
-          studentId: formData.studentId,
-          year: formData.yearMajor,
-          className: formData.className,
-        }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        setToastType('success');
-        setToastMessage('报名成功！我们将通过邮件发送确认信息。');
-        setShowToast(true);
-        setFormData({
-          name: '',
-          studentId: '',
-          email: '',
-          yearMajor: '',
-          className: '',
-        });
-        setTimeout(() => {
-          router.push('/activities');
-        }, 3000);
-      } else {
-        setToastType('error');
-        setToastMessage(data.error || '报名失败，请重试');
-        setShowToast(true);
-      }
-    } catch (err) {
-      console.error('报名失败:', err);
-      setToastType('error');
-      setToastMessage('网络错误，请重试');
-      setShowToast(true);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
   if (isLoading) {
     return (
       <StudentLayout>
-        <main
-          className="flex-1 flex items-center justify-center"
-          style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-        >
-          <Loading size="lg" text="加载活动详情..." />
+        <main className="flex items-center justify-center py-32">
+          <Loading size="lg" text="加载活动详情…" />
         </main>
       </StudentLayout>
     );
   }
+
   if (!activity) {
     return (
       <StudentLayout>
-        <main
-          className="flex-1 flex flex-col items-center justify-center py-20"
-          style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-        >
-          <span
-            className="material-symbols-outlined text-6xl mb-4"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            event_busy
-          </span>
-          <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+        <main className="mx-auto flex w-full max-w-[1200px] flex-col items-start px-4 py-24 sm:px-6 lg:px-8">
+          <div className="eyebrow">404 · NOT FOUND</div>
+          <h1 className="mt-5 font-display text-[clamp(2rem,5vw,3rem)] font-bold tracking-[-0.04em] text-[var(--foreground)]">
             活动不存在
           </h1>
-          <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-            请检查链接是否正确，或返回活动列表
+          <p className="mt-4 max-w-md text-[13px] leading-[1.9] text-[var(--text-secondary)]">
+            请检查链接是否正确，或返回活动列表浏览其他活动。
           </p>
-          <Link href="/activities">
-            <Button variant="primary" leftIcon="arrow_back">
-              返回活动列表
-            </Button>
+          <Link
+            href="/activities"
+            className="mt-8 inline-flex items-center gap-3 bg-[var(--primary)] px-4 py-2.5 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
+          >
+            <span className="text-[13px] leading-none">←</span>
+            返回活动列表
           </Link>
         </main>
       </StudentLayout>
     );
   }
+
+  const date = formatDateParts(activity.startTime);
+  const endTime = activity.endTime ? formatDateParts(activity.endTime).time : '';
+  const deadline = activity.signupDeadline ? formatDateParts(activity.signupDeadline) : null;
+  const now = Date.now();
+  const deadlinePassed = activity.signupDeadline
+    ? new Date(activity.signupDeadline).getTime() < now
+    : false;
+  const isFull =
+    activity.maxParticipants > 0 && activity.currentParticipants >= activity.maxParticipants;
+  const isCancelled = activity.status === 'cancelled';
+  const canSignup = !isCancelled && !deadlinePassed && !isFull;
+
   const capacityPercent =
     activity.maxParticipants > 0
-      ? Math.round((activity.currentParticipants / activity.maxParticipants) * 100)
+      ? Math.min(
+          100,
+          Math.round((activity.currentParticipants / activity.maxParticipants) * 100)
+        )
       : 0;
-  const formatDateTime = (isoString: string) => {
-    if (!isoString) return '未知';
-    const date = new Date(isoString);
-    return `${date.toLocaleDateString('zh-CN')} ${date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
-  };
-  const getDeadlineStatus = () => {
-    if (!activity.signupDeadline) return { text: '未设置', color: 'text-gray-400' };
-    const deadline = new Date(activity.signupDeadline);
-    const now = new Date();
-    const daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysRemaining < 0) {
-      return { text: '已截止', color: 'text-red-400' };
-    } else if (daysRemaining === 0) {
-      return { text: '今天截止', color: 'text-amber-400' };
-    } else if (daysRemaining <= 3) {
-      return { text: `还剩 ${daysRemaining} 天`, color: 'text-amber-400' };
-    } else {
-      return { text: `还剩 ${daysRemaining} 天`, color: 'text-[#13ec80]' };
-    }
-  };
-  const deadlineStatus = getDeadlineStatus();
+
+  const statusLabel = isCancelled
+    ? '已取消'
+    : deadlinePassed
+      ? '已截止'
+      : isFull
+        ? '名额已满'
+        : '开放报名';
+
   return (
     <StudentLayout>
-      <main
-        className="flex-1 w-full max-w-300 mx-auto px-4 sm:px-6 lg:px-8 py-8"
-        style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-      >
-        <nav
-          className="flex items-center text-sm mb-6 font-medium"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <Link href="/" className="transition-colors" style={{ color: 'var(--text-secondary)' }}>
+      <main className="mx-auto w-full max-w-[1200px] px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+        <nav className="mb-8 flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          <Link href="/" className="transition-colors hover:text-[var(--foreground)]">
             首页
           </Link>
-          <span className="mx-2">/</span>
-          <Link
-            href="/activities"
-            className="transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
-          >
+          <span>/</span>
+          <Link href="/activities" className="transition-colors hover:text-[var(--foreground)]">
             活动
           </Link>
-          <span className="mx-2">/</span>
-          <span style={{ color: 'var(--foreground)' }} className="truncate max-w-50">
-            {activity.title}
+          <span>/</span>
+          <span className="truncate text-[var(--foreground)]">
+            {decodeHtmlEntities(activity.title)}
           </span>
         </nav>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-7">
-            <div
-              className="rounded-xl shadow-sm overflow-hidden border"
-              style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-            >
-              <div
-                className="h-48 md:h-64 w-full bg-cover bg-center relative"
-                style={{ backgroundImage: `url(${activity.coverImage})` }}
+
+        <header className="grid grid-cols-1 gap-8 border-b border-[var(--rule-strong)] pb-10 lg:grid-cols-[120px_minmax(0,1fr)] lg:gap-12">
+          <div className="flex h-fit w-24 flex-col items-center border border-[var(--rule-strong)] py-3">
+            <span className="font-display text-[42px] font-bold leading-none tracking-[-0.04em] text-[var(--foreground)]">
+              {date.day}
+            </span>
+            <span className="mt-2 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+              {date.month}
+            </span>
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="border border-[var(--primary)]/40 bg-[var(--primary-light)] px-2 py-1 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--primary)]">
+                {activity.category || '活动'}
+              </span>
+              <span
+                className={`border px-2 py-1 font-mono text-[12px] uppercase tracking-[0.1em] ${
+                  canSignup
+                    ? 'border-[var(--primary)]/40 text-[var(--primary)]'
+                    : 'border-[var(--border)] text-[var(--text-tertiary)]'
+                }`}
               >
-                <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent flex items-end p-6">
-                  <div className="w-full">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
-                          activity.status === 'published'
-                            ? 'bg-[#13ec80] text-[#102219]'
-                            : 'bg-red-500 text-white'
-                        }`}
-                      >
-                        {activity.status === 'published' ? '开放报名' : '已截止'}
-                      </span>
-                      {activity.maxParticipants > 0 && (
-                        <span className="px-3 py-1 rounded-full bg-black/50 text-white border border-white/20 text-xs font-medium backdrop-blur-sm">
-                          容量: {activity.currentParticipants}/{activity.maxParticipants}
-                        </span>
-                      )}
-                    </div>
-                    <h1 className="text-white text-2xl md:text-3xl font-bold tracking-tight">
-                      {activity.title}
-                    </h1>
-                  </div>
-                </div>
+                {statusLabel}
+              </span>
+              {activity.visibility === 'internal' && (
+                <span className="border border-[var(--border)] px-2 py-1 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]">
+                  仅限会员
+                </span>
+              )}
+            </div>
+
+            <h1 className="mt-5 font-display text-[clamp(2.1rem,5vw,3.5rem)] font-bold leading-[1.12] tracking-[-0.04em] text-[var(--foreground)]">
+              {decodeHtmlEntities(activity.title)}
+            </h1>
+
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[13px]">schedule</span>
+                {date.full}
+                {date.time && ` · ${date.time}`}
+                {endTime && ` – ${endTime}`}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[13px]">location_on</span>
+                {activity.location}
+              </span>
+              {activity.organizer && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[13px]">person</span>
+                  {activity.organizer}
+                </span>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <div className="mt-10 grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16">
+          <div className="min-w-0">
+            {activity.coverImage && (
+              <div className="mb-10 border border-[var(--border)]">
+                <img
+                  src={activity.coverImage}
+                  alt={activity.title}
+                  className="h-auto w-full object-cover"
+                />
               </div>
-              <div className="p-6 md:p-8">
-                <div
-                  className="flex flex-wrap gap-y-4 gap-x-8 pb-6 border-b mb-6"
-                  style={{ borderColor: 'var(--border)' }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="size-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: 'var(--primary) / 0.2', color: 'var(--primary)' }}
-                    >
-                      <span className="material-symbols-outlined">schedule</span>
-                    </div>
-                    <div>
-                      <p
-                        className="text-xs font-medium uppercase"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        日期时间
-                      </p>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-                        {formatDateTime(activity.startTime)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="size-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: 'var(--primary) / 0.2', color: 'var(--primary)' }}
-                    >
-                      <span className="material-symbols-outlined">location_on</span>
-                    </div>
-                    <div>
-                      <p
-                        className="text-xs font-medium uppercase"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        地点
-                      </p>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-                        {activity.location}
-                      </p>
-                    </div>
-                  </div>
-                  {activity.organizer && (
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="size-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: 'var(--primary) / 0.2', color: 'var(--primary)' }}
-                      >
-                        <span className="material-symbols-outlined">person</span>
-                      </div>
-                      <div>
-                        <p
-                          className="text-xs font-medium uppercase"
-                          style={{ color: 'var(--text-secondary)' }}
-                        >
-                          组织者
-                        </p>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-                          {activity.organizer}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="size-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: 'var(--primary) / 0.2', color: 'var(--primary)' }}
-                    >
-                      <span className="material-symbols-outlined">event</span>
-                    </div>
-                    <div>
-                      <p
-                        className="text-xs font-medium uppercase"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        报名截止
-                      </p>
-                      <p
-                        className="text-sm font-semibold"
-                        style={{
-                          color:
-                            deadlineStatus.color === 'text-red-400'
-                              ? '#ff6b6b'
-                              : deadlineStatus.color === 'text-amber-400'
-                                ? '#ffd43b'
-                                : 'var(--primary)',
-                        }}
-                      >
-                        {deadlineStatus.text}
-                      </p>
-                    </div>
-                  </div>
+            )}
+
+            <section>
+              <div className="flex items-baseline gap-4 border-b border-[var(--rule-strong)] pb-4">
+                <span className="font-mono text-[12px] tracking-[0.14em] text-[var(--primary)]">
+                  01
+                </span>
+                <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
+                  活动详情
+                </h2>
+                <span className="hidden h-px flex-1 bg-[var(--border)] sm:block" />
+              </div>
+              <p className="mt-6 whitespace-pre-wrap text-[14px] leading-[1.95] text-[var(--text-secondary)]">
+                {decodeHtmlEntities(stripHtml(activity.description)) || '暂无活动描述。'}
+              </p>
+            </section>
+
+            <section className="mt-12">
+              <div className="flex items-baseline gap-4 border-b border-[var(--rule-strong)] pb-4">
+                <span className="font-mono text-[12px] tracking-[0.14em] text-[var(--primary)]">
+                  02
+                </span>
+                <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
+                  报名信息
+                </h2>
+                <span className="hidden h-px flex-1 bg-[var(--border)] sm:block" />
+              </div>
+
+              <dl className="mt-2">
+                <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-4 border-b border-[var(--border)] py-4">
+                  <dt className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    报名截止
+                  </dt>
+                  <dd className="text-[13px] font-medium text-[var(--foreground)]">
+                    {deadline
+                      ? `${deadline.full}${deadline.time ? ` · ${deadline.time}` : ''}`
+                      : '未设置截止时间'}
+                  </dd>
                 </div>
-                {activity.maxParticipants > 0 && (
-                  <div className="mb-6">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span style={{ color: 'var(--text-secondary)' }}>报名进度</span>
-                      <span className="font-medium" style={{ color: 'var(--foreground)' }}>
-                        {activity.currentParticipants}/{activity.maxParticipants} ({capacityPercent}
-                        %)
-                      </span>
-                    </div>
-                    <div
-                      className="w-full h-2 rounded-full overflow-hidden"
-                      style={{ backgroundColor: 'var(--border)' }}
-                    >
-                      <div
-                        className={`h-full rounded-full transition-all`}
-                        style={{
-                          width: `${Math.min(capacityPercent, 100)}%`,
-                          backgroundColor: capacityPercent >= 100 ? '#ff6b6b' : 'var(--primary)',
-                        }}
-                      />
-                    </div>
+                <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-4 border-b border-[var(--border)] py-4">
+                  <dt className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    名额
+                  </dt>
+                  <dd className="text-[13px] font-medium text-[var(--foreground)]">
+                    {activity.maxParticipants > 0
+                      ? `${activity.currentParticipants} / ${activity.maxParticipants} 人`
+                      : `不限名额 · 已报名 ${activity.currentParticipants} 人`}
+                  </dd>
+                </div>
+                {activity.allowedGrades && activity.allowedGrades !== '[]' && (
+                  <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-4 border-b border-[var(--border)] py-4">
+                    <dt className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                      开放年级
+                    </dt>
+                    <dd className="text-[13px] font-medium text-[var(--foreground)]">
+                      {(() => {
+                        try {
+                          const grades = JSON.parse(activity.allowedGrades || '[]');
+                          return Array.isArray(grades) && grades.length > 0 ? grades.join('、') : '全校';
+                        } catch {
+                          return '全校';
+                        }
+                      })()}
+                    </dd>
                   </div>
                 )}
-                <div className="prose prose-sm max-w-none">
-                  <p style={{ color: 'var(--foreground)' }}>{activity.description}</p>
-                  <h4 className="font-bold mt-6 mb-3" style={{ color: 'var(--foreground)' }}>
-                    活动须知：
-                  </h4>
-                  <ul
-                    className="list-disc pl-5 space-y-1 marker:text-primary"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    <li>请准时到达活动地点</li>
-                    <li>携带必要的设备（如工作坊需要笔记本电脑）</li>
-                    <li>如需取消报名，请提前24小时通知</li>
-                  </ul>
-                  {activity.category === '工作坊' && (
-                    <p
-                      className="mt-4 text-sm p-3 rounded-lg border flex items-start gap-2"
-                      style={{
-                        backgroundColor: 'var(--primary) / 0.1',
-                        borderColor: 'var(--primary) / 0.3',
-                        color: 'var(--primary)',
-                      }}
-                    >
-                      <span className="material-symbols-outlined text-lg">info</span>
-                      <span>工作坊期间请保持安静，尊重讲师和其他参与者。</span>
-                    </p>
-                  )}
+                <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-4 py-4">
+                  <dt className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    报名方式
+                  </dt>
+                  <dd className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                    {activity.visibility === 'internal'
+                      ? '本活动仅限会员报名，请先登录学生账号。'
+                      : '公开活动，校内外人员均可报名。报名需通过人机验证，并等待管理员审核。'}
+                  </dd>
                 </div>
-              </div>
-            </div>
-            <div
-              className="mt-8 rounded-xl shadow-sm overflow-hidden border p-6 md:p-8"
-              style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <div
-                  className="size-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: 'var(--primary) / 0.2', color: 'var(--primary)' }}
-                >
-                  <span className="material-symbols-outlined">comment</span>
+              </dl>
+
+              {activity.maxParticipants > 0 && (
+                <div className="mt-6">
+                  <div className="flex items-center justify-between font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    <span>报名进度</span>
+                    <span>{capacityPercent}%</span>
+                  </div>
+                  <div className="mt-2 h-[3px] w-full bg-[var(--border)]">
+                    <div
+                      className="h-full bg-[var(--primary)] transition-all"
+                      style={{ width: `${capacityPercent}%` }}
+                    />
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
-                  活动评论
-                </h3>
-                <span className="text-sm ml-auto" style={{ color: 'var(--text-secondary)' }}>
-                  {comments.length} 条评论
-                </span>
+              )}
+            </section>
+
+            <section className="mt-12 border-t border-[var(--rule-strong)] pt-8">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-mono text-[12px] tracking-[0.14em] text-[var(--primary)]">
+                    COMMENTS
+                  </span>
+                  <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
+                    活动评论
+                  </h2>
+                  <span className="font-mono text-[12px] text-[var(--text-tertiary)]">
+                    {String(comments.length).padStart(2, '0')} 条
+                  </span>
+                </div>
                 <button
+                  type="button"
                   onClick={() => setShowComments(!showComments)}
-                  className="p-2 rounded-lg transition-colors"
-                  style={{ color: 'var(--primary)' }}
-                  title={showComments ? '隐藏评论' : '显示评论'}
+                  className="inline-flex items-center gap-1.5 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] transition-colors hover:text-[var(--primary)]"
                 >
-                  <span className="material-symbols-outlined">
+                  {showComments ? '收起' : '展开'}
+                  <span className="material-symbols-outlined text-[15px]">
                     {showComments ? 'expand_less' : 'expand_more'}
                   </span>
                 </button>
               </div>
+
               {showComments && (
-                <>
+                <div className="pt-6">
                   {isLoadingComments ? (
-                    <div className="text-center py-8">
-                      <Loading size="md" text="加载评论..." />
+                    <div className="py-8 text-center">
+                      <Loading size="md" text="加载评论…" />
                     </div>
                   ) : (
                     <>
-                      <div className="mb-8">
-                        <CommentList
-                          comments={comments}
-                          contentType="activity"
-                          contentId={Array.isArray(params.id) ? params.id[0] : String(params.id)}
-                          onCommentDeleted={() =>
-                            loadComments(
-                              Array.isArray(params.id) ? params.id[0] : String(params.id)
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="border-t pt-6" style={{ borderColor: 'var(--border)' }}>
-                        <h4
-                          className="text-sm font-bold mb-4 flex items-center gap-2"
-                          style={{ color: 'var(--foreground)' }}
-                        >
-                          <span className="material-symbols-outlined text-lg">edit_note</span>
+                      <CommentList
+                        comments={comments}
+                        contentType="activity"
+                        contentId={activityId}
+                        onCommentDeleted={() => loadComments(activityId)}
+                      />
+                      <div className="mt-8 border-t border-[var(--border)] pt-6">
+                        <h3 className="mb-4 flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]">
+                          <span className="material-symbols-outlined text-[15px] text-[var(--primary)]">
+                            edit_note
+                          </span>
                           发表评论
-                        </h4>
+                        </h3>
                         <CommentForm
                           contentType="activity"
-                          contentId={Array.isArray(params.id) ? params.id[0] : String(params.id)}
-                          onCommentSubmitted={() =>
-                            loadComments(
-                              Array.isArray(params.id) ? params.id[0] : String(params.id)
-                            )
-                          }
+                          contentId={activityId}
+                          onCommentSubmitted={() => loadComments(activityId)}
                         />
                       </div>
                     </>
                   )}
-                </>
+                </div>
               )}
-            </div>
-            <div className="mt-6">
+            </section>
+
+            <div className="mt-10 border-t border-[var(--border)] pt-6">
               <Link
                 href="/activities"
-                className="inline-flex items-center gap-2 text-sm font-medium transition-colors"
-                style={{ color: 'var(--text-secondary)' }}
+                className="inline-flex items-center gap-2 border-b border-transparent pb-0.5 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
               >
-                <span className="material-symbols-outlined text-lg">arrow_back</span>
+                <span className="material-symbols-outlined text-[15px]">arrow_back</span>
                 返回活动列表
               </Link>
             </div>
           </div>
-          <div className="lg:col-span-5">
-            <div className="sticky top-24">
-              {!user ? (
-                <div
-                  className="rounded-xl shadow-sm border p-6 md:p-8 text-center"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                >
-                  <div
-                    className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
-                    style={{ backgroundColor: 'var(--primary) / 0.2' }}
-                  >
-                    <span
-                      className="material-symbols-outlined text-4xl"
-                      style={{ color: 'var(--primary)' }}
-                    >
-                      lock
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-                    需要登录才能报名
-                  </h3>
-                  <p className="mb-6 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    请先登录或注册账号，然后就可以报名这个活动
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    <Link
-                      href="/auth/login"
-                      className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-medium transition-colors w-full"
-                      style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
-                    >
-                      <span className="material-symbols-outlined">login</span>
-                      登录账号
-                    </Link>
-                    <Link
-                      href="/auth/signup"
-                      className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 font-medium transition-colors w-full"
-                      style={{ backgroundColor: 'var(--primary) / 0.2', color: 'var(--primary)' }}
-                    >
-                      <span className="material-symbols-outlined">person_add</span>
-                      创建新账号
-                    </Link>
-                  </div>
-                  <p className="text-xs mt-4" style={{ color: 'var(--text-secondary)' }}>
-                    已有账号？
-                    <Link
-                      href="/auth/login"
-                      className="hover:underline"
-                      style={{ color: 'var(--primary)' }}
-                    >
-                      登录
-                    </Link>
-                  </p>
-                </div>
-              ) : activity.status === 'published' ? (
-                <div
-                  className="rounded-xl shadow-sm border p-6 md:p-8 relative overflow-hidden"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                >
-                  <div
-                    className="absolute top-0 left-0 w-full h-1"
-                    style={{
-                      backgroundImage: 'linear-gradient(to right, var(--primary), #2ecc71)',
-                    }}
-                  ></div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div
-                      className="size-10 rounded flex items-center justify-center"
-                      style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
-                    >
-                      <span className="material-symbols-outlined">edit_square</span>
-                    </div>
-                    <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
-                      立即报名
-                    </h3>
-                  </div>
-                  <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-gray-300" htmlFor="name">
-                        姓名 <span className="text-red-400">*</span>
-                      </label>
-                      <Input
-                        id="name"
-                        placeholder="请输入您的姓名"
-                        value={formData.name}
-                        disabled
-                        rightIcon={
-                          <span className="material-symbols-outlined text-[20px]">badge</span>
-                        }
-                      />
-                      <p className="text-xs text-[#9db9ab]">自动从邮箱提取</p>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-gray-300" htmlFor="studentId">
-                        学号 <span className="text-red-400">*</span>
-                      </label>
-                      <Input
-                        id="studentId"
-                        placeholder="请输入您的学号"
-                        value={formData.studentId}
-                        disabled
-                        rightIcon={
-                          <span className="material-symbols-outlined text-[20px]">numbers</span>
-                        }
-                      />
-                      <p className="text-xs text-[#9db9ab]">自动从邮箱提取</p>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-gray-300" htmlFor="email">
-                        邮箱 <span className="text-red-400">*</span>
-                      </label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="example@school.edu"
-                        value={formData.email}
-                        disabled
-                        rightIcon={
-                          <span className="material-symbols-outlined text-[20px]">mail</span>
-                        }
-                      />
-                      <p className="text-xs text-[#9db9ab]">我们将通过此邮箱发送活动确认信息</p>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-gray-300" htmlFor="yearMajor">
-                        年级 <span className="text-red-400">*</span>
-                      </label>
-                      <NeumorphicSelect
-                        options={
-                          activity.allowedGrades
-                            ? YEAR_OPTIONS.filter(
-                                (opt) =>
-                                  opt.value === '' ||
-                                  JSON.parse(activity.allowedGrades || '[]').includes(opt.value)
-                              )
-                            : YEAR_OPTIONS
-                        }
-                        value={formData.yearMajor}
-                        onChange={(value) => setFormData({ ...formData, yearMajor: value })}
-                        error={errors.yearMajor}
-                      />
-                      {activity.allowedGrades && JSON.parse(activity.allowedGrades).length > 0 && (
-                        <p className="text-xs text-[#9db9ab]">
-                          仅限{' '}
-                          {JSON.parse(activity.allowedGrades)
-                            .map((g: string) => YEAR_OPTIONS.find((o) => o.value === g)?.label || g)
-                            .join('、')}{' '}
-                          学生报名
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-gray-300" htmlFor="className">
-                        班级 <span className="text-red-400">*</span>
-                      </label>
-                      <Input
-                        id="className"
-                        placeholder="请输入您的班级，例如：初一 A 班"
-                        value={formData.className}
-                        onChange={(e) => setFormData({ ...formData, className: e.target.value })}
-                        rightIcon={
-                          <span className="material-symbols-outlined text-[20px]">groups</span>
-                        }
-                        error={errors.className}
-                      />
-                    </div>
-                    <div className="pt-2">
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        size="lg"
-                        glow
-                        isLoading={isSubmitting}
-                        rightIcon="arrow_forward"
-                        className="w-full"
-                      >
-                        确认报名
-                      </Button>
-                    </div>
-                  </form>
-                </div>
-              ) : (
-                <div
-                  className="rounded-xl shadow-sm border p-6 md:p-8 text-center"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                >
-                  <span
-                    className="material-symbols-outlined text-5xl mb-4"
-                    style={{ color: '#ff6b6b' }}
-                  >
-                    event_busy
+
+          <aside className="lg:sticky lg:top-[98px] lg:h-fit">
+            <div className="border border-[var(--rule-strong)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+                <span>REGISTRATION / 报名</span>
+                <span className={canSignup ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)]'}>
+                  {statusLabel}
+                </span>
+              </div>
+
+              <div className="p-4">
+                <div className="flex items-baseline justify-between border-b border-[var(--border)] pb-3">
+                  <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    名额
                   </span>
-                  <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-                    报名已截止
-                  </h3>
-                  <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
-                    该活动报名已结束，请关注其他活动
-                  </p>
-                  <Link href="/activities">
-                    <Button variant="secondary" leftIcon="event">
-                      浏览其他活动
-                    </Button>
-                  </Link>
+                  <span className="font-display text-[20px] font-bold text-[var(--foreground)]">
+                    {activity.maxParticipants > 0
+                      ? `${activity.currentParticipants}/${activity.maxParticipants}`
+                      : activity.currentParticipants}
+                  </span>
                 </div>
-              )}
+                <div className="flex items-baseline justify-between border-b border-[var(--border)] py-3">
+                  <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    截止
+                  </span>
+                  <span className="text-[12px] font-medium text-[var(--foreground)]">
+                    {deadline ? deadline.full : '未设置'}
+                  </span>
+                </div>
+
+                {isCancelled ? (
+                  <p className="mt-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                    此活动已取消，请浏览其他活动。
+                  </p>
+                ) : activity.visibility === 'internal' && !user ? (
+                  <>
+                    <p className="mt-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                      此活动仅限会员报名，请先登录学生账号。
+                    </p>
+                    <Link
+                      href={`/auth/login?redirect=${encodeURIComponent(
+                        `/activities/${activityId}/signup`
+                      )}`}
+                      className="mt-4 flex w-full items-center justify-center gap-2 bg-[var(--primary)] px-4 py-2.5 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">login</span>
+                      登录后报名
+                    </Link>
+                  </>
+                ) : !canSignup ? (
+                  <>
+                    <p className="mt-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                      {isFull ? '此活动名额已满。' : '此活动报名已截止。'}
+                      你可以关注其他开放报名的活动。
+                    </p>
+                    <Link
+                      href="/activities"
+                      className="mt-4 flex w-full items-center justify-center gap-2 border border-[var(--rule-strong)] px-4 py-2.5 text-[12px] font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                    >
+                      浏览其他活动
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href={`/activities/${activityId}/signup`}
+                      className="mt-4 flex w-full items-center justify-center gap-3 bg-[var(--primary)] px-4 py-2.5 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
+                    >
+                      前往报名
+                      <span className="text-[13px] leading-none">↗</span>
+                    </Link>
+                    <p className="mt-3 font-mono text-[12px] uppercase leading-relaxed tracking-[0.06em] text-[var(--text-tertiary)]">
+                      公开活动需人机验证 · 提交后等待审核
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+
+            <Link
+              href="/notices"
+              className="group mt-5 block border border-[var(--rule-strong)] p-4 transition-colors hover:bg-[var(--primary-light)]"
+            >
+              <span className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--primary)]">
+                NOTICES / 公告
+              </span>
+              <span className="mt-3 block font-display text-[17px] font-semibold leading-[1.4] text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]">
+                查看社团最新公告 →
+              </span>
+            </Link>
+          </aside>
         </div>
       </main>
-      {showToast && (
-        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-full duration-300">
-          <div
-            className={`flex items-center gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-xl ${
-              toastType === 'success'
-                ? 'bg-green-500/20 border-green-500/30'
-                : 'bg-red-500/20 border-red-500/30'
-            }`}
-          >
-            <span
-              className={`material-symbols-outlined ${
-                toastType === 'success' ? 'text-green-500' : 'text-red-500'
-              }`}
-            >
-              {toastType === 'success' ? 'check_circle' : 'error'}
-            </span>
-            <p className="text-sm text-white">{toastMessage}</p>
-            <button
-              onClick={() => setShowToast(false)}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <span className="material-symbols-outlined text-base">close</span>
-            </button>
-          </div>
-        </div>
-      )}
     </StudentLayout>
   );
 }

@@ -1,15 +1,20 @@
 'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
+import { StudentLayout } from '@/components/layout/StudentLayout';
+
 export default function ForgotPasswordPage() {
-  const [step, setStep] = useState<'email' | 'verification' | 'success'>('email');
+  const [step, setStep] = useState<'email' | 'success'>('email');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
   const validateEmail = (emailValue: string): boolean => {
     const emailRegex = /^\d{5,6}@kuencheng\.edu\.my$/;
     return emailRegex.test(emailValue);
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -35,136 +40,159 @@ export default function ForgotPasswordPage() {
       setIsLoading(false);
     }
   };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 py-12 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-20 right-20 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 left-20 w-72 h-72 bg-primary rounded-full blur-3xl"></div>
-      </div>
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-8 shadow-2xl">
-          {step === 'email' && (
-            <>
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary/10 mb-4">
-                  <span className="material-symbols-outlined text-primary text-3xl">
-                    lock_reset
-                  </span>
-                </div>
-                <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">忘记密码</h1>
-                <p className="text-[var(--text-secondary)] text-sm">
-                  输入您的学号邮箱，我们将发送重置密码指引
-                </p>
-              </div>
-              {error && (
-                <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-start gap-2">
-                  <span className="material-symbols-outlined text-lg shrink-0">error</span>
-                  <span>{error}</span>
-                </div>
-              )}
-              <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
-                    学号邮箱
-                  </label>
-                  <div className="relative flex items-center bg-[var(--input-bg)] border border-[var(--border)] rounded-lg focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors overflow-hidden">
-                    <span className="absolute left-3 text-[var(--text-secondary)] material-symbols-outlined">
-                      mail
-                    </span>
-                    <input
-                      type="text"
-                      value={email.replace(/@kuencheng\.edu\.my$/, '')}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 6);
-                        setEmail(val ? `${val}@kuencheng.edu.my` : '');
-                      }}
-                      placeholder="123456"
-                      required
-                      maxLength={6}
-                      className="flex-1 pl-10 pr-1 py-3 bg-transparent text-[var(--foreground)] placeholder-[var(--text-secondary)] focus:outline-none"
-                    />
-                    <span className="pl-1 pr-2 py-3 text-[var(--text-secondary)] text-xs whitespace-nowrap shrink-0 border-l border-[var(--border)]">
-                      @kuencheng.edu.my
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 bg-primary text-[#102219] font-bold rounded-lg hover:bg-[var(--primary-hover)] disabled:opacity-50 transition-colors mt-6 flex items-center justify-center gap-2"
+    <StudentLayout>
+      <main className="mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-20">
+          <section className="min-w-0">
+            <div className="eyebrow">ACCOUNT RECOVERY · 找回密码</div>
+            <h1 className="mt-5 font-display text-[clamp(2.3rem,5.5vw,3.8rem)] font-bold leading-[1.08] tracking-[-0.04em] text-[var(--foreground)]">
+              忘记密码？
+            </h1>
+            <p className="mt-5 max-w-md text-[13px] leading-[1.95] text-[var(--text-secondary)]">
+              输入你的学号邮箱。系统会尝试发送重置邮件；若邮件服务未配置，请联系社团管理员协助重置。
+            </p>
+
+            <dl className="mt-10 border-t border-[var(--rule-strong)]">
+              {[
+                { no: '01', label: '输入邮箱', value: '使用 5-6 位学号 @kuencheng.edu.my' },
+                { no: '02', label: '查收邮件', value: '按照邮件中的链接重置密码' },
+                { no: '03', label: '无法收信', value: '到电脑室联系管理员重置' },
+              ].map((item) => (
+                <div
+                  key={item.no}
+                  className="grid grid-cols-[36px_86px_minmax(0,1fr)] items-baseline gap-3 border-b border-[var(--border)] py-4"
                 >
-                  {isLoading ? (
-                    <>
-                      <span className="animate-spin material-symbols-outlined">hourglass_bottom</span>
-                      发送中...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined">send</span>
-                      发送重置链接
-                    </>
-                  )}
-                </button>
-              </form>
-              <div className="mb-6 p-4 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)]">
-                <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-primary shrink-0">info</span>
-                  <div className="text-sm text-[var(--text-secondary)]">
-                    <p className="font-medium text-[var(--foreground)] mb-1">重置密码流程</p>
-                    <ol className="list-decimal list-inside space-y-1">
-                      <li>输入您的学号邮箱</li>
-                      <li>联系管理员重置您的密码</li>
-                      <li>使用新密码登录</li>
-                    </ol>
-                  </div>
+                  <dt className="font-mono text-[12px] text-[var(--primary)]">{item.no}</dt>
+                  <dt className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    {item.label}
+                  </dt>
+                  <dd className="text-[12px] leading-relaxed text-[var(--foreground)]">
+                    {item.value}
+                  </dd>
                 </div>
+              ))}
+            </dl>
+          </section>
+
+          <section className="lg:pt-2">
+            <div className="border border-[var(--rule-strong)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+                <span>RESET / 重置</span>
+                <span className="text-[var(--primary)]">
+                  {step === 'email' ? 'STEP 01' : 'DONE'}
+                </span>
               </div>
-            </>
-          )}
-          {step === 'success' && (
-            <>
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
-                  <span className="material-symbols-outlined text-primary text-5xl">
-                    mark_email_read
-                  </span>
-                </div>
-                <h2 className="text-2xl font-bold text-[var(--foreground)] mb-2">请求已提交</h2>
-                <p className="text-[var(--text-secondary)] mb-6">
-                  您的重置密码请求已提交。请联系管理员获取新密码。
-                </p>
-                <div className="bg-[var(--surface-hover)] rounded-lg p-4 mb-6 text-left">
-                  <p className="text-sm text-[var(--foreground)] font-medium mb-2">
-                    <span className="material-symbols-outlined text-primary align-middle mr-2">support_agent</span>
-                    联系管理员
-                  </p>
-                  <p className="text-sm text-[var(--text-secondary)]">
-                    请到电脑室找管理员，提供您的学号以重置密码。
-                  </p>
-                </div>
+
+              <div className="p-5 sm:p-6">
+                {step === 'email' ? (
+                  <>
+                    {error && (
+                      <div className="mb-5 flex items-start gap-3 border border-[var(--error)]/30 bg-[var(--error-light)] px-4 py-3">
+                        <span className="material-symbols-outlined mt-0.5 text-[16px] text-[var(--error)]">
+                          error
+                        </span>
+                        <p className="text-[12px] leading-relaxed text-[var(--error)]">{error}</p>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                      <div className="flex flex-col gap-1.5">
+                        <label
+                          htmlFor="reset-email"
+                          className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]"
+                        >
+                          学号邮箱 <span className="text-[var(--error)]">*</span>
+                        </label>
+                        <div className="flex overflow-hidden rounded-[3px] border border-[var(--input-border)] bg-[var(--input-bg)] transition-colors focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary-light)]">
+                          <input
+                            id="reset-email"
+                            type="text"
+                            inputMode="numeric"
+                            value={email.replace(/@kuencheng\.edu\.my$/, '')}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 6);
+                              setEmail(val ? `${val}@kuencheng.edu.my` : '');
+                            }}
+                            placeholder="123456"
+                            required
+                            maxLength={6}
+                            className="h-11 min-w-0 flex-1 bg-transparent px-3.5 text-[13px] text-[var(--foreground)] outline-none placeholder:text-[var(--input-placeholder)]"
+                          />
+                          <span className="flex shrink-0 items-center border-l border-[var(--border)] bg-[var(--surface-hover)] px-3 font-mono text-[12px] tracking-[0.02em] text-[var(--text-tertiary)]">
+                            @kuencheng.edu.my
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="inline-flex w-full items-center justify-center gap-2 bg-[var(--primary)] px-4 py-3 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isLoading ? (
+                          <>
+                            <span className="material-symbols-outlined animate-spin text-[15px]">
+                              hourglass_empty
+                            </span>
+                            发送中…
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-[15px]">send</span>
+                            发送重置邮件
+                          </>
+                        )}
+                      </button>
+                    </form>
+
+                    <div className="mt-5 border-t border-[var(--border)] pt-4">
+                      <p className="font-mono text-[12px] uppercase leading-relaxed tracking-[0.08em] text-[var(--text-tertiary)]">
+                        若未收到邮件，请到电脑室联系管理员，并提供你的学号。
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <span className="inline-flex size-10 items-center justify-center border border-[var(--primary)]/40 bg-[var(--primary-light)] text-[var(--primary)]">
+                      <span className="material-symbols-outlined text-[20px]">
+                        mark_email_read
+                      </span>
+                    </span>
+                    <h2 className="mt-4 font-display text-[26px] font-bold tracking-[-0.03em] text-[var(--foreground)]">
+                      请求已提交。
+                    </h2>
+                    <p className="mt-3 text-[12px] leading-[1.9] text-[var(--text-secondary)]">
+                      重置说明已发送至{' '}
+                      <span className="font-semibold text-[var(--foreground)]">{email}</span>
+                      。若未收到邮件，请到电脑室联系管理员，提供学号以重置密码。
+                    </p>
+
+                    <Link
+                      href="/auth/login"
+                      className="mt-6 inline-flex w-full items-center justify-center gap-2 bg-[var(--primary)] px-4 py-3 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+                      返回登录
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-[var(--border)] px-5 py-3">
                 <Link
                   href="/auth/login"
-                  className="inline-flex items-center justify-center gap-2 w-full py-3 bg-primary text-[#102219] font-bold rounded-lg hover:bg-[var(--primary-hover)] transition-colors"
+                  className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] transition-colors hover:text-[var(--primary)]"
                 >
-                  <span className="material-symbols-outlined">arrow_back</span>
+                  <span className="material-symbols-outlined text-[15px]">arrow_back</span>
                   返回登录
                 </Link>
               </div>
-            </>
-          )}
-          {step === 'email' && (
-            <div className="text-center">
-              <Link
-                href="/auth/login"
-                className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined">arrow_back</span>
-                返回登录
-              </Link>
             </div>
-          )}
+          </section>
         </div>
-      </div>
-    </div>
+      </main>
+    </StudentLayout>
   );
 }

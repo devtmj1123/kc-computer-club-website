@@ -1,80 +1,97 @@
 'use client';
+
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { StudentLayout } from '@/components/layout/StudentLayout';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
-import { useAuth } from '@/contexts/AuthContext';
+
 const DEFAULT_CLUB_INFO = {
-  name: '康中电脑学会',
+  name: '坤成中学电脑学会',
   description:
-    '电脑学会成立于1983年，至今已有44年历史。我们致力于让团员们能够跟进这个科技时代的步伐，并提高团员们对电脑的认识以及提升团员们资讯工艺方面的能力。',
-  email: 'computerclub@school.edu.my',
+    '电脑学会成立于 1983 年，至今已有四十余年历史。我们致力于让团员跟进科技时代的步伐，提高对电脑的认识，并提升资讯工艺方面的能力。',
+  email: 'computerclub@kuencheng.edu.my',
   location: '电脑室 A304，科学楼三楼',
-  meetingTime: '每周五 下午 4:00 - 6:00',
-  socialLinks: {
-    github: 'https://github.com/computerclub',
-    discord: 'https://discord.gg/computerclub',
-    instagram: 'https://instagram.com/computerclub',
-    youtube: 'https://youtube.com/@computerclub',
-  },
+  meetingTime: '每周五 16:00 - 18:00',
 };
+
+interface ClubInfo {
+  name: string;
+  description: string;
+  email: string;
+  location: string;
+  meetingTime: string;
+  socialLinks: {
+    github?: string;
+    discord?: string;
+    instagram?: string;
+    youtube?: string;
+  };
+}
+
 const faqs = [
   {
-    icon: 'help',
     question: '如何成为团员？',
     answerLines: [
-      '坤成初一新生：可以在新生营招生展来我们的摊位了解详情，之后在校务系统记得选取我们就可以了😊',
-      '坤成其他年级学生：可以转进，在年尾转换社团时候，来我们的摊位了解详情，在面试获得录取后填转换社团表格，交给联课处',
+      '坤成初一新生：可以在新生营招生展来我们的摊位了解详情，之后在校务系统选取电脑学会即可。',
+      '坤成其他年级学生：可以在年尾转换社团时来摊位了解详情，面试获得录取后填写转换社团表格，交给联课处。',
     ],
   },
   {
-    icon: 'layers',
-    question: '是有分高级组和初级组吗？',
+    question: '有分高级组和初级组吗？',
     answerLines: [
-      '有，高级组为2学点，初级组为1学点，初级组团员仅需认真上课与交功课。',
-      '高级组则除了上课也有时需要服务，团员有机会学习于学校各种活动如演奏会，周会，多元学习日，在学校礼堂与讲堂的控制室控制led屏幕。',
+      '有。高级组为 2 学点，初级组为 1 学点；初级组团员只需认真上课与交功课。',
+      '高级组除了上课，也需要参与服务，例如在学校演奏会、周会与多元学习日的控制室协助控制 LED 屏幕。',
     ],
   },
   {
-    icon: 'event',
     question: '活动信息在哪里发布？',
     answerLines: [
-      '请查看本网站社团简介与公告了解我们，实时跟进我们的动态，或关注我们的Instagram，了解我们有趣的社团日常吧！',
+      '请查看本网站的公告与活动页面，或关注我们的 Instagram，了解社团日常与最新动态。',
     ],
   },
   {
-    icon: 'groups',
-    question: '在电脑方面完全没有经验的学生可以加入吗？',
+    question: '完全没有电脑经验的学生可以加入吗？',
     answerLines: [
-      '当然可以！科技影响着每一个领域。',
-      '无论你学的是理科、文科还是商科，只要对电脑有兴趣，都欢迎加入我们！',
+      '当然可以。科技影响着每一个领域，无论你来自理科、文科还是商科，只要对电脑有兴趣，都欢迎加入我们。',
     ],
   },
 ];
-const subjectOptions = [
-  { value: '', label: '选择主题' },
-  { value: 'membership', label: '社员咨询' },
-  { value: 'events', label: '活动与比赛' },
-  { value: 'workshop', label: '工作坊提案' },
-  { value: 'collaboration', label: '合作洽谈' },
-  { value: 'other', label: '其他问题' },
+
+const activities = [
+  {
+    index: '01',
+    title: '例常课程',
+    description: '按分组级别进行电脑与资讯工艺课程，从基础操作到进阶主题。',
+  },
+  {
+    index: '02',
+    title: '项目实践',
+    description: '以团队形式完成真实项目，把课堂上学到的知识变成可以运行的作品。',
+  },
+  {
+    index: '03',
+    title: '校园技术支持',
+    description: '为学校活动提供控制室、LED 屏幕与现场技术协助，积累实战经验。',
+  },
+  {
+    index: '04',
+    title: '比赛与工作坊',
+    description: '参与校内外比赛、工作坊与技术分享，和同伴一起持续进步。',
+  },
 ];
+
+const socialLabels: Array<{ key: keyof ClubInfo['socialLinks']; label: string }> = [
+  { key: 'github', label: 'GitHub' },
+  { key: 'discord', label: 'Discord' },
+  { key: 'instagram', label: 'Instagram' },
+  { key: 'youtube', label: 'YouTube' },
+];
+
 export default function AboutPage() {
-  const { user, isStudent, isLoading } = useAuth();
-  const router = useRouter();
-  const [clubInfo, setClubInfo] = useState(DEFAULT_CLUB_INFO);
-  const [stats, setStats] = useState({ activeMembers: 50, yearlyActivities: 20, awardProjects: 10, partners: 5 });
-  const [formData, setFormData] = useState({
-    name: '',
-    studentId: '',
-    email: '',
-    subject: '',
-    message: '',
+  const [clubInfo, setClubInfo] = useState<ClubInfo>({
+    ...DEFAULT_CLUB_INFO,
+    socialLinks: {},
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -88,42 +105,12 @@ export default function AboutPage() {
             location: settings.aboutLocation || DEFAULT_CLUB_INFO.location,
             meetingTime: settings.aboutMeetingTime || DEFAULT_CLUB_INFO.meetingTime,
             socialLinks: {
-              github: settings.githubUrl || DEFAULT_CLUB_INFO.socialLinks.github,
-              discord: settings.discordUrl || DEFAULT_CLUB_INFO.socialLinks.discord,
-              instagram: settings.instagramUrl || DEFAULT_CLUB_INFO.socialLinks.instagram,
-              youtube: settings.youtubeUrl || DEFAULT_CLUB_INFO.socialLinks.youtube,
+              github: settings.githubUrl || undefined,
+              discord: settings.discordUrl || undefined,
+              instagram: settings.instagramUrl || undefined,
+              youtube: settings.youtubeUrl || undefined,
             },
           });
-          setStats({
-            activeMembers: settings.activeMembers || 50,
-            yearlyActivities: settings.yearlyActivities || 20,
-            awardProjects: settings.awardProjects || 10,
-            partners: settings.partners || 5,
-          });
-        } else {
-          const stored = localStorage.getItem('clubSettings');
-          if (stored) {
-            const settings = JSON.parse(stored);
-            setClubInfo({
-              name: settings.aboutTitle || DEFAULT_CLUB_INFO.name,
-              description: settings.aboutDescription || DEFAULT_CLUB_INFO.description,
-              email: settings.aboutEmail || DEFAULT_CLUB_INFO.email,
-              location: settings.aboutLocation || DEFAULT_CLUB_INFO.location,
-              meetingTime: settings.aboutMeetingTime || DEFAULT_CLUB_INFO.meetingTime,
-              socialLinks: {
-                github: settings.githubUrl || DEFAULT_CLUB_INFO.socialLinks.github,
-                discord: settings.discordUrl || DEFAULT_CLUB_INFO.socialLinks.discord,
-                instagram: settings.instagramUrl || DEFAULT_CLUB_INFO.socialLinks.instagram,
-                youtube: settings.youtubeUrl || DEFAULT_CLUB_INFO.socialLinks.youtube,
-              },
-            });
-            setStats({
-              activeMembers: settings.activeMembers || 50,
-              yearlyActivities: settings.yearlyActivities || 20,
-              awardProjects: settings.awardProjects || 10,
-              partners: settings.partners || 5,
-            });
-          }
         }
       } catch (error) {
         console.error('Failed to load club settings:', error);
@@ -131,326 +118,199 @@ export default function AboutPage() {
     };
     loadSettings();
   }, []);
-  if (isLoading) {
-    return (
-      <StudentLayout>
-        <main className="grow flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#137fec]"></div>
-            <p className="mt-4 text-[var(--text-secondary)]">正在加载...</p>
-          </div>
-        </main>
-      </StudentLayout>
-    );
-  }
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setShowSuccess(true);
-    setFormData({
-      name: '',
-      studentId: '',
-      email: '',
-      subject: '',
-      message: '',
-    });
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
+
+  const availableSocials = socialLabels.filter(({ key }) => Boolean(clubInfo.socialLinks[key]));
+
   return (
     <StudentLayout>
-      <main className="grow py-8 px-4 md:px-10 lg:px-20">
-        <div className="max-w-300 mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 pt-8">
-            <div className="lg:col-span-5 flex flex-col gap-8">
-              <div className="flex flex-col gap-4">
-                <h1 className="text-4xl md:text-5xl font-black leading-tight tracking-tight">
-                  联系我们
-                </h1>
-                <p className="text-[var(--text-secondary)] text-base md:text-lg leading-relaxed">
-                  有关于黑客马拉松、工作坊或社员资格的问题？欢迎随时联系我们或来我们的社团教室拜访。
+      <main className="mx-auto w-full max-w-[1200px] px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+        <nav className="mb-8 flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          <Link href="/" className="transition-colors hover:text-[var(--foreground)]">
+            首页
+          </Link>
+          <span>/</span>
+          <span className="text-[var(--foreground)]">关于</span>
+        </nav>
+
+        <header className="grid grid-cols-1 gap-10 border-b border-[var(--rule-strong)] pb-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-16">
+          <div>
+            <div className="eyebrow">ABOUT THE CLUB · 关于我们</div>
+            <h1 className="mt-6 font-display text-[clamp(2.6rem,6vw,4.4rem)] font-bold leading-[1.05] tracking-[-0.045em] text-[var(--foreground)]">
+              一起学习，
+              <br />
+              <span className="text-[var(--primary)]">一起创造。</span>
+            </h1>
+            <p className="mt-7 max-w-2xl text-[14px] leading-[1.95] text-[var(--text-secondary)]">
+              {clubInfo.description}
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-3 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+              <span className="inline-flex items-center gap-2">
+                <span className="size-1 rounded-full bg-[var(--primary)]" />
+                EST. 1983
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="size-1 rounded-full bg-[var(--primary)]" />
+                {clubInfo.location}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="size-1 rounded-full bg-[var(--primary)]" />
+                {clubInfo.meetingTime}
+              </span>
+            </div>
+          </div>
+
+          <div className="self-start border border-[var(--rule-strong)]">
+            <div className="border-b border-[var(--border)] px-4 py-3 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
+              CONTACT / 联系
+            </div>
+            <div className="divide-y divide-[var(--border)]">
+              <a
+                href={`mailto:${clubInfo.email}`}
+                className="flex items-start gap-3 px-4 py-4 transition-colors hover:bg-[var(--primary-light)]"
+              >
+                <span className="material-symbols-outlined text-[16px] text-[var(--primary)]">mail</span>
+                <span>
+                  <span className="block font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    邮箱
+                  </span>
+                  <span className="mt-1 block text-[12px] font-medium text-[var(--foreground)]">
+                    {clubInfo.email}
+                  </span>
+                </span>
+              </a>
+              <div className="flex items-start gap-3 px-4 py-4">
+                <span className="material-symbols-outlined text-[16px] text-[var(--primary)]">
+                  location_on
+                </span>
+                <span>
+                  <span className="block font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    地点
+                  </span>
+                  <span className="mt-1 block text-[12px] font-medium text-[var(--foreground)]">
+                    {clubInfo.location}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-start gap-3 px-4 py-4">
+                <span className="material-symbols-outlined text-[16px] text-[var(--primary)]">
+                  schedule
+                </span>
+                <span>
+                  <span className="block font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                    活动时间
+                  </span>
+                  <span className="mt-1 block text-[12px] font-medium text-[var(--foreground)]">
+                    {clubInfo.meetingTime}
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            {availableSocials.length > 0 && (
+              <div className="flex flex-wrap gap-2 border-t border-[var(--border)] p-4">
+                {availableSocials.map(({ key, label }) => (
+                  <a
+                    key={key}
+                    href={clubInfo.socialLinks[key]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="border border-[var(--border)] px-2.5 py-1.5 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                  >
+                    {label} ↗
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </header>
+
+        <section className="border-b border-[var(--rule-strong)] py-12">
+          <div className="flex items-baseline gap-4">
+            <span className="font-mono text-[12px] tracking-[0.14em] text-[var(--primary)]">01</span>
+            <h2 className="font-display text-[26px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
+              我们做什么
+            </h2>
+            <span className="hidden h-px flex-1 bg-[var(--border)] sm:block" />
+          </div>
+
+          <div className="mt-7 grid grid-cols-1 border-l border-t border-[var(--border)] sm:grid-cols-2">
+            {activities.map((activity) => (
+              <div
+                key={activity.index}
+                className="border-b border-r border-[var(--border)] p-5 sm:p-6"
+              >
+                <span className="font-mono text-[12px] tracking-[0.12em] text-[var(--primary)]">
+                  {activity.index}
+                </span>
+                <h3 className="mt-4 font-display text-[19px] font-semibold text-[var(--foreground)]">
+                  {activity.title}
+                </h3>
+                <p className="mt-2 text-[12px] leading-[1.85] text-[var(--text-secondary)]">
+                  {activity.description}
                 </p>
               </div>
-              <div className="flex flex-col border-t border-b border-[var(--border)]">
-                <div className="py-6 flex items-start gap-4 border-b border-[var(--border)]">
-                  <div className="bg-[var(--surface-hover)] p-3 rounded-full shrink-0">
-                    <span className="material-symbols-outlined">mail</span>
-                  </div>
-                  <div>
-                    <p className="text-[var(--text-secondary)] text-sm font-medium mb-1">邮箱</p>
-                    <a
-                      href={`mailto:${clubInfo.email}`}
-                      className="text-lg font-semibold hover:text-primary transition-colors"
-                    >
-                      {clubInfo.email}
-                    </a>
-                  </div>
-                </div>
-                <div className="py-6 flex items-start gap-4 border-b border-[var(--border)]">
-                  <div className="bg-[var(--surface-hover)] p-3 rounded-full shrink-0">
-                    <span className="material-symbols-outlined">location_on</span>
-                  </div>
-                  <div>
-                    <p className="text-[var(--text-secondary)] text-sm font-medium mb-1">地点</p>
-                    <p className="text-lg font-semibold">{clubInfo.location}</p>
-                  </div>
-                </div>
-                <div className="py-6 flex items-start gap-4">
-                  <div className="bg-[var(--surface-hover)] p-3 rounded-full shrink-0">
-                    <span className="material-symbols-outlined">schedule</span>
-                  </div>
-                  <div>
-                    <p className="text-[var(--text-secondary)] text-sm font-medium mb-1">活动时间</p>
-                    <p className="text-lg font-semibold">{clubInfo.meetingTime}</p>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <p className="text-[var(--text-secondary)] text-sm font-medium mb-4">关注我们</p>
-                <div className="flex flex-wrap gap-3">
-                  <a
-                    href={clubInfo.socialLinks.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center gap-3 bg-[var(--surface-hover)] hover:bg-primary/20 px-4 py-3 rounded-lg transition-all duration-300"
-                  >
-                    <span className="material-symbols-outlined group-hover:text-primary">code</span>
-                    <span className="text-sm font-bold group-hover:text-primary">GitHub</span>
-                  </a>
-                  <a
-                    href={clubInfo.socialLinks.discord}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center gap-3 bg-[var(--surface-hover)] hover:bg-primary/20 px-4 py-3 rounded-lg transition-all duration-300"
-                  >
-                    <span className="material-symbols-outlined group-hover:text-primary">
-                      forum
-                    </span>
-                    <span className="text-sm font-bold group-hover:text-primary">Discord</span>
-                  </a>
-                  <a
-                    href={clubInfo.socialLinks.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center gap-3 bg-[var(--surface-hover)] hover:bg-primary/20 px-4 py-3 rounded-lg transition-all duration-300"
-                  >
-                    <span className="material-symbols-outlined group-hover:text-primary">
-                      photo_camera
-                    </span>
-                    <span className="text-sm font-bold group-hover:text-primary">Instagram</span>
-                  </a>
-                  <a
-                    href={clubInfo.socialLinks.youtube}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center gap-3 bg-[var(--surface-hover)] hover:bg-primary/20 px-4 py-3 rounded-lg transition-all duration-300"
-                  >
-                    <span className="material-symbols-outlined group-hover:text-primary">
-                      play_circle
-                    </span>
-                    <span className="text-sm font-bold group-hover:text-primary">YouTube</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-            <div className="lg:col-span-7">
-              <div className="bg-[var(--surface)] rounded-2xl p-6 md:p-8 border border-[var(--border)]">
-                <h3 className="text-2xl font-bold mb-6 text-[var(--foreground)]">发送消息</h3>
-                {showSuccess && (
-                  <div className="mb-6 p-4 bg-primary/20 border border-primary/30 rounded-xl flex items-center gap-3">
-                    <span className="material-symbols-outlined text-primary">check_circle</span>
-                    <p className="text-sm text-primary">消息已成功发送！我们会尽快回复您。</p>
-                  </div>
-                )}
-                {!user && (
-                  <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center gap-3">
-                    <span className="material-symbols-outlined text-blue-400">info</span>
-                    <p className="text-sm text-blue-400">您正在以访客身份发送消息，无需登录。</p>
-                  </div>
-                )}
-                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <Input
-                      label="姓名"
-                      placeholder="请输入您的姓名"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      leftIcon="badge"
-                      required
-                    />
-                    <Input
-                      label="学号（选填）"
-                      placeholder="请输入您的学号"
-                      value={formData.studentId}
-                      onChange={(e) => handleInputChange('studentId', e.target.value)}
-                      leftIcon="numbers"
-                    />
-                  </div>
-                  <Input
-                    label="邮箱"
-                    type="email"
-                    placeholder="请输入您的邮箱地址"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    leftIcon="mail"
-                    required
-                  />
-                  <NeumorphicSelect
-                    label="主题"
-                    options={subjectOptions}
-                    value={formData.subject}
-                    onChange={(value) => handleInputChange('subject', value)}
-                  />
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-[var(--foreground)]">您的消息</label>
-                    <textarea
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--input-bg)] p-4 text-[var(--foreground)] placeholder-[var(--text-secondary)] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none"
-                      placeholder="请输入您想说的话..."
-                      rows={5}
-                      value={formData.message}
-                      onChange={(e) => handleInputChange('message', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="pt-2">
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      className="w-full"
-                      rightIcon="send"
-                      isLoading={isSubmitting}
-                      disabled={isSubmitting}
-                    >
-                      发送消息
-                    </Button>
-                  </div>
-                </form>
-              </div>
-            </div>
+            ))}
           </div>
-          <div className="py-16 border-t border-[var(--border)] mt-12">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-              <div>
-                <h2 className="text-3xl font-bold mb-2">常见问题</h2>
-                <p className="text-[var(--text-secondary)]">关于社团的一些常见问题解答</p>
-              </div>
-              <a
-                href="#"
-                className="hidden md:flex items-center gap-2 text-primary font-bold hover:underline"
-              >
-                查看所有问题
-                <span className="material-symbols-outlined text-base">arrow_forward</span>
-              </a>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {faqs.map((faq, index) => (
-                <div
-                  key={index}
-                  className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 hover:border-primary/50 transition-colors"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="mt-1 bg-primary/20 rounded-lg p-2 text-primary shrink-0">
-                      <span className="material-symbols-outlined">{faq.icon}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-lg mb-2">{faq.question}</h4>
-                      <div className="text-[var(--text-secondary)] leading-relaxed text-sm space-y-2">
-                        {faq.answerLines.map((line: string, i: number) => (
-                          <p key={i}>{line}</p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-8 text-center md:hidden">
-              <a href="#" className="inline-flex items-center gap-2 text-primary font-bold">
-                查看所有问题
-                <span className="material-symbols-outlined text-base">arrow_forward</span>
-              </a>
-            </div>
+        </section>
+
+        <section className="border-b border-[var(--rule-strong)] py-12">
+          <div className="flex items-baseline gap-4">
+            <span className="font-mono text-[12px] tracking-[0.14em] text-[var(--primary)]">02</span>
+            <h2 className="font-display text-[26px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
+              常见问题
+            </h2>
+            <span className="hidden h-px flex-1 bg-[var(--border)] sm:block" />
           </div>
-          <div className="py-16 border-t border-[var(--border)]">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium mb-4">
-                  <span className="material-symbols-outlined text-base">terminal</span>
-                  关于我们
+
+          <div className="mt-7 grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
+            {faqs.map((faq, index) => (
+              <div key={faq.question} className="border-t border-[var(--border)] pt-5">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-mono text-[12px] text-[var(--primary)]">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <h3 className="font-display text-[17px] font-semibold leading-[1.5] text-[var(--foreground)]">
+                    {faq.question}
+                  </h3>
                 </div>
-                <h2 className="text-3xl md:text-4xl font-black mb-6 text-[var(--foreground)]">{clubInfo.name}</h2>
-                <p className="text-[var(--text-secondary)] text-lg leading-relaxed mb-8">{clubInfo.description}</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3 p-4 bg-[var(--surface)] rounded-xl border border-[var(--border)]">
-                    <span className="material-symbols-outlined text-primary">code</span>
-                    <span className="font-medium text-[var(--foreground)]">编程工作坊</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-[var(--surface)] rounded-xl border border-[var(--border)]">
-                    <span className="material-symbols-outlined text-primary">emoji_events</span>
-                    <span className="font-medium text-[var(--foreground)]">黑客马拉松</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-[var(--surface)] rounded-xl border border-[var(--border)]">
-                    <span className="material-symbols-outlined text-primary">security</span>
-                    <span className="font-medium text-[var(--foreground)]">网络安全</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-[var(--surface)] rounded-xl border border-[var(--border)]">
-                    <span className="material-symbols-outlined text-primary">smart_toy</span>
-                    <span className="font-medium text-[var(--foreground)]">人工智能</span>
-                  </div>
+                <div className="mt-3 space-y-2 pl-7 text-[12px] leading-[1.85] text-[var(--text-secondary)]">
+                  {faq.answerLines.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-primary/20 via-[var(--surface)] to-[var(--input-bg)] rounded-3xl p-8 border border-[var(--border)]">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="text-center p-6 bg-[var(--input-bg)] rounded-2xl">
-                    <div className="text-4xl font-black text-primary mb-2">{stats.activeMembers}+</div>
-                    <div className="text-[var(--text-secondary)] text-sm">活跃社员</div>
-                  </div>
-                  <div className="text-center p-6 bg-[var(--input-bg)] rounded-2xl">
-                    <div className="text-4xl font-black text-primary mb-2">{stats.yearlyActivities}+</div>
-                    <div className="text-[var(--text-secondary)] text-sm">年度活动</div>
-                  </div>
-                  <div className="text-center p-6 bg-[var(--input-bg)] rounded-2xl">
-                    <div className="text-4xl font-black text-primary mb-2">{stats.awardProjects}+</div>
-                    <div className="text-[var(--text-secondary)] text-sm">获奖项目</div>
-                  </div>
-                  <div className="text-center p-6 bg-[var(--input-bg)] rounded-2xl">
-                    <div className="text-4xl font-black text-primary mb-2">{stats.partners}+</div>
-                    <div className="text-[var(--text-secondary)] text-sm">合作伙伴</div>
-                  </div>
-                </div>
-                <div className="mt-8 text-center">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    rightIcon="arrow_forward"
-                    onClick={() => (window.location.href = '/join')}
-                  >
-                    立即加入我们
-                  </Button>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
-      </main>
-      {showSuccess && (
-        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-full duration-300">
-          <div className="flex items-center gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-xl bg-green-500/20 border-green-500/30">
-            <span className="material-symbols-outlined text-green-500">check_circle</span>
-            <p className="text-sm text-[var(--foreground)]">消息已成功发送！</p>
-            <button
-              onClick={() => setShowSuccess(false)}
-              className="text-[var(--text-secondary)] hover:text-[var(--foreground)] transition-colors"
+        </section>
+
+        <section className="flex flex-col items-start justify-between gap-6 py-12 sm:flex-row sm:items-center">
+          <div>
+            <div className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--primary)]">
+              JOIN US / 加入我们
+            </div>
+            <h2 className="mt-3 font-display text-[26px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
+              对电脑有兴趣，就足够了。
+            </h2>
+            <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+              查看近期活动，或登录成员账号了解更多社团信息。
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link
+              href="/activities"
+              className="inline-flex items-center gap-4 bg-[var(--primary)] px-4 py-2.5 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
             >
-              <span className="material-symbols-outlined text-base">close</span>
-            </button>
+              浏览活动 <span className="text-[13px] leading-none">↗</span>
+            </Link>
+            <Link
+              href="/auth/login"
+              className="border-b border-[var(--rule-strong)] pb-1 text-[12px] font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
+            >
+              成员登录 →
+            </Link>
           </div>
-        </div>
-      )}
+        </section>
+      </main>
     </StudentLayout>
   );
 }

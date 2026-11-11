@@ -14,7 +14,18 @@ interface Comment {
   contentId: string;
   createdAt: string;
   targetTitle: string;
+  status: 'pending' | 'approved' | 'rejected';
 }
+const statusLabels: Record<Comment['status'], string> = {
+  pending: '待审核',
+  approved: '已通过',
+  rejected: '已拒绝',
+};
+const statusClasses: Record<Comment['status'], string> = {
+  pending: 'bg-[var(--warning)]/10 text-[var(--warning)]',
+  approved: 'bg-[var(--primary)]/10 text-[var(--primary)]',
+  rejected: 'bg-[var(--error)]/10 text-[var(--error)]',
+};
 export default function AdminComments() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -36,7 +47,7 @@ export default function AdminComments() {
   const loadComments = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/comments');
+      const response = await fetch('/api/comments?onlyApproved=false');
       const data = await response.json();
       if (data.success && data.comments) {
         const [activitiesRes, noticesRes] = await Promise.all([
@@ -72,6 +83,7 @@ export default function AdminComments() {
             contentId,
             createdAt: (comment.createdAt as string) || new Date().toISOString(),
             targetTitle,
+            status: ((comment.status as string) || 'pending') as Comment['status'],
           };
         });
         setComments(formatted);
@@ -104,6 +116,26 @@ export default function AdminComments() {
       setIsDeleting(false);
     }
   };
+  const handleStatusChange = async (id: string, status: Comment['status']) => {
+    try {
+      const response = await fetch(`/api/comments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || '更新评论状态失败');
+      }
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.$id === id ? { ...comment, status } : comment
+        )
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '更新评论状态失败');
+    }
+  };
   const filteredComments = comments.filter((comment) => {
     const matchSearch =
       comment.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -114,8 +146,8 @@ export default function AdminComments() {
   return (
     <AdminLayout adminName="管理员">
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-white mb-2">评论管理</h1>
-        <p className="text-gray-400">管理用户评论，维护社区环境。</p>
+        <h1 className="text-3xl font-black text-[var(--foreground)] mb-2">评论管理</h1>
+        <p className="text-[var(--text-secondary)]">管理用户评论，维护社区环境。</p>
       </div>
       <div className="mb-6">
         <Input
@@ -126,51 +158,58 @@ export default function AdminComments() {
         />
       </div>
       <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#1a2632] border border-[#283946] rounded-xl p-4">
-          <p className="text-gray-400 text-sm mb-1">评论总数</p>
-          <p className="text-2xl font-bold text-white">{comments.length}</p>
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+          <p className="text-[var(--text-secondary)] text-sm mb-1">评论总数</p>
+          <p className="text-2xl font-bold text-[var(--foreground)]">{comments.length}</p>
         </div>
-        <div className="bg-[#1a2632] border border-[#283946] rounded-xl p-4">
-          <p className="text-gray-400 text-sm mb-1">活动评论</p>
-          <p className="text-2xl font-bold text-blue-400">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+          <p className="text-[var(--text-secondary)] text-sm mb-1">活动评论</p>
+          <p className="text-2xl font-bold text-[var(--primary)]">
             {comments.filter((c) => c.contentType === 'activity').length}
           </p>
         </div>
-        <div className="bg-[#1a2632] border border-[#283946] rounded-xl p-4">
-          <p className="text-gray-400 text-sm mb-1">通知评论</p>
-          <p className="text-2xl font-bold text-green-400">
-            {comments.filter((c) => c.contentType === 'notice').length}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+          <p className="text-[var(--text-secondary)] text-sm mb-1">待审核</p>
+          <p className="text-2xl font-bold text-[var(--warning)]">
+            {comments.filter((c) => c.status === 'pending').length}
           </p>
         </div>
       </div>
-      <div className="bg-[#1a2632] border border-[#283946] rounded-2xl overflow-hidden">
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden">
         {isLoading ? (
           <div className="px-6 py-12 flex justify-center">
             <Loading size="sm" text="加载评论中..." />
           </div>
         ) : filteredComments.length > 0 ? (
-          <div className="divide-y divide-[#283946]">
+          <div className="divide-y divide-[var(--border)]">
             {filteredComments.map((comment) => (
               <div
                 key={comment.$id}
-                className="px-6 py-4 hover:bg-[#1f2d39] transition-colors"
+                className="px-6 py-4 hover:bg-[var(--surface-hover)] transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold">{comment.nickname}</h3>
-                    <p className="text-gray-400 text-sm">
+                    <h3 className="text-[var(--foreground)] font-semibold">{comment.nickname}</h3>
+                    <p className="text-[var(--text-secondary)] text-sm">
                       评论于{' '}
-                      <span className="text-gray-500">{comment.targetTitle}</span>
+                      <span className="text-[var(--text-secondary)]">{comment.targetTitle}</span>
                     </p>
                   </div>
-                  <span className="text-xs text-gray-500 shrink-0 ml-4">
-                    {new Date(comment.createdAt).toLocaleString('zh-CN')}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium ${statusClasses[comment.status]}`}
+                    >
+                      {statusLabels[comment.status]}
+                    </span>
+                    <span className="text-xs text-[var(--text-secondary)]">
+                      {new Date(comment.createdAt).toLocaleString('zh-CN')}
+                    </span>
+                  </div>
                 </div>
-                <div className="bg-[#1f2d39] rounded-lg p-4 mb-3 text-white text-sm wrap-break-word">
+                <div className="bg-[var(--surface-hover)] rounded-lg p-4 mb-3 text-[var(--foreground)] text-sm wrap-break-word">
                   {comment.content}
                 </div>
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-3">
                   <div className="flex items-center gap-4">
                     <span>{comment.email}</span>
                     <span className="flex items-center gap-1">
@@ -182,9 +221,27 @@ export default function AdminComments() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  {comment.status !== 'approved' && (
+                    <button
+                      onClick={() => handleStatusChange(comment.$id, 'approved')}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm">check</span>
+                      通过
+                    </button>
+                  )}
+                  {comment.status !== 'rejected' && (
+                    <button
+                      onClick={() => handleStatusChange(comment.$id, 'rejected')}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-[var(--warning)]/10 hover:bg-[var(--warning)]/20 text-[var(--warning)] rounded-lg text-xs font-medium transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm">block</span>
+                      拒绝
+                    </button>
+                  )}
                   <button 
                     onClick={() => setDeleteId(comment.$id)}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs font-medium transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-[var(--error)]/10 hover:bg-[var(--error)]/20 text-[var(--error)] rounded-lg text-xs font-medium transition-colors"
                   >
                     <span className="material-symbols-outlined text-sm">delete</span>
                     删除
@@ -195,32 +252,32 @@ export default function AdminComments() {
           </div>
         ) : (
           <div className="px-6 py-12 text-center">
-            <span className="material-symbols-outlined text-6xl text-gray-600 block mb-3">
+            <span className="material-symbols-outlined text-6xl text-[var(--text-secondary)] block mb-3">
               chat
             </span>
-            <p className="text-gray-400 mb-4">{comments.length === 0 ? '没有评论' : '没有找到匹配的评论'}</p>
+            <p className="text-[var(--text-secondary)] mb-4">{comments.length === 0 ? '没有评论' : '没有找到匹配的评论'}</p>
           </div>
         )}
       </div>
       {deleteId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#1a2632] border border-[#283946] rounded-2xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-white font-bold text-lg mb-2">确定删除此评论？</h3>
-            <p className="text-gray-400 text-sm mb-6">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 max-w-sm w-full mx-4">
+            <h3 className="text-[var(--foreground)] font-bold text-lg mb-2">确定删除此评论？</h3>
+            <p className="text-[var(--text-secondary)] text-sm mb-6">
               删除后将无法恢复。
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteId(null)}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-2 bg-[#283946] text-white rounded-lg hover:bg-[#2f3d47] transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-[var(--border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--surface-active)] transition-colors disabled:opacity-50"
               >
                 取消
               </button>
               <button
                 onClick={() => handleDelete(deleteId)}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-[var(--error)] text-[var(--error-contrast)] rounded-lg hover:bg-[var(--error)] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isDeleting && (
                   <span className="material-symbols-outlined animate-spin text-sm">

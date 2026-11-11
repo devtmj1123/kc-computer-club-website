@@ -23,29 +23,20 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center py-12',
+        'flex flex-col items-center justify-center border border-dashed border-[var(--border)] px-6 py-14',
         className
       )}
     >
-      <div
-        className={cn(
-          'size-16 rounded-2xl',
-          'bg-gray-100 dark:bg-[#1c3128]',
-          'flex items-center justify-center',
-          'mb-4'
-        )}
-      >
-        <span className="material-symbols-outlined text-3xl text-gray-400 dark:text-gray-500">
-          {icon}
-        </span>
+      <div className="mb-4 flex size-12 items-center justify-center border border-[var(--border)] text-[var(--text-secondary)]">
+        <span className="material-symbols-outlined text-[24px]">{icon}</span>
       </div>
 
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+      <h3 className="mb-2 font-display text-[18px] font-bold text-[var(--foreground)]">
         {title}
       </h3>
 
       {description && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
+        <p className="mb-6 max-w-sm text-center text-[12px] leading-relaxed text-[var(--text-secondary)]">
           {description}
         </p>
       )}
@@ -75,28 +66,19 @@ export function ErrorState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center py-12',
+        'flex flex-col items-center justify-center border border-dashed border-[var(--error)]/40 px-6 py-14',
         className
       )}
     >
-      <div
-        className={cn(
-          'size-16 rounded-2xl',
-          'bg-red-100 dark:bg-red-500/10',
-          'flex items-center justify-center',
-          'mb-4'
-        )}
-      >
-        <span className="material-symbols-outlined text-3xl text-red-500">
-          error
-        </span>
+      <div className="mb-4 flex size-12 items-center justify-center border border-[var(--error)]/30 bg-[var(--error-light)] text-[var(--error)]">
+        <span className="material-symbols-outlined text-[24px]">error</span>
       </div>
 
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+      <h3 className="mb-2 font-display text-[18px] font-bold text-[var(--foreground)]">
         {title}
       </h3>
 
-      <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm mb-6">
+      <p className="mb-6 max-w-sm text-center text-[12px] leading-relaxed text-[var(--text-secondary)]">
         {message}
       </p>
 

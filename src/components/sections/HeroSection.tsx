@@ -4,187 +4,87 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 interface HeroSectionProps {
-  clubName?: string;
   headline?: string;
   subheadline?: string;
   statusText?: string;
-  heroImage?: string;
-  heroImageAlt?: string;
   className?: string;
+  aside?: React.ReactNode;
 }
 
+const defaultSubheadline =
+  '电脑学会成立于 1983 年，至今已有四十余年历史。我们陪伴每一位团员从第一行代码走到第一个上线项目，在持续学习、动手实践与展示成果中，把好奇心变成真正的作品。';
+
 export function HeroSection({
-  clubName: _clubName = '坤中电脑学会',
-  headline: _headline = '创造未来。加入坤成中学电脑学会。',
-  subheadline = '电脑学会成立于1983年，至今已有44年历史。我们致力于让团员们能够跟进这个科技时代的步伐，并提高团员们对电脑的认识以及提升团员们资讯工艺方面的能力。',
-  statusText = '正在时刻运行中',
-  heroImage,
-  heroImageAlt = 'Hero Image',
+  headline = '让好奇心，成为作品。',
+  subheadline = defaultSubheadline,
+  statusText,
   className,
+  aside,
 }: HeroSectionProps) {
+  const commaIndex = headline.indexOf('，');
+  const firstLine = commaIndex > 0 ? headline.slice(0, commaIndex + 1) : headline;
+  const secondLine = commaIndex > 0 ? headline.slice(commaIndex + 1) : '';
+
   return (
-    <section className={cn('grid grid-cols-1 gap-6', className)}>
-      <div
-        className="relative flex flex-col lg:flex-row items-center justify-between overflow-hidden min-h-[520px]"
-        style={{
-          background: 'var(--nm-bg)',
-          boxShadow: 'var(--nm-raised-lg)',
-          borderRadius: 34,
-          padding: '3.5rem',
-        }}
-      >
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse at 15% 110%, rgba(19,236,128,0.07) 0%, transparent 55%), radial-gradient(ellipse at 85% -20%, rgba(19,236,128,0.04) 0%, transparent 55%)',
-            borderRadius: 'inherit',
-          }}
-        />
-
-        <div className="relative z-10 flex flex-col gap-6 max-w-xl flex-1">
-          <div
-            style={{
-              background: 'var(--nm-bg)',
-              boxShadow: 'var(--nm-inset)',
-              borderRadius: 999,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '0.4rem 1rem',
-              width: 'fit-content',
-            }}
-          >
-            <span
-              className="animate-pulse"
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: 'var(--primary)',
-                display: 'inline-block',
-              }}
-            />
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--primary)' }}>
-              {statusText}
-            </span>
-          </div>
-
-          <h1
-            className="text-4xl md:text-6xl font-black tracking-tight"
-            style={{ color: 'var(--foreground)', lineHeight: 1.1 }}
-          >
-            创造<span style={{ color: 'var(--primary)' }}>未来</span>。<br />
-            加入坤成中学电脑学会。
-          </h1>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div
-              style={{
-                background: 'var(--nm-bg)',
-                boxShadow: 'var(--nm-inset)',
-                borderRadius: 18,
-                padding: '1.1rem 1.3rem',
-              }}
-            >
-              <p style={{ color: 'var(--primary)', fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>
-                1983
-              </p>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', fontWeight: 600, margin: 0, marginTop: 2 }}>
-                年成立
-              </p>
-            </div>
-            <div
-              style={{
-                background: 'var(--nm-bg)',
-                boxShadow: 'var(--nm-inset)',
-                borderRadius: 18,
-                padding: '1.1rem 1.3rem',
-              }}
-            >
-              <p style={{ color: 'var(--primary)', fontSize: '1.6rem', fontWeight: 800, margin: 0 }}>
-                111
-              </p>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', fontWeight: 600, margin: 0, marginTop: 2 }}>
-                团员
-              </p>
-            </div>
-          </div>
-
-          <p
-            style={{
-              color: 'var(--text-secondary)',
-              fontSize: '1.05rem',
-              maxWidth: 420,
-              lineHeight: 1.7,
-            }}
-          >
-            {subheadline}
-          </p>
-
-          <div className="flex flex-wrap gap-4 pt-2">
-            <Link href="/activities">
-              <button
-                style={{
-                  background: 'var(--primary)',
-                  color: '#111814',
-                  fontWeight: 700,
-                    borderRadius: 18,
-                    padding: '0.95rem 1.9rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                    boxShadow: '0 10px 30px var(--primary-glow), var(--nm-raised-sm)',
-                  transition: 'all 0.25s ease',
-                  fontSize: '1rem',
-                }}
-              >
-                立即加入
-              </button>
-            </Link>
-            <Link href="/activities">
-              <button
-                style={{
-                  background: 'var(--nm-bg)',
-                  color: 'var(--foreground)',
-                  fontWeight: 600,
-                    borderRadius: 18,
-                    padding: '0.95rem 1.9rem',
-                  border: 'none',
-                  cursor: 'pointer',
-                    boxShadow: 'var(--nm-raised)',
-                  transition: 'all 0.25s ease',
-                  fontSize: '1rem',
-                }}
-              >
-                查看活动
-              </button>
-            </Link>
-          </div>
-
+    <section
+      className={cn(
+        'grid grid-cols-1 gap-12 border-b border-[var(--border)] px-4 pb-14 pt-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-16 lg:px-8 lg:pb-16 lg:pt-16',
+        className
+      )}
+    >
+      <div className="min-w-0">
+        <div className="eyebrow">
+          EST. 1983 <span className="text-[var(--text-tertiary)]">—</span> 四十余年 · 坤成中学
         </div>
 
-        {heroImage && (
-          <div className="relative z-10 flex-1 flex items-center justify-center mt-8 lg:mt-0 lg:ml-8">
-            <div
-              style={{
-                background: 'var(--nm-bg)',
-                boxShadow: 'var(--nm-raised-lg)',
-                borderRadius: 28,
-                overflow: 'hidden',
-                width: '100%',
-                maxWidth: 420,
-                aspectRatio: '16/10',
-              }}
-            >
-              <img
-                src={heroImage}
-                alt={heroImageAlt}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
-          </div>
-        )}
+        <h1 className="mt-7 max-w-[780px] font-display text-[clamp(2.9rem,7vw,5.4rem)] leading-[1.02] tracking-[-0.02em] text-[var(--foreground)]">
+          {firstLine}
+          {secondLine && (
+            <>
+              <br />
+              <span className="text-[var(--primary)]">{secondLine}</span>
+            </>
+          )}
+        </h1>
+
+        <p className="mt-7 max-w-[600px] text-[14px] leading-[1.95] text-[var(--text-secondary)] sm:text-[15px]">
+          {subheadline}
+        </p>
+
+        <div className="mt-9 flex flex-wrap items-center gap-3">
+          <Link href="/activities" className="btn btn-primary">
+            浏览近期活动
+            <span className="arr text-[15px] leading-none" aria-hidden="true">→</span>
+          </Link>
+          <Link href="/about" className="btn">
+            了解学会
+            <span className="arr text-[14px] leading-none" aria-hidden="true">↗</span>
+          </Link>
+        </div>
+
+        <div className="mt-11 flex flex-wrap items-center gap-x-7 gap-y-3 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+          <span className="inline-flex items-center gap-2">
+            <span className="size-1 rounded-full bg-[var(--primary)]" />
+            电脑室 · 例常活动
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="size-1 rounded-full bg-[var(--primary)]" />
+            项目制学习
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="size-1 rounded-full bg-[var(--primary)]" />
+            开放给全校
+          </span>
+          {statusText && (
+            <span className="inline-flex items-center gap-2 text-[var(--primary)]">
+              <span className="size-1 rounded-full bg-[var(--primary)]" />
+              {statusText}
+            </span>
+          )}
+        </div>
       </div>
+
+      {aside && <div className="min-w-0">{aside}</div>}
     </section>
   );
 }

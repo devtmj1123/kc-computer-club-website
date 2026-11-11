@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { commentService, ReplyCommentInput } from '@/services/comment.service';
+import { requireAdminSession } from '@/lib/admin-session';
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
+
   try {
     const { id } = await params;
     const body = await request.json();

@@ -1,10 +1,42 @@
 'use client';
+
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
 import { Notice } from '@/services/notice.service';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+const statusOptions = [
+  { value: 'all', label: '全部状态' },
+  { value: 'published', label: '已发布' },
+  { value: 'draft', label: '草稿' },
+];
+
+function noticeKey(notice: Notice): string {
+  const fallback = notice as Notice & { id?: string };
+  return notice.$id || fallback.id || '';
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+function statusBadgeClass(status: Notice['status']): string {
+  return status === 'published'
+    ? 'border-[var(--primary)]/40 bg-[var(--primary-light)] text-[var(--primary)]'
+    : 'border-[var(--warning)]/40 bg-[var(--warning-light)] text-[var(--warning)]';
+}
+
 export default function AdminNoticesPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -15,16 +47,19 @@ export default function AdminNoticesPage() {
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'draft' | 'published'>('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
     if (!isLoading && (!user || !('role' in user) || user.role !== 'admin')) {
       router.push('/admin/login');
     }
   }, [user, isLoading, router]);
+
   useEffect(() => {
     if (user && 'role' in user && user.role === 'admin') {
       loadNotices();
     }
   }, [user]);
+
   const loadNotices = async () => {
     try {
       setIsLoadingNotices(true);
@@ -32,7 +67,7 @@ export default function AdminNoticesPage() {
       const response = await fetch('/api/notices');
       const data = await response.json();
       if (data.success) {
-        setNotices(data.notices);
+        setNotices(Array.isArray(data.notices) ? data.notices : []);
       } else {
         setError(data.error || '加载公告列表失败');
       }
@@ -42,6 +77,7 @@ export default function AdminNoticesPage() {
       setIsLoadingNotices(false);
     }
   };
+
   const handleDelete = async (noticeId: string) => {
     setIsDeleting(true);
     try {
@@ -50,7 +86,7 @@ export default function AdminNoticesPage() {
       });
       const data = await response.json();
       if (data.success) {
-        setNotices(notices.filter(n => n.$id !== noticeId));
+        setNotices((prev) => prev.filter((notice) => noticeKey(notice) !== noticeId));
         setDeleteId(null);
       } else {
         setError(data.error || '删除失败');
@@ -61,10 +97,13 @@ export default function AdminNoticesPage() {
       setIsDeleting(false);
     }
   };
+
   const filteredNotices = notices
     .filter((notice) => {
-      const matchSearch = notice.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        notice.category.toLowerCase().includes(searchTerm.toLowerCase());
+      const keyword = searchTerm.toLowerCase();
+      const matchSearch =
+        notice.title.toLowerCase().includes(keyword) ||
+        notice.category.toLowerCase().includes(keyword);
       const matchStatus = selectedStatus === 'all' || notice.status === selectedStatus;
       return matchSearch && matchStatus;
     })
@@ -73,215 +112,254 @@ export default function AdminNoticesPage() {
       if (!a.pinned && b.pinned) return 1;
       return 0;
     });
+
+  const publishedCount = notices.filter((notice) => notice.status === 'published').length;
+  const draftCount = notices.filter((notice) => notice.status === 'draft').length;
+
   if (isLoading || !user) {
     return (
       <AdminLayout adminName={user?.name || '管理员'}>
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin mb-4">
-              <span className="material-symbols-outlined text-[#137fec] text-5xl">
-                hourglass_bottom
-              </span>
-            </div>
-            <p className="text-white">加载中...</p>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="border border-[var(--border)] bg-[var(--surface)] px-8 py-6 text-center">
+            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
+            <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+              Loading notices
+            </p>
           </div>
         </div>
       </AdminLayout>
     );
   }
+
   return (
     <AdminLayout adminName={user?.name || '管理员'}>
-      <div className="w-full">
-        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">公告管理</h1>
-            <p className="text-gray-400 text-sm">管理社团的所有公告信息</p>
-          </div>
-          <Link
-            href="/admin/notices/create"
-            className="w-full sm:w-auto px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#0f6ecf] transition-colors flex items-center justify-center gap-2"
-          >
-            <span className="material-symbols-outlined">add</span>
-            新建公告
-          </Link>
+      <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--primary)]">
+            Content · Notices
+          </p>
+          <h1 className="mt-2 font-display text-[30px] font-bold leading-tight tracking-[-0.03em] text-[var(--foreground)] sm:text-[34px]">
+            公告管理
+          </h1>
+          <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+            管理社团的所有公告信息，置顶内容优先显示。
+          </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6">
-            <p className="text-gray-400 text-sm mb-1">总公告数</p>
-            <p className="text-3xl font-bold text-white">{notices.length}</p>
-          </div>
-          <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6">
-            <p className="text-gray-400 text-sm mb-1">已发布</p>
-            <p className="text-3xl font-bold text-green-400">
-              {notices.filter(n => n.status === 'published').length}
-            </p>
-          </div>
-          <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6">
-            <p className="text-gray-400 text-sm mb-1">草稿</p>
-            <p className="text-3xl font-bold text-yellow-400">
-              {notices.filter(n => n.status === 'draft').length}
-            </p>
-          </div>
-        </div>
-        <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-4 sm:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <input
-              type="text"
-              placeholder="搜索公告..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-4 py-2 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#137fec]"
-            />
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value as 'all' | 'draft' | 'published')}
-              className="px-4 py-2 bg-[#141f2e] border border-[#283a4f] rounded-lg text-white focus:outline-none focus:border-[#137fec]"
-            >
-              <option value="all">全部状态</option>
-              <option value="published">已发布</option>
-              <option value="draft">草稿</option>
-            </select>
-          </div>
-        </div>
-        {error && (
-          <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
-            {error}
-          </div>
-        )}
-        <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] overflow-hidden shadow-sm">
-          {isLoadingNotices ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin mb-4 inline-block">
-                <span className="material-symbols-outlined text-[#137fec] text-3xl">
-                  hourglass_bottom
-                </span>
-              </div>
-              <p className="text-gray-400">加载中...</p>
-            </div>
-          ) : filteredNotices.length === 0 ? (
-            <div className="p-8 text-center">
-              <span className="material-symbols-outlined text-gray-400 text-4xl block mb-2">
-                campaign
+        <Link
+          href="/admin/notices/create"
+          className="inline-flex w-fit items-center gap-2 bg-[var(--primary)] px-4 py-2.5 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
+        >
+          <span className="text-[14px] leading-none">+</span>
+          新建公告
+        </Link>
+      </div>
+
+      <section className="grid grid-cols-1 gap-px border border-[var(--rule-strong)] bg-[var(--border)] sm:grid-cols-3">
+        {[
+          { label: '公告总数', note: 'TOTAL', value: notices.length },
+          { label: '已发布', note: 'PUBLISHED', value: publishedCount },
+          { label: '草稿', note: 'DRAFTS', value: draftCount },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-[var(--surface)] px-5 py-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+                {stat.label}
               </span>
-              <p className="text-gray-400">暂无公告</p>
+              <span className="font-mono text-[7px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
+                {stat.note}
+              </span>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[#283a4f] bg-[#141f2e]">
-                    <th className="px-4 sm:px-6 py-4 text-left font-semibold text-gray-400">
-                      标题
-                    </th>
-                    <th className="hidden sm:table-cell px-6 py-4 text-left font-semibold text-gray-400">
-                      分类
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-400">
-                      作者
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-400">
-                      状态
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-400">
-                      创建时间
-                    </th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-gray-400">
-                      操作
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredNotices.map((notice) => (
-                    <tr
-                      key={notice.$id}
-                      className="border-b border-[#283a4f] hover:bg-[#1f2d39] transition-colors"
+            <p className="mt-2 font-display text-[28px] font-bold leading-none tracking-[-0.04em] text-[var(--foreground)]">
+              {String(stat.value).padStart(2, '0')}
+            </p>
+          </div>
+        ))}
+      </section>
+
+      <div className="mt-5 flex flex-col gap-3 border border-[var(--border)] bg-[var(--surface)] p-3 sm:flex-row sm:items-center">
+        <Input
+          type="text"
+          placeholder="搜索标题或分类…"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          leftIcon="search"
+          containerClassName="flex-1"
+        />
+        <NeumorphicSelect
+          options={statusOptions}
+          value={selectedStatus}
+          onChange={(value) =>
+            setSelectedStatus(value as 'all' | 'draft' | 'published')
+          }
+          className="sm:w-44"
+        />
+      </div>
+
+      {error && (
+        <div className="mt-5 flex items-start gap-2 border border-[var(--error)]/40 bg-[var(--error-light)] px-4 py-3">
+          <span className="material-symbols-outlined text-[16px] text-[var(--error)]">error</span>
+          <p className="text-[12px] leading-relaxed text-[var(--error)]">{error}</p>
+        </div>
+      )}
+
+      <section className="mt-5 border border-[var(--rule-strong)]">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
+          <h2 className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+            Notice index
+          </h2>
+          <span className="font-mono text-[12px] tracking-[0.08em] text-[var(--text-tertiary)]">
+            {String(filteredNotices.length).padStart(2, '0')} 条
+          </span>
+        </div>
+
+        {isLoadingNotices ? (
+          <div className="px-5 py-14 text-center">
+            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
+            <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+              Loading records
+            </p>
+          </div>
+        ) : filteredNotices.length === 0 ? (
+          <div className="px-5 py-14 text-center">
+            <span className="material-symbols-outlined text-[28px] text-[var(--text-tertiary)]">
+              campaign
+            </span>
+            <p className="mt-3 font-display text-[16px] font-bold text-[var(--foreground)]">
+              暂无公告
+            </p>
+            <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+              {notices.length === 0 ? '发布第一条公告来填充这里。' : '没有符合当前筛选条件的公告。'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-[var(--border)]">
+                  {['标题', '分类', '作者', '状态', '创建时间', '操作'].map((label) => (
+                    <th
+                      key={label}
+                      className={`px-5 py-3 font-mono text-[12px] font-normal uppercase tracking-[0.12em] text-[var(--text-tertiary)] ${
+                        label === '操作' ? 'text-right' : ''
+                      }`}
                     >
-                      <td className="px-6 py-4">
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredNotices.map((notice) => {
+                  const id = noticeKey(notice);
+                  return (
+                    <tr
+                      key={id}
+                      className="border-b border-[var(--border)] transition-colors last:border-b-0 hover:bg-[var(--primary-light)]"
+                    >
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           {notice.pinned && (
-                            <span className="material-symbols-outlined text-yellow-400 text-base" title="已置顶">push_pin</span>
+                            <span
+                              className="material-symbols-outlined text-[15px] text-[var(--warning)]"
+                              title="已置顶"
+                            >
+                              push_pin
+                            </span>
                           )}
-                          <span className="font-medium text-white">{notice.title}</span>
+                          <span className="max-w-[320px] truncate text-[12px] font-semibold text-[var(--foreground)]">
+                            {notice.title}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-gray-400 text-sm">{notice.category}</span>
+                      <td className="px-5 py-3.5">
+                        <span className="font-mono text-[12px] tracking-[0.04em] text-[var(--text-secondary)]">
+                          {notice.category}
+                        </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-gray-400 text-sm">{notice.author}</span>
+                      <td className="px-5 py-3.5 text-[12px] text-[var(--text-secondary)]">
+                        {notice.author}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-3.5">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            notice.status === 'published'
-                              ? 'bg-green-500/10 text-green-400'
-                              : 'bg-yellow-500/10 text-yellow-400'
-                          }`}
+                          className={`inline-flex border px-2 py-1 font-mono text-[12px] uppercase tracking-[0.06em] ${statusBadgeClass(notice.status)}`}
                         >
                           {notice.status === 'published' ? '已发布' : '草稿'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-400 text-sm">
-                        {new Date(notice.createdAt).toLocaleDateString('zh-CN')}
+                      <td className="px-5 py-3.5 font-mono text-[12px] tracking-[0.04em] text-[var(--text-tertiary)]">
+                        {formatDate(notice.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-2">
                           <Link
-                            href={`/admin/notices/${notice.$id}/edit`}
-                            className="p-2 bg-[#283a4f] text-gray-400 rounded-lg hover:text-white hover:bg-[#354860] transition-colors"
-                            title="编辑"
+                            href={`/admin/notices/${id}/edit`}
+                            className="border border-[var(--border)] px-2.5 py-1.5 font-mono text-[12px] uppercase tracking-[0.06em] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
                           >
-                            <span className="material-symbols-outlined text-lg">edit</span>
+                            编辑
                           </Link>
                           <button
-                            onClick={() => setDeleteId(notice.$id)}
-                            className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors"
-                            title="删除"
+                            type="button"
+                            onClick={() => setDeleteId(id)}
+                            className="border border-[var(--border)] px-2.5 py-1.5 font-mono text-[12px] uppercase tracking-[0.06em] text-[var(--text-secondary)] transition-colors hover:border-[var(--error)] hover:text-[var(--error)]"
                           >
-                            <span className="material-symbols-outlined text-lg">delete</span>
+                            删除
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {deleteId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]"
+          onClick={() => !isDeleting && setDeleteId(null)}
+        >
+          <div
+            className="w-full max-w-sm border border-[var(--rule-strong)] bg-[var(--surface)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="border-b border-[var(--border)] px-5 py-3">
+              <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-[var(--error)]">
+                Delete / Notice
+              </p>
             </div>
-          )}
-        </div>
-        {deleteId && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#1a2838] rounded-2xl border border-[#283a4f] p-6 max-w-sm">
-              <div className="mb-4">
-                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4 mx-auto">
-                  <span className="material-symbols-outlined text-red-400 text-2xl">
-                    warning
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold text-white text-center">确认删除</h3>
-              </div>
-              <p className="text-gray-400 text-sm mb-6 text-center">
+            <div className="px-5 py-5">
+              <h2 className="font-display text-[20px] font-bold tracking-[-0.02em] text-[var(--foreground)]">
+                确认删除
+              </h2>
+              <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
                 确定要删除这个公告吗？此操作无法撤销。
               </p>
-              <div className="flex gap-3">
-                <button
+              <div className="mt-6 flex gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
                   onClick={() => setDeleteId(null)}
-                  className="flex-1 px-4 py-2 bg-[#283a4f] text-white rounded-lg hover:bg-[#354860] transition-colors"
+                  disabled={isDeleting}
                 >
                   取消
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  className="flex-1"
+                  isLoading={isDeleting}
                   onClick={() => deleteId && handleDelete(deleteId)}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
                 >
-                  {isDeleting ? '删除中...' : '确认删除'}
-                </button>
+                  确认删除
+                </Button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
