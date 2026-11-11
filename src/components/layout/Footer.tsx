@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ClubMark } from '@/components/ui/ClubMark';
 import { cn } from '@/lib/utils';
 
 interface FooterLink {
@@ -142,9 +143,7 @@ export function Footer({ className }: FooterProps) {
         <div className="grid grid-cols-1 gap-10 py-14 md:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-5 lg:pr-12">
             <Link href="/" className="inline-flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center bg-[var(--primary)] font-mono text-[12px] font-semibold tracking-[0.04em] text-[var(--primary-contrast)]">
-                KC
-              </span>
+              <ClubMark size={40} />
               <span className="flex flex-col gap-1">
                 <span className="font-display text-[17px] font-bold leading-none tracking-[0.01em] text-[var(--foreground)]">
                   {clubName}

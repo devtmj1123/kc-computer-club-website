@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
+import { ClubMark } from '@/components/ui/ClubMark';
 import { Input } from '@/components/ui/Input';
 
 export default function AdminLoginPage() {
@@ -34,9 +35,7 @@ export default function AdminLoginPage() {
     <div className="flex min-h-screen bg-transparent">
       <aside className="hidden w-[38%] max-w-[520px] flex-col justify-between border-r border-[var(--rule-strong)] bg-[var(--surface-hover)] p-10 lg:flex xl:p-14">
         <div className="flex items-center gap-3">
-          <span className="flex size-[34px] items-center justify-center bg-[var(--primary)] font-mono text-[12px] font-semibold tracking-[0.04em] text-[var(--primary-contrast)]">
-            KC
-          </span>
+          <ClubMark size={34} />
           <span className="flex flex-col gap-1">
             <span className="font-display text-[15px] font-bold leading-none text-[var(--foreground)]">
               电脑学会
@@ -68,9 +67,7 @@ export default function AdminLoginPage() {
       <main className="flex flex-1 items-center justify-center px-4 py-12 sm:px-8">
         <div className="w-full max-w-[420px]">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="flex size-[30px] items-center justify-center bg-[var(--primary)] font-mono text-[12px] font-semibold text-[var(--primary-contrast)]">
-              KC
-            </span>
+            <ClubMark size={30} />
             <span className="flex flex-col gap-1">
               <span className="font-display text-[14px] font-bold leading-none text-[var(--foreground)]">
                 电脑学会

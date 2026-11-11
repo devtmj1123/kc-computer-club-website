@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { ClubMark } from '@/components/ui/ClubMark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { cn } from '@/lib/utils';
 
@@ -56,9 +57,7 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
     >
       <div className="mx-auto flex h-16 w-full max-w-[1360px] items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-3">
-          <span className="flex size-9 items-center justify-center bg-[var(--primary)] font-mono text-[12px] font-semibold tracking-[0.04em] text-[var(--primary-contrast)]">
-            KC
-          </span>
+          <ClubMark size={36} priority />
           <span className="hidden flex-col gap-1 sm:flex">
             <span className="font-display text-[15px] font-bold leading-none tracking-[0.02em] text-[var(--foreground)]">
               坤成中学电脑学会

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { ClubMark } from '@/components/ui/ClubMark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useState, useEffect } from 'react';
 
@@ -138,9 +139,7 @@ export function AdminLayout({
       >
         <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-[var(--border)] px-[22px]">
           <Link href="/admin" className="flex items-center gap-3">
-            <span className="flex size-[30px] items-center justify-center bg-[var(--primary)] font-mono text-[12px] font-semibold tracking-[0.04em] text-[var(--primary-contrast)]">
-              KC
-            </span>
+            <ClubMark size={30} />
             <span className="flex flex-col gap-1">
               <span className="font-display text-[14px] font-bold leading-none text-[var(--foreground)]">
                 电脑学会
