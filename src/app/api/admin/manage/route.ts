@@ -7,8 +7,43 @@ interface AdminRow {
   id: string;
   email: string;
   chinese_name: string | null;
+  recovery_email?: string | null;
   is_active: boolean;
   created_at: string;
+}
+
+interface RecoveryEmailParseResult {
+  value: string | null;
+  error: string | null;
+}
+
+function parseRecoveryEmail(input: unknown): RecoveryEmailParseResult {
+  if (input === undefined || input === null) {
+    return { value: null, error: null };
+  }
+
+  const value = String(input).trim().toLowerCase();
+  if (!value) {
+    return { value: null, error: null };
+  }
+  if (
+    value.length > 254 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+  ) {
+    return { value: null, error: 'recovery email 格式不正确' };
+  }
+  if (value.endsWith('@admin.kcc.internal')) {
+    return {
+      value: null,
+      error: 'recovery email 不能使用内部管理员邮箱',
+    };
+  }
+
+  return { value, error: null };
+}
+
+function isMissingRecoveryEmailColumn(message: string | undefined): boolean {
+  return Boolean(message && /recovery_email/i.test(message));
 }
 
 export async function GET(request: NextRequest) {
@@ -17,17 +52,35 @@ export async function GET(request: NextRequest) {
 
   try {
     const admin = getSupabaseAdminClient();
-    const { data, error } = await admin
+    const baseColumns = 'id, email, chinese_name, is_active, created_at';
+    const withRecovery = await admin
       .from('profiles')
-      .select('id, email, chinese_name, is_active, created_at')
+      .select(`${baseColumns}, recovery_email`)
       .eq('role', 'admin')
       .order('created_at', { ascending: true });
 
-    if (error) {
-      throw new Error(error.message);
+    let rows = (withRecovery.data ?? []) as AdminRow[];
+    let queryError = withRecovery.error;
+
+    if (
+      queryError &&
+      isMissingRecoveryEmailColumn(queryError.message)
+    ) {
+      console.warn(
+        'profiles.recovery_email 尚未创建，管理员列表已回退到旧字段。请应用 0005_admin_recovery_email.sql'
+      );
+      const fallback = await admin
+        .from('profiles')
+        .select(baseColumns)
+        .eq('role', 'admin')
+        .order('created_at', { ascending: true });
+      rows = (fallback.data ?? []) as AdminRow[];
+      queryError = fallback.error;
     }
 
-    const rows = (data ?? []) as AdminRow[];
+    if (queryError) {
+      throw new Error(queryError.message);
+    }
     const authUsers = new Map<string, { username?: string; lastSignIn: string | null }>();
     const { data: userPage, error: userError } = await admin.auth.admin.listUsers({
       page: 1,
@@ -56,6 +109,7 @@ export async function GET(request: NextRequest) {
         id: row.id,
         username,
         name: row.chinese_name || username,
+        recoveryEmail: row.recovery_email || null,
         isActive: row.is_active,
         lastLogin: meta?.lastSignIn || null,
         createdAt: row.created_at,
@@ -101,6 +155,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const recovery = parseRecoveryEmail(body.recoveryEmail);
+    if (recovery.error) {
+      return NextResponse.json(
+        { success: false, error: recovery.error },
+        { status: 400 }
+      );
+    }
+
     const admin = getSupabaseAdminClient();
     const email = adminEmailForUsername(username);
     const { data: existing } = await admin
@@ -113,6 +175,31 @@ export async function POST(request: NextRequest) {
         { success: false, error: '用户名已被使用' },
         { status: 409 }
       );
+    }
+
+    if (recovery.value) {
+      const { data: existingRecovery, error: recoveryError } = await admin
+        .from('profiles')
+        .select('id')
+        .ilike('recovery_email', recovery.value)
+        .maybeSingle();
+      if (recoveryError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: isMissingRecoveryEmailColumn(recoveryError.message)
+              ? '数据库尚未应用 0005_admin_recovery_email.sql，无法保存 recovery email'
+              : recoveryError.message,
+          },
+          { status: 500 }
+        );
+      }
+      if (existingRecovery) {
+        return NextResponse.json(
+          { success: false, error: '该 recovery email 已被其他账户使用' },
+          { status: 409 }
+        );
+      }
     }
 
     const displayName = String(body.name || username).trim() || username;
@@ -139,6 +226,7 @@ export async function POST(request: NextRequest) {
         permissions: ['*'],
         is_active: true,
         require_password_change: false,
+        ...(recovery.value ? { recovery_email: recovery.value } : {}),
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'id' }
@@ -147,7 +235,12 @@ export async function POST(request: NextRequest) {
     if (profileError) {
       await admin.auth.admin.deleteUser(created.user.id);
       return NextResponse.json(
-        { success: false, error: profileError.message || '创建管理员资料失败' },
+        {
+          success: false,
+          error: isMissingRecoveryEmailColumn(profileError.message)
+            ? '数据库尚未应用 0005_admin_recovery_email.sql，无法保存 recovery email'
+            : profileError.message || '创建管理员资料失败',
+        },
         { status: 500 }
       );
     }
@@ -201,6 +294,18 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const hasRecoveryEmail = Object.prototype.hasOwnProperty.call(
+      body,
+      'recoveryEmail'
+    );
+    const recovery = parseRecoveryEmail(body.recoveryEmail);
+    if (recovery.error) {
+      return NextResponse.json(
+        { success: false, error: recovery.error },
+        { status: 400 }
+      );
+    }
+
     const admin = getSupabaseAdminClient();
     const { data: profile, error: profileError } = await admin
       .from('profiles')
@@ -213,6 +318,32 @@ export async function PUT(request: NextRequest) {
         { success: false, error: '管理员不存在' },
         { status: 404 }
       );
+    }
+
+    if (hasRecoveryEmail && recovery.value) {
+      const { data: existingRecovery, error: recoveryError } = await admin
+        .from('profiles')
+        .select('id')
+        .ilike('recovery_email', recovery.value)
+        .neq('id', adminId)
+        .maybeSingle();
+      if (recoveryError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: isMissingRecoveryEmailColumn(recoveryError.message)
+              ? '数据库尚未应用 0005_admin_recovery_email.sql，无法保存 recovery email'
+              : recoveryError.message,
+          },
+          { status: 500 }
+        );
+      }
+      if (existingRecovery) {
+        return NextResponse.json(
+          { success: false, error: '该 recovery email 已被其他账户使用' },
+          { status: 409 }
+        );
+      }
     }
 
     const authUpdate: Record<string, unknown> = {};
@@ -246,6 +377,9 @@ export async function PUT(request: NextRequest) {
     if (typeof body.name === 'string' && body.name.trim()) {
       profileUpdate.chinese_name = body.name.trim();
     }
+    if (hasRecoveryEmail) {
+      profileUpdate.recovery_email = recovery.value;
+    }
 
     const { error: updateError } = await admin
       .from('profiles')
@@ -253,7 +387,12 @@ export async function PUT(request: NextRequest) {
       .eq('id', adminId);
     if (updateError) {
       return NextResponse.json(
-        { success: false, error: updateError.message || '更新管理员资料失败' },
+        {
+          success: false,
+          error: isMissingRecoveryEmailColumn(updateError.message)
+            ? '数据库尚未应用 0005_admin_recovery_email.sql，无法保存 recovery email'
+            : updateError.message || '更新管理员资料失败',
+        },
         { status: 500 }
       );
     }

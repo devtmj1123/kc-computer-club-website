@@ -2,10 +2,17 @@ import crypto from 'crypto';
 
 const RESET_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
+export type ResetTokenType = 'student' | 'admin';
+
 export interface ResetTokenData {
   userId: string;
+  /**
+   * Student accounts bind this to the school email. Admin accounts bind it to
+   * the recovery_email stored on the profile, never the internal auth email.
+   */
   email: string;
   timestamp: number;
+  type: ResetTokenType;
 }
 
 export type ResetTokenResult =
@@ -83,6 +90,7 @@ export function verifyResetToken(token: string): ResetTokenResult {
         userId: data.userId,
         email: data.email,
         timestamp: data.timestamp,
+        type: data.type === 'admin' ? 'admin' : 'student',
       },
     };
   } catch {

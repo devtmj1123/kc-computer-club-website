@@ -34,6 +34,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      type: result.data.type,
+      email: result.data.email,
       remainingTime:
         24 * 60 * 60 * 1000 - (Date.now() - result.data.timestamp),
     });

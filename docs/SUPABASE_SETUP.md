@@ -82,10 +82,11 @@ SQL 文件必须按顺序执行：
 2. `supabase/migrations/0002_functions.sql`
 3. `supabase/migrations/0003_rls.sql`
 4. `supabase/migrations/0004_storage.sql`
+5. `supabase/migrations/0005_admin_recovery_email.sql`
 
 ### 方式 A：Supabase SQL Editor（最简单）
 
-打开 **SQL Editor**，依次新建查询、粘贴每个文件、点击 **Run**。四个文件都成功后继续下一步。
+打开 **SQL Editor**，依次新建查询、粘贴每个文件、点击 **Run**。五个文件都成功后继续下一步。
 
 ### 方式 B：Supabase CLI（推荐长期使用）
 
@@ -206,6 +207,12 @@ NEXT_PUBLIC_RECAPTCHA_SITE_KEY="..."
 ```
 
 如果继续使用自定义邮件（非 Supabase 内置邮件），再配置 `RESEND_API_KEY` / `RESEND_FROM_EMAIL`。
+
+管理员账号的登录邮箱是内部地址 `@admin.kcc.internal`，无法收信。忘记密码必须使用 `profiles.recovery_email`：
+
+1. 先执行 `supabase/migrations/0005_admin_recovery_email.sql`
+2. 在「管理员管理」里为每位管理员填写 recovery email
+3. 管理员在 `/admin/forgot-password` 输入用户名或 recovery email 获取重置链接
 
 生产环境还需要：
 

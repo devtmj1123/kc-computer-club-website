@@ -12,6 +12,7 @@ export default function CreateAdminPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -38,6 +39,13 @@ export default function CreateAdminPage() {
       setError('用户名至少 3 个字符');
       return;
     }
+    if (
+      recoveryEmail.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail.trim())
+    ) {
+      setError('recovery email 格式不正确');
+      return;
+    }
     if (!password) {
       setError('密码不能为空');
       return;
@@ -55,12 +63,13 @@ export default function CreateAdminPage() {
       const response = await fetch('/api/admin/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, recoveryEmail }),
       });
       const data = await response.json();
       if (data.success) {
         setSuccess('管理员创建成功');
         setUsername('');
+        setRecoveryEmail('');
         setPassword('');
         setConfirmPassword('');
         setTimeout(() => router.push('/admin/manage'), 1500);
@@ -145,6 +154,17 @@ export default function CreateAdminPage() {
               required
               disabled={isSubmitting}
               hint="3–20 个字符"
+            />
+
+            <Input
+              label="Recovery email（可选）"
+              type="email"
+              value={recoveryEmail}
+              onChange={(e) => setRecoveryEmail(e.target.value)}
+              placeholder="name@example.com"
+              leftIcon="alternate_email"
+              disabled={isSubmitting}
+              hint="用于忘记密码时接收重置链接；可留空，之后在编辑页补充。"
             />
 
             <Input

@@ -123,6 +123,7 @@ SQL migrations live in `supabase/migrations/` and must be applied in order:
 2. `0002_functions.sql` — helper functions, triggers, attendance RPC
 3. `0003_rls.sql` — Row Level Security policies
 4. `0004_storage.sql` — Storage buckets and policies
+5. `0005_admin_recovery_email.sql` — real recovery mailbox for admin password resets
 
 Apply them with the Supabase CLI (`supabase db push`) or the SQL Editor.
 

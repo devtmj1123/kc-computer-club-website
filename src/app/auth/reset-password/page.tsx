@@ -4,8 +4,10 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { StudentLayout } from '@/components/layout/StudentLayout';
+import { ClubMark } from '@/components/ui/ClubMark';
 import { Loading } from '@/components/ui/Loading';
 import { Input } from '@/components/ui/Input';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const PASSWORD_RULES = [
   '至少 6 个字符',
@@ -15,26 +17,75 @@ const PASSWORD_RULES = [
   '包含特殊字符 (!@#$%^&*)',
 ];
 
+function RecoveryLayout({
+  isAdmin,
+  children,
+}: {
+  isAdmin: boolean;
+  children: React.ReactNode;
+}) {
+  if (!isAdmin) {
+    return <StudentLayout>{children}</StudentLayout>;
+  }
+
+  return (
+    <div className="min-h-screen bg-transparent">
+      <header className="border-b border-[var(--rule-strong)] bg-[var(--surface)]">
+        <div className="mx-auto flex h-16 w-full max-w-[1100px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-3">
+            <ClubMark size={30} />
+            <span className="flex flex-col gap-1">
+              <span className="font-display text-[14px] font-bold leading-none text-[var(--foreground)]">
+                电脑学会
+              </span>
+              <span className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-tertiary)]">
+                ADMIN RECOVERY
+              </span>
+            </span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/login"
+              className="font-mono text-[11px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] transition-colors hover:text-[var(--foreground)]"
+            >
+              管理员登录
+            </Link>
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
+      {children}
+    </div>
+  );
+}
+
 function AuthShell({
   stepLabel,
   stepValue,
+  isAdmin,
   children,
 }: {
   stepLabel: string;
   stepValue: string;
+  isAdmin: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <StudentLayout>
+    <RecoveryLayout isAdmin={isAdmin}>
       <main className="mx-auto w-full max-w-[1100px] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-20">
           <section className="min-w-0">
-            <div className="eyebrow">ACCOUNT RECOVERY · 重置密码</div>
+            <div className="eyebrow">
+              {isAdmin
+                ? 'ADMIN RECOVERY · 管理员重置密码'
+                : 'ACCOUNT RECOVERY · 重置密码'}
+            </div>
             <h1 className="mt-5 font-display text-[clamp(2.3rem,5.5vw,3.8rem)] font-bold leading-[1.08] tracking-[-0.04em] text-[var(--foreground)]">
               设置新密码。
             </h1>
             <p className="mt-5 max-w-md text-[13px] leading-[1.95] text-[var(--text-secondary)]">
-              重置链接有效期 24 小时。新密码必须满足安全要求，完成后即可使用新密码登录。
+              重置链接有效期 24 小时。新密码必须满足安全要求，完成后即可使用新密码
+              {isAdmin ? '登录管理后台' : '登录'}。
             </p>
 
             <div className="mt-10 border-t border-[var(--rule-strong)]">
@@ -67,13 +118,16 @@ function AuthShell({
           </section>
         </div>
       </main>
-    </StudentLayout>
+    </RecoveryLayout>
   );
 }
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const [isAdmin, setIsAdmin] = useState(
+    searchParams.get('type') === 'admin'
+  );
   const [step, setStep] = useState<'validating' | 'form' | 'success' | 'error'>('validating');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -103,6 +157,7 @@ function ResetPasswordContent() {
           return;
         }
         setUserEmail(data.email || '');
+        setIsAdmin(data.type === 'admin');
         setStep('form');
       } catch {
         setError('验证失败，请检查链接');
@@ -168,17 +223,21 @@ function ResetPasswordContent() {
 
   if (step === 'validating') {
     return (
-      <StudentLayout>
+      <RecoveryLayout isAdmin={isAdmin}>
         <main className="flex items-center justify-center px-4 py-32">
           <Loading size="lg" text="正在验证重置链接…" />
         </main>
-      </StudentLayout>
+      </RecoveryLayout>
     );
   }
 
   if (step === 'success') {
     return (
-      <AuthShell stepLabel="RESET / 重置" stepValue="DONE">
+      <AuthShell
+        stepLabel="RESET / 重置"
+        stepValue="DONE"
+        isAdmin={isAdmin}
+      >
         <span className="inline-flex size-10 items-center justify-center border border-[var(--primary)]/40 bg-[var(--primary-light)] text-[var(--primary)]">
           <span className="material-symbols-outlined text-[20px]">check_circle</span>
         </span>
@@ -186,14 +245,16 @@ function ResetPasswordContent() {
           密码已重置。
         </h2>
         <p className="mt-3 text-[12px] leading-[1.9] text-[var(--text-secondary)]">
-          你的密码已成功更新。现在可以使用新密码登录社团网站。
+          {isAdmin
+            ? '管理员密码已成功更新。现在可以使用新密码登录管理后台。'
+            : '你的密码已成功更新。现在可以使用新密码登录社团网站。'}
         </p>
         <Link
-          href="/auth/login"
+          href={isAdmin ? '/admin/login' : '/auth/login'}
           className="mt-6 inline-flex w-full items-center justify-center gap-2 bg-[var(--primary)] px-4 py-3 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
         >
           <span className="material-symbols-outlined text-[15px]">login</span>
-          返回登录
+          {isAdmin ? '返回管理员登录' : '返回登录'}
         </Link>
       </AuthShell>
     );
@@ -201,7 +262,11 @@ function ResetPasswordContent() {
 
   if (step === 'error') {
     return (
-      <AuthShell stepLabel="RESET / 重置" stepValue="INVALID">
+      <AuthShell
+        stepLabel="RESET / 重置"
+        stepValue="INVALID"
+        isAdmin={isAdmin}
+      >
         <span className="inline-flex size-10 items-center justify-center border border-[var(--error)]/40 bg-[var(--error-light)] text-[var(--error)]">
           <span className="material-symbols-outlined text-[20px]">error</span>
         </span>
@@ -213,18 +278,18 @@ function ResetPasswordContent() {
         </p>
         <div className="mt-6 space-y-3">
           <Link
-            href="/auth/forgot-password"
+            href={isAdmin ? '/admin/forgot-password' : '/auth/forgot-password'}
             className="inline-flex w-full items-center justify-center gap-2 bg-[var(--primary)] px-4 py-3 text-[12px] font-semibold text-[var(--primary-contrast)] transition-colors hover:bg-[var(--primary-hover)]"
           >
             <span className="material-symbols-outlined text-[15px]">mail</span>
             重新申请重置
           </Link>
           <Link
-            href="/auth/login"
+            href={isAdmin ? '/admin/login' : '/auth/login'}
             className="inline-flex w-full items-center justify-center gap-2 border border-[var(--rule-strong)] px-4 py-3 text-[12px] font-semibold text-[var(--foreground)] transition-colors hover:border-[var(--primary)] hover:text-[var(--primary)]"
           >
             <span className="material-symbols-outlined text-[15px]">login</span>
-            返回登录
+            {isAdmin ? '返回管理员登录' : '返回登录'}
           </Link>
         </div>
       </AuthShell>
@@ -232,7 +297,11 @@ function ResetPasswordContent() {
   }
 
   return (
-    <AuthShell stepLabel="RESET / 重置" stepValue="STEP 02">
+    <AuthShell
+      stepLabel="RESET / 重置"
+      stepValue="STEP 02"
+      isAdmin={isAdmin}
+    >
       {userEmail && (
         <div className="mb-5 border border-[var(--border)] bg-[var(--surface-hover)] px-4 py-3">
           <p className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
@@ -321,11 +390,11 @@ function ResetPasswordContent() {
 
       <div className="mt-5 border-t border-[var(--border)] pt-4">
         <Link
-          href="/auth/login"
+          href={isAdmin ? '/admin/login' : '/auth/login'}
           className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] transition-colors hover:text-[var(--primary)]"
         >
           <span className="material-symbols-outlined text-[15px]">arrow_back</span>
-          返回登录
+          {isAdmin ? '返回管理员登录' : '返回登录'}
         </Link>
       </div>
     </AuthShell>
@@ -334,11 +403,9 @@ function ResetPasswordContent() {
 
 function ResetPasswordLoading() {
   return (
-    <StudentLayout>
-      <main className="flex items-center justify-center px-4 py-32">
-        <Loading size="lg" text="加载中…" />
-      </main>
-    </StudentLayout>
+    <div className="flex min-h-screen items-center justify-center px-4 py-32">
+      <Loading size="lg" text="加载中…" />
+    </div>
   );
 }
 

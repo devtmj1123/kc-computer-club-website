@@ -11,6 +11,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 interface Admin {
   id: string;
   username: string;
+  name?: string;
+  recoveryEmail: string | null;
   isActive: boolean;
   lastLogin: string | null;
   createdAt: string;
@@ -174,10 +176,10 @@ export default function AdminManagePage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-collapse text-left">
+            <table className="w-full min-w-[920px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--surface-hover)]">
-                  {['用户名', '状态', '创建时间', '最后登录'].map((label) => (
+                  {['用户名', 'Recovery email', '状态', '创建时间', '最后登录'].map((label) => (
                     <th
                       key={label}
                       className="px-4 py-3 font-mono text-[12px] font-normal uppercase tracking-[0.12em] text-[var(--text-tertiary)]"
@@ -210,6 +212,15 @@ export default function AdminManagePage() {
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-[12px]">
+                      {admin.recoveryEmail ? (
+                        <span className="break-all text-[var(--text-secondary)]">
+                          {admin.recoveryEmail}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--error)]">未设置</span>
+                      )}
                     </td>
                     <td className="px-4 py-3.5">
                       <span

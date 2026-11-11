@@ -12,18 +12,22 @@ const DEFAULT_STUDENT_PASSWORD = '11111111';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { token, newPassword } = body;
+    const token = typeof body.token === 'string' ? body.token : '';
+    const newPassword =
+      typeof body.newPassword === 'string' ? body.newPassword : '';
     if (!token || !newPassword) {
       return NextResponse.json(
         { error: '缺少必要的参数' },
         { status: 400 }
       );
     }
+
     const ip = getClientIp(request);
     const limit = rateLimit(`reset-password:${ip}`, 10, 15 * 60 * 1000);
     if (!limit.allowed) {
       return rateLimitResponse(limit.retryAfter);
     }
+
     const tokenResult = verifyResetToken(token);
     if (!tokenResult.ok) {
       return NextResponse.json(
@@ -32,20 +36,37 @@ export async function POST(request: Request) {
       );
     }
 
-    const { userId, email } = tokenResult.data;
+    const { userId, email, type } = tokenResult.data;
     const admin = getSupabaseAdminClient();
     const { data: profile, error: profileError } = await admin
       .from('profiles')
-      .select('id, email, role, is_active')
+      .select('id, email, recovery_email, role, is_active')
       .eq('id', userId)
       .maybeSingle();
 
+    if (profileError) {
+      console.error('查询重置密码用户失败:', profileError.message);
+      return NextResponse.json(
+        { error: '无效的重置请求' },
+        { status: 400 }
+      );
+    }
+
+    const isAdminReset = type === 'admin';
+    const expectedEmail =
+      isAdminReset && profile
+        ? profile.recovery_email
+        : profile?.email;
+    const roleMatches =
+      Boolean(profile) &&
+      (isAdminReset ? profile?.role === 'admin' : profile?.role === 'student');
+
     if (
-      profileError ||
       !profile ||
-      profile.role !== 'student' ||
+      !roleMatches ||
       profile.is_active === false ||
-      String(profile.email).toLowerCase() !== String(email).toLowerCase()
+      !expectedEmail ||
+      String(expectedEmail).toLowerCase() !== String(email).toLowerCase()
     ) {
       return NextResponse.json(
         { error: '无效的重置请求' },
@@ -99,10 +120,13 @@ export async function POST(request: Request) {
       console.error('更新密码重置状态失败:', profileUpdateError.message);
     }
 
-    console.log(`密码重置成功: ${profile.email} (用户ID: ${profile.id})`);
+    console.log(
+      `${isAdminReset ? '管理员' : '学生'}密码重置成功: ${profile.email} (用户ID: ${profile.id})`
+    );
     return NextResponse.json({
       success: true,
       message: '密码重置成功。请使用新密码登录。',
+      type,
     });
   } catch (error) {
     console.error('重置密码 API 错误:', error);

@@ -137,6 +137,15 @@ export default function AdminLoginPage() {
                   }
                 />
 
+                <div className="flex justify-end">
+                  <Link
+                    href="/admin/forgot-password"
+                    className="font-mono text-[11px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] transition-colors hover:text-[var(--primary)]"
+                  >
+                    忘记密码？
+                  </Link>
+                </div>
+
                 <Button
                   type="submit"
                   variant="primary"

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input';
 interface Admin {
   id: string;
   username: string;
+  recoveryEmail: string | null;
   isActive: boolean;
   createdAt: string;
 }
@@ -22,6 +23,7 @@ export default function EditAdminPage() {
   const adminId = params?.id as string;
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [username, setUsername] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -46,6 +48,7 @@ export default function EditAdminPage() {
         if (foundAdmin) {
           setAdmin(foundAdmin);
           setUsername(foundAdmin.username);
+          setRecoveryEmail(foundAdmin.recoveryEmail || '');
           setIsActive(foundAdmin.isActive);
         } else {
           setError('管理员不存在');
@@ -72,18 +75,32 @@ export default function EditAdminPage() {
       setError('用户名不能为空');
       return;
     }
+    if (
+      recoveryEmail.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail.trim())
+    ) {
+      setError('recovery email 格式不正确');
+      return;
+    }
     if (newPassword && newPassword.length < 6) {
       setError('密码至少 6 个字符');
       return;
     }
     setIsSubmitting(true);
     try {
+      const nextRecoveryEmail = recoveryEmail.trim().toLowerCase();
+      const initialRecoveryEmail = (admin?.recoveryEmail || '')
+        .trim()
+        .toLowerCase();
+      const recoveryEmailChanged =
+        nextRecoveryEmail !== initialRecoveryEmail;
       const response = await fetch('/api/admin/manage', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           adminId,
           username,
+          ...(recoveryEmailChanged && { recoveryEmail }),
           isActive,
           ...(newPassword && { newPassword }),
         }),
@@ -159,7 +176,7 @@ export default function EditAdminPage() {
             编辑管理员
           </h1>
           <p className="mt-2 max-w-xl text-[12px] leading-relaxed text-[var(--text-secondary)]">
-            修改管理员账户状态、用户名或重置登录密码。
+            修改管理员账户状态、用户名、recovery email 或重置登录密码。
           </p>
         </div>
 
@@ -198,6 +215,17 @@ export default function EditAdminPage() {
               leftIcon="person"
               required
               disabled={isSubmitting}
+            />
+
+            <Input
+              label="Recovery email"
+              type="email"
+              value={recoveryEmail}
+              onChange={(e) => setRecoveryEmail(e.target.value)}
+              placeholder="name@example.com"
+              leftIcon="alternate_email"
+              disabled={isSubmitting}
+              hint="忘记密码时，重置链接会发送到这个邮箱。留空则无法自助找回。"
             />
 
             <div>
