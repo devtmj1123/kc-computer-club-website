@@ -264,8 +264,8 @@ export default function AdminManagePage() {
       </section>
 
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-[420px] border border-[var(--rule-strong)] bg-[var(--surface)]">
+        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="animate-scale-in w-full max-w-[420px] border border-[var(--rule-strong)] bg-[var(--surface)]">
             <div className="border-b border-[var(--border)] px-5 py-4">
               <div className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--error)]">
                 Danger zone

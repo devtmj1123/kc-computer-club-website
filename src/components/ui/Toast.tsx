@@ -112,7 +112,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       className={cn(
         'flex items-start gap-3 border border-[var(--rule-strong)] border-l-2 bg-[var(--surface)] px-4 py-3.5',
         'shadow-[0_10px_30px_rgba(0,0,0,0.12)]',
-        'animate-in slide-in-from-right-full duration-300',
+        'animate-toast-in',
         border
       )}
     >

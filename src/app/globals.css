@@ -1318,6 +1318,40 @@ select option:disabled {
   100% { background-position: -100% 0; }
 }
 
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Interactive feedback ──────────────────────────────────── */
+/*
+ * Every button gets a quick, restrained hover/press response. `scale` is
+ * used instead of `transform` so buttons that rely on translate utilities
+ * for centring (carousel arrows, password toggles) keep their position.
+ */
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    transition-property:
+      color, background-color, border-color, box-shadow, opacity, filter,
+      scale;
+    transition-duration: 180ms;
+    transition-timing-function: var(--ease);
+  }
+
+  button:not(:disabled):hover,
+  [role='button']:not([aria-disabled='true']):hover {
+    scale: 1.02;
+    box-shadow: 0 7px 20px -12px rgba(var(--primary-rgb), 0.6);
+  }
+}
+
+button:not(:disabled):active,
+[role='button']:not([aria-disabled='true']):active {
+  scale: 0.98;
+  transition-duration: 80ms;
+}
+
 .loader-block {
   animation: block-pulse 1s var(--ease) infinite;
 }
@@ -1341,6 +1375,7 @@ select option:disabled {
 .animate-slide-in { animation: slide-in 0.22s ease-out; }
 .animate-slide-down { animation: slide-down 0.22s ease-out; }
 .animate-scale-in { animation: scale-in 0.18s ease-out; }
+.animate-toast-in { animation: toast-in 0.26s var(--ease); }
 
 @media (prefers-reduced-motion: reduce) {
   *,

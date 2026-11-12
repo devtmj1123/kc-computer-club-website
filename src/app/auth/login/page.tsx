@@ -290,8 +290,8 @@ export default function StudentLoginPage() {
       </main>
 
       {showChangePasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md border border-[var(--rule-strong)] bg-[var(--surface)]">
+        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="animate-scale-in w-full max-w-md border border-[var(--rule-strong)] bg-[var(--surface)]">
             <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3 font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--text-tertiary)]">
               <span>SECURITY / 账户安全</span>
               <span className="text-[var(--warning)]">ACTION REQUIRED</span>

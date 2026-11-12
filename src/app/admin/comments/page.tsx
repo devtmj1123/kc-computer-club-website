@@ -275,8 +275,8 @@ export default function AdminComments() {
         )}
       </div>
       {deleteId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 max-w-sm w-full mx-4">
+        <div className="animate-fade-in fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="animate-scale-in bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 max-w-sm w-full mx-4">
             <h3 className="text-[var(--foreground)] font-bold text-lg mb-2">确定删除此评论？</h3>
             <p className="text-[var(--text-secondary)] text-sm mb-6">
               删除后将无法恢复。

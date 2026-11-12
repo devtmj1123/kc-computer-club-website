@@ -49,23 +49,33 @@ export function AccentPicker({
         aria-expanded={open}
         title="更改强调色"
         className={cn(
-          'inline-flex h-9 items-center justify-center gap-2 border border-[var(--border)]',
+          'group relative inline-flex h-9 items-center justify-center gap-2 border border-[var(--border)]',
           'bg-transparent text-[var(--text-secondary)] transition-colors',
-          'hover:border-[var(--rule-strong)] hover:text-[var(--foreground)]',
-          compact ? 'w-9' : 'px-3'
+          'hover:border-[var(--primary)] hover:text-[var(--primary)]',
+          compact ? 'w-9 p-0' : 'px-3'
         )}
       >
-        <span className="material-symbols-outlined text-[17px]">palette</span>
+        <span className="material-symbols-outlined text-[17px] transition-transform duration-300 group-hover:-rotate-12">
+          palette
+        </span>
         {!compact && (
           <span className="font-mono text-[12px] uppercase tracking-[0.1em]">
             色调
           </span>
         )}
-        <span
-          className="size-2 shrink-0 border border-[var(--rule-strong)]"
-          style={{ backgroundColor: 'var(--primary)' }}
-          aria-hidden="true"
-        />
+        {compact ? (
+          <span
+            className="absolute bottom-1 right-1 size-[5px] border border-[var(--rule-strong)]"
+            style={{ backgroundColor: 'var(--primary)' }}
+            aria-hidden="true"
+          />
+        ) : (
+          <span
+            className="size-2 shrink-0 border border-[var(--rule-strong)] transition-colors"
+            style={{ backgroundColor: 'var(--primary)' }}
+            aria-hidden="true"
+          />
+        )}
       </button>
 
       {open && (
@@ -73,7 +83,7 @@ export function AccentPicker({
           role="menu"
           aria-label="强调色"
           className={cn(
-            'absolute top-full z-50 mt-2 w-56 border border-[var(--rule-strong)] bg-[var(--surface)] p-2 shadow-[var(--shadow-lg)]',
+            'animate-slide-down absolute top-full z-50 mt-2 w-56 origin-top border border-[var(--rule-strong)] bg-[var(--surface)] p-2 shadow-[var(--shadow-lg)]',
             align === 'left' ? 'left-0' : 'right-0'
           )}
         >
@@ -94,14 +104,14 @@ export function AccentPicker({
                     setOpen(false);
                   }}
                   className={cn(
-                    'flex flex-col items-center gap-1.5 border px-1 py-2 transition-colors',
+                    'group/swatch flex flex-col items-center gap-1.5 border px-1 py-2 transition-colors',
                     selected
                       ? 'border-[var(--primary)] bg-[var(--primary-light)]'
                       : 'border-transparent hover:border-[var(--border)] hover:bg-[var(--surface-hover)]'
                   )}
                 >
                   <span
-                    className="size-4 border border-[var(--rule-strong)]"
+                    className="size-4 border border-[var(--rule-strong)] transition-transform duration-200 group-hover/swatch:scale-125"
                     style={{
                       backgroundColor:
                         mode === 'light'

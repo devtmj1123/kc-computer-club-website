@@ -478,8 +478,8 @@ export default function AdminProjectsPage() {
           )}
         </div>
         {showModal && selectedProject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-            <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+          <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div className="animate-scale-in bg-[var(--surface)] rounded-2xl border border-[var(--border)] w-full max-w-3xl max-h-[90vh] overflow-y-auto">
               <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <div>

@@ -3,11 +3,19 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * Homepage-only, scroll-reactive wireframe globe.
+ * Homepage-only, scroll-reactive wireframe planet.
  *
- * A lightweight 2D canvas renders a 3D point grid: the globe rotates with
+ * A lightweight 2D canvas renders a 3D point grid: the planet rotates with
  * page scroll and time, drifts with the pointer, and takes its colour from
  * the active accent palette. No Three.js, no WebGL, no extra requests.
+ *
+ * Three details keep the 3D read obvious:
+ * - surface points form irregular "continents", breaking the rotational
+ *   symmetry of a plain latitude/longitude grid;
+ * - a strong perspective makes front geometry larger and brighter than back
+ *   geometry;
+ * - an inclined orbit ring is drawn in two passes, so it visibly passes
+ *   behind and in front of the planet.
  *
  * It is decorative only:
  * - `prefers-reduced-motion` renders a static frame and stops the idle loop.
@@ -15,11 +23,25 @@ import { useEffect, useRef } from 'react';
  * - the device pixel ratio is capped to keep phones smooth.
  */
 
-const SEGMENTS = 64;
-const MERIDIANS = 8;
-const LATITUDE_RINGS = [-60, -30, 0, 30, 60];
-const PARTICLE_COUNT = 42;
+const SEGMENTS = 72;
+const MERIDIANS = 7;
+const LATITUDE_RINGS = [-67.5, -45, -22.5, 0, 22.5, 45, 67.5];
+const ORBIT_SEGMENTS = 144;
+const ORBIT_TILT = 0.62;
+const DRIFT_COUNT = 46;
+const SURFACE_COUNT = 52;
 const TAU = Math.PI * 2;
+
+/** Depth buckets: back of the planet fades out, front stays crisp. */
+const DEPTH_ALPHA = [0.06, 0.22, 0.55, 0.95];
+const DEPTH_WIDTH_DESKTOP = [0.9, 1.15, 1.5, 2];
+const DEPTH_WIDTH_MOBILE = [0.6, 0.8, 1, 1.35];
+
+interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
 
 interface ProjectedPoint {
   x: number;
@@ -27,10 +49,11 @@ interface ProjectedPoint {
   z: number;
 }
 
-interface Particle {
-  x: number;
-  y: number;
-  z: number;
+interface SurfacePoint extends Vec3 {
+  size: number;
+}
+
+interface DriftParticle extends Vec3 {
   size: number;
 }
 
@@ -42,14 +65,62 @@ function makeRandom(seed: number) {
   };
 }
 
-function buildParticles(): Particle[] {
+function randomDirection(random: () => number): Vec3 {
+  const y = random() * 2 - 1;
+  const radius = Math.sqrt(Math.max(0, 1 - y * y));
+  const angle = random() * TAU;
+  return {
+    x: Math.cos(angle) * radius,
+    y,
+    z: Math.sin(angle) * radius,
+  };
+}
+
+/**
+ * Irregular dots scattered over the sphere. A few dense clusters read as
+ * landmasses; the sparse rest gives the surface texture. Because these are
+ * not rotationally symmetric, the scroll spin is immediately visible.
+ */
+function buildSurfacePoints(): SurfacePoint[] {
+  const random = makeRandom(90210);
+  const points: SurfacePoint[] = [];
+
+  for (let cluster = 0; cluster < 6; cluster += 1) {
+    const center = randomDirection(random);
+    const count = 20 + Math.floor(random() * 12);
+
+    for (let index = 0; index < count; index += 1) {
+      const offset = randomDirection(random);
+      const x = center.x * 2.8 + offset.x;
+      const y = center.y * 2.8 + offset.y;
+      const z = center.z * 2.8 + offset.z;
+      const length = Math.hypot(x, y, z) || 1;
+
+      points.push({
+        x: x / length,
+        y: y / length,
+        z: z / length,
+        size: 0.8 + random() * 1.4,
+      });
+    }
+  }
+
+  for (let index = 0; index < SURFACE_COUNT; index += 1) {
+    const direction = randomDirection(random);
+    points.push({ ...direction, size: 0.5 + random() * 0.9 });
+  }
+
+  return points;
+}
+
+function buildDriftParticles(): DriftParticle[] {
   const random = makeRandom(1337);
-  return Array.from({ length: PARTICLE_COUNT }, () => {
-    // Uniform-ish direction, then push some points outside the globe shell.
+  return Array.from({ length: DRIFT_COUNT }, () => {
     const theta = random() * TAU;
     const y = random() * 2 - 1;
     const radius = Math.sqrt(Math.max(0, 1 - y * y));
     const shell = 1.08 + random() * 0.42;
+
     return {
       x: Math.cos(theta) * radius * shell,
       y: y * shell,
@@ -59,7 +130,8 @@ function buildParticles(): Particle[] {
   });
 }
 
-const PARTICLES = buildParticles();
+const SURFACE_POINTS = buildSurfacePoints();
+const DRIFT_PARTICLES = buildDriftParticles();
 
 export function HomeScrollBackdrop() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -78,20 +150,56 @@ export function HomeScrollBackdrop() {
     let dpr = 1;
     let accent = '125, 255, 171';
     let isLight = document.documentElement.classList.contains('light');
-    let scrollProgress = 0;
+
+    // Scroll state is eased towards the target every frame. Progress is
+    // measured in viewports (not the whole page) so one or two swipes of the
+    // wheel produce a full, clearly visible transformation.
+    let progress = 0;
+    let targetProgress = 0;
+    let scrollSpin = 0;
+    let targetSpin = 0;
+
     let pointerX = 0;
     let pointerY = 0;
     let targetX = 0;
     let targetY = 0;
+
     let animationFrame = 0;
     let running = false;
     let lastPaint = 0;
+    let initialized = false;
 
     const readTheme = () => {
       const styles = getComputedStyle(document.documentElement);
       const currentAccent = styles.getPropertyValue('--primary-rgb').trim();
       if (currentAccent) accent = currentAccent;
       isLight = document.documentElement.classList.contains('light');
+    };
+
+    const readScroll = () => {
+      const maxScroll = Math.max(
+        1,
+        document.documentElement.scrollHeight - window.innerHeight
+      );
+      // Two viewports is the full transformation, but short pages reach the
+      // end of the range at their own bottom instead of only halfway.
+      const viewportRange = Math.min(
+        Math.max(1, window.innerHeight * 2.2),
+        maxScroll
+      );
+      targetProgress = Math.min(
+        1,
+        Math.max(0, window.scrollY / viewportRange)
+      );
+      targetSpin = window.scrollY * 0.0012;
+
+      if (reduceMotion || !initialized) {
+        progress = targetProgress;
+        scrollSpin = targetSpin;
+        initialized = true;
+      }
+
+      if (reduceMotion) draw(0);
     };
 
     const resize = () => {
@@ -103,18 +211,7 @@ export function HomeScrollBackdrop() {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      updateScroll();
-    };
-
-    const updateScroll = () => {
-      const maxScroll =
-        document.documentElement.scrollHeight - window.innerHeight;
-      scrollProgress =
-        maxScroll > 0
-          ? Math.min(1, Math.max(0, window.scrollY / maxScroll))
-          : 0;
-
-      if (reduceMotion) draw(0);
+      readScroll();
     };
 
     const draw = (time: number) => {
@@ -123,24 +220,26 @@ export function HomeScrollBackdrop() {
       const now = reduceMotion ? 0 : time;
       const px = reduceMotion ? 0 : pointerX;
       const py = reduceMotion ? 0 : pointerY;
+      const isCompact = width < 640;
 
       ctx.clearRect(0, 0, width, height);
 
-      const lightFactor =
-        (isLight ? 0.62 : 1) * (width < 640 ? 0.72 : 1);
+      const lightFactor = (isLight ? 0.7 : 1) * (isCompact ? 0.82 : 1);
       const radius =
         Math.min(width, height) *
-        (width < 640 ? 0.32 : 0.36) *
-        (1 + scrollProgress * 0.16);
+        (isCompact ? 0.36 : 0.42) *
+        (1 + progress * 0.24);
       const centerX =
-        width * (width < 768 ? 0.5 : 0.66) + px * 14;
-      const centerY =
-        height * (0.48 - scrollProgress * 0.1) + py * 10;
+        width * (width < 768 ? 0.5 : 0.68) +
+        px * 26 -
+        progress * width * 0.04;
+      const centerY = height * (0.44 - progress * 0.16) + py * 20;
       const angleY =
-        scrollProgress * TAU * 1.35 +
-        now * 0.000075 +
-        px * 0.24;
-      const tilt = -0.34 + scrollProgress * 0.2 + py * 0.08;
+        scrollSpin +
+        progress * TAU * 0.75 +
+        now * 0.0001 +
+        px * 0.35;
+      const tilt = -0.5 + progress * 0.62 + py * 0.18;
       const cosY = Math.cos(angleY);
       const sinY = Math.sin(angleY);
       const cosTilt = Math.cos(tilt);
@@ -155,7 +254,8 @@ export function HomeScrollBackdrop() {
         const rotatedZ = -x * sinY + z * cosY;
         const tiltedY = y * cosTilt - rotatedZ * sinTilt;
         const tiltedZ = y * sinTilt + rotatedZ * cosTilt;
-        const perspective = 1 + tiltedZ * 0.12;
+        // Strong perspective: the front hemisphere is noticeably larger.
+        const perspective = 1 + tiltedZ * 0.3;
 
         return {
           x: centerX + rotatedX * radius * perspective,
@@ -171,10 +271,10 @@ export function HomeScrollBackdrop() {
         radius * 0.1,
         centerX,
         centerY,
-        radius * 1.55
+        radius * 1.6
       );
-      halo.addColorStop(0, `rgba(${accent}, ${0.07 * lightFactor})`);
-      halo.addColorStop(0.55, `rgba(${accent}, ${0.025 * lightFactor})`);
+      halo.addColorStop(0, `rgba(${accent}, ${0.1 * lightFactor})`);
+      halo.addColorStop(0.55, `rgba(${accent}, ${0.035 * lightFactor})`);
       halo.addColorStop(1, `rgba(${accent}, 0)`);
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, width, height);
@@ -206,17 +306,54 @@ export function HomeScrollBackdrop() {
           path.lineTo(end.x, end.y);
         }
 
-        ctx.lineWidth = width < 640 ? 0.8 : 1;
         buckets.forEach((path, index) => {
-          const depthMix = (index + 0.5) / 4;
-          const alpha =
-            baseAlpha * (0.25 + depthMix * 0.95) * lightFactor;
+          const alpha = baseAlpha * DEPTH_ALPHA[index] * lightFactor;
+          if (alpha <= 0.002) return;
+          ctx.lineWidth = isCompact
+            ? DEPTH_WIDTH_MOBILE[index]
+            : DEPTH_WIDTH_DESKTOP[index];
           ctx.strokeStyle = `rgba(${accent}, ${alpha})`;
           ctx.stroke(path);
         });
       };
 
-      // Latitude rings.
+      // ── Orbit ring, split into behind/in-front passes ──────────────
+      const orbitPoints: ProjectedPoint[] = [];
+      const cosOrbit = Math.cos(ORBIT_TILT);
+      const sinOrbit = Math.sin(ORBIT_TILT);
+      const orbitRadius = 1.45;
+
+      for (let index = 0; index <= ORBIT_SEGMENTS; index += 1) {
+        const angle = (index / ORBIT_SEGMENTS) * TAU;
+        orbitPoints.push(
+          project(
+            Math.cos(angle) * orbitRadius,
+            Math.sin(angle) * sinOrbit,
+            Math.sin(angle) * cosOrbit
+          )
+        );
+      }
+
+      const drawOrbitSide = (front: boolean) => {
+        const path = new Path2D();
+        for (let index = 0; index < ORBIT_SEGMENTS; index += 1) {
+          const start = orbitPoints[index];
+          const end = orbitPoints[index + 1];
+          const depth = (start.z + end.z) / 2;
+          if (front ? depth < 0 : depth >= 0) continue;
+          path.moveTo(start.x, start.y);
+          path.lineTo(end.x, end.y);
+        }
+        ctx.lineWidth = front ? 1.4 : 0.9;
+        ctx.strokeStyle = `rgba(${accent}, ${
+          (front ? 0.5 : 0.16) * lightFactor
+        })`;
+        ctx.stroke(path);
+      };
+
+      drawOrbitSide(false);
+
+      // ── Planet wireframe ──────────────────────────────────────────
       LATITUDE_RINGS.forEach((latitude) => {
         const lat = (latitude * Math.PI) / 180;
         const cosLat = Math.cos(lat);
@@ -234,24 +371,25 @@ export function HomeScrollBackdrop() {
           );
         }
 
-        strokeSegments(points, true, 0.16);
+        // The equator reads as the horizon and gets slightly more weight.
+        strokeSegments(points, true, Math.abs(latitude) < 1 ? 0.78 : 0.52);
 
-        // Square nodes every few segments echo the site's pixel-grid style.
-        if (Math.abs(latitude) < 60) {
-          for (let index = 0; index < SEGMENTS; index += 8) {
-            const point = points[index];
-            const depthMix = (point.z + 1) / 2;
-            const size = 1 + depthMix * 1.2;
-            ctx.fillStyle = `rgba(${accent}, ${
-              (0.14 + depthMix * 0.3) * lightFactor
-            })`;
-            ctx.fillRect(
-              point.x - size / 2,
-              point.y - size / 2,
-              size,
-              size
-            );
-          }
+        // Square nodes echo the site's pixel-grid style.
+        for (let index = 0; index < SEGMENTS; index += 6) {
+          const point = points[index];
+          const depthMix = (point.z + 1) / 2;
+          const size =
+            (0.9 + Math.pow(depthMix, 1.6) * 1.5) *
+            (isCompact ? 0.8 : 1);
+          ctx.fillStyle = `rgba(${accent}, ${
+            (0.04 + Math.pow(depthMix, 2) * 0.72) * lightFactor
+          })`;
+          ctx.fillRect(
+            point.x - size / 2,
+            point.y - size / 2,
+            size,
+            size
+          );
         }
       });
 
@@ -262,8 +400,8 @@ export function HomeScrollBackdrop() {
         const sinLon = Math.sin(lon);
         const points: ProjectedPoint[] = [];
 
-        for (let step = 0; step <= 36; step += 1) {
-          const lat = -Math.PI / 2 + (step / 36) * Math.PI;
+        for (let step = 0; step <= 40; step += 1) {
+          const lat = -Math.PI / 2 + (step / 40) * Math.PI;
           const cosLat = Math.cos(lat);
           points.push(
             project(
@@ -274,17 +412,36 @@ export function HomeScrollBackdrop() {
           );
         }
 
-        strokeSegments(points, false, 0.13);
+        strokeSegments(points, false, 0.44);
       }
 
-      // Free-floating particles around the globe.
-      PARTICLES.forEach((particle) => {
+      // Irregular surface dots: the main cue that the planet is turning.
+      SURFACE_POINTS.forEach((point) => {
+        const projected = project(point.x, point.y, point.z);
+        const depthMix = (projected.z + 1) / 2;
+        const size =
+          point.size *
+          (0.55 + depthMix * 1.2) *
+          (isCompact ? 0.85 : 1);
+        ctx.fillStyle = `rgba(${accent}, ${
+          (0.05 + Math.pow(depthMix, 1.9) * 0.8) * lightFactor
+        })`;
+        ctx.fillRect(
+          projected.x - size / 2,
+          projected.y - size / 2,
+          size,
+          size
+        );
+      });
+
+      // Free-floating particles around the planet add depth layers.
+      DRIFT_PARTICLES.forEach((particle) => {
         const point = project(particle.x, particle.y, particle.z);
         const depthMix = (point.z + 1) / 2;
         const size =
-          particle.size * (0.8 + depthMix * 0.9);
+          particle.size * (0.8 + depthMix * 0.9) * (isCompact ? 0.85 : 1);
         ctx.fillStyle = `rgba(${accent}, ${
-          (0.08 + depthMix * 0.34) * lightFactor
+          (0.05 + Math.pow(depthMix, 1.7) * 0.5) * lightFactor
         })`;
         ctx.fillRect(
           point.x - size / 2,
@@ -293,12 +450,68 @@ export function HomeScrollBackdrop() {
           size
         );
       });
+
+      // ── In-front orbit pass and satellite ─────────────────────────
+      const satelliteAngle = now * 0.0005 + progress * TAU * 1.1;
+      const satellite = project(
+        Math.cos(satelliteAngle) * orbitRadius,
+        Math.sin(satelliteAngle) * sinOrbit,
+        Math.sin(satelliteAngle) * cosOrbit
+      );
+
+      const drawSatellite = (front: boolean) => {
+        const glowRadius = front ? 20 : 12;
+        const glow = ctx.createRadialGradient(
+          satellite.x,
+          satellite.y,
+          0,
+          satellite.x,
+          satellite.y,
+          glowRadius
+        );
+        glow.addColorStop(
+          0,
+          `rgba(${accent}, ${(front ? 0.55 : 0.18) * lightFactor})`
+        );
+        glow.addColorStop(1, `rgba(${accent}, 0)`);
+        ctx.fillStyle = glow;
+        ctx.fillRect(
+          satellite.x - glowRadius,
+          satellite.y - glowRadius,
+          glowRadius * 2,
+          glowRadius * 2
+        );
+
+        const size = front ? 3.4 : 2.2;
+        ctx.fillStyle = `rgba(${accent}, ${
+          (front ? 0.95 : 0.35) * lightFactor
+        })`;
+        ctx.fillRect(
+          satellite.x - size / 2,
+          satellite.y - size / 2,
+          size,
+          size
+        );
+      };
+
+      if (satellite.z < 0) {
+        // The satellite sits behind the planet: keep it dim and let the
+        // front half of the orbit ring pass over it.
+        drawSatellite(false);
+        drawOrbitSide(true);
+      } else {
+        drawOrbitSide(true);
+        drawSatellite(true);
+      }
     };
 
     const tick = (time: number) => {
       if (!running) return;
-      pointerX += (targetX - pointerX) * 0.055;
-      pointerY += (targetY - pointerY) * 0.055;
+
+      pointerX += (targetX - pointerX) * 0.06;
+      pointerY += (targetY - pointerY) * 0.06;
+      progress += (targetProgress - progress) * 0.12;
+      scrollSpin += (targetSpin - scrollSpin) * 0.12;
 
       // A calm 30fps is plenty for a background and saves battery on laptops.
       if (time - lastPaint >= 32) {
@@ -320,7 +533,7 @@ export function HomeScrollBackdrop() {
     };
 
     const handleScroll = () => {
-      updateScroll();
+      readScroll();
     };
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -343,6 +556,8 @@ export function HomeScrollBackdrop() {
         stop();
         pointerX = 0;
         pointerY = 0;
+        progress = targetProgress;
+        scrollSpin = targetSpin;
         draw(0);
       } else {
         start();

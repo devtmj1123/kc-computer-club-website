@@ -412,11 +412,11 @@ export default function AdminActivities() {
 
       {deleteId && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]"
+          className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-[1px]"
           onClick={() => !isDeleting && setDeleteId(null)}
         >
           <div
-            className="w-full max-w-sm border border-[var(--rule-strong)] bg-[var(--surface)]"
+            className="animate-scale-in w-full max-w-sm border border-[var(--rule-strong)] bg-[var(--surface)]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="border-b border-[var(--border)] px-5 py-3">

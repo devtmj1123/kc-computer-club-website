@@ -38,14 +38,14 @@ export function ThemeToggle({ compact = false, className }: ThemeToggleProps) {
       title={isDark ? '切换到亮色模式' : '切换到暗色模式'}
       aria-label={isDark ? '切换到亮色模式' : '切换到暗色模式'}
       className={cn(
-        'inline-flex h-9 items-center justify-center gap-2 border border-[var(--border)]',
+        'group inline-flex h-9 items-center justify-center gap-2 border border-[var(--border)]',
         'bg-transparent text-[var(--text-secondary)] transition-colors',
-        'hover:border-[var(--rule-strong)] hover:text-[var(--foreground)]',
+        'hover:border-[var(--primary)] hover:text-[var(--primary)]',
         compact ? 'w-9' : 'px-3',
         className
       )}
     >
-      <span className="material-symbols-outlined text-[16px]">
+      <span className="material-symbols-outlined text-[16px] transition-transform duration-300 group-hover:rotate-45">
         {isDark ? 'light_mode' : 'dark_mode'}
       </span>
       {!compact && (

@@ -76,14 +76,14 @@ export function Modal({
         'fixed inset-0 z-50',
         'flex items-center justify-center p-4',
         'bg-[rgba(16,22,18,0.55)] backdrop-blur-sm',
-        'animate-in fade-in duration-200'
+        'animate-fade-in'
       )}
     >
       <div
         className={cn(
           'w-full rounded-[3px] border border-[var(--rule-strong)]',
           'bg-[var(--surface)]',
-          'animate-in zoom-in-95 duration-200',
+          'animate-scale-in',
           sizeClasses[size],
           className
         )}
@@ -106,13 +106,15 @@ export function Modal({
               <button
                 onClick={onClose}
                 className={cn(
-                  'flex size-8 items-center justify-center',
+                  'group flex size-8 items-center justify-center',
                   'border border-[var(--border)]',
                   'text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--primary)]',
                   'transition-colors'
                 )}
               >
-                <span className="material-symbols-outlined text-[17px]">close</span>
+                <span className="material-symbols-outlined text-[17px] transition-transform duration-300 group-hover:rotate-90">
+                  close
+                </span>
               </button>
             )}
           </div>

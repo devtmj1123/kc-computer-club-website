@@ -101,7 +101,7 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
               <span className="material-symbols-outlined text-[16px]">expand_more</span>
             </button>
 
-            <div className="invisible absolute right-0 top-[60px] z-50 w-60 border border-[var(--border)] bg-[var(--surface)] p-1.5 opacity-0 shadow-[var(--shadow-md)] transition-all duration-150 group-hover:visible group-hover:opacity-100">
+            <div className="invisible absolute right-0 top-[60px] z-50 w-60 translate-y-1 border border-[var(--border)] bg-[var(--surface)] p-1.5 opacity-0 shadow-[var(--shadow-md)] transition-all duration-150 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
               {moreItems.map((item) => (
                 <Link
                   key={item.href}
@@ -188,7 +188,7 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-[var(--border)] bg-[var(--surface)] lg:hidden">
+        <div className="animate-slide-down border-t border-[var(--border)] bg-[var(--surface)] lg:hidden">
           <nav className="mx-auto flex w-full max-w-[1360px] flex-col px-4 py-4 sm:px-6">
             {navItems.map((item, index) => {
               const active = item.active ?? isActivePath(pathname, item.href);

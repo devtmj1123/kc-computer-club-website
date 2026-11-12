@@ -666,8 +666,8 @@ export default function StudentsPage() {
       </section>
 
       {showImportModal && importPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="flex max-h-[90vh] w-full max-w-[900px] flex-col border border-[var(--rule-strong)] bg-[var(--surface)]">
+        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="animate-scale-in flex max-h-[90vh] w-full max-w-[900px] flex-col border border-[var(--rule-strong)] bg-[var(--surface)]">
             <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
               <div>
                 <div className="mono-label">Import · Excel</div>
@@ -872,8 +872,8 @@ export default function StudentsPage() {
       )}
 
       {showDeleteAllModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-[440px] border border-[var(--rule-strong)] bg-[var(--surface)]">
+        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="animate-scale-in w-full max-w-[440px] border border-[var(--rule-strong)] bg-[var(--surface)]">
             <div className="border-b border-[var(--border)] px-5 py-4">
               <div className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--error)]">
                 Danger zone
@@ -923,8 +923,8 @@ export default function StudentsPage() {
       )}
 
       {showDetailModal && selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="flex max-h-[90vh] w-full max-w-[720px] flex-col border border-[var(--rule-strong)] bg-[var(--surface)]">
+        <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="animate-scale-in flex max-h-[90vh] w-full max-w-[720px] flex-col border border-[var(--rule-strong)] bg-[var(--surface)]">
             <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
               <div className="min-w-0">
                 <div className="mono-label">Student record · 学生档案</div>

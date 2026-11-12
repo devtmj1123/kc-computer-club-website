@@ -31,7 +31,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center gap-2 rounded-none font-sans font-medium leading-none tracking-[0.015em] ' +
+      'group inline-flex items-center justify-center gap-2 rounded-none font-sans font-medium leading-none tracking-[0.015em] ' +
       'transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 ' +
       'focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 ' +
       'focus-visible:ring-offset-[var(--background)] disabled:opacity-50 disabled:cursor-not-allowed';
@@ -99,11 +99,13 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
         {rightIcon &&
           (typeof rightIcon === 'string' ? (
-            <span className="material-symbols-outlined shrink-0 text-[18px]">
+            <span className="material-symbols-outlined shrink-0 text-[18px] transition-transform duration-200 group-hover:translate-x-0.5">
               {rightIcon}
             </span>
           ) : (
-            <span className="shrink-0">{rightIcon}</span>
+            <span className="shrink-0 transition-transform duration-200 group-hover:translate-x-0.5">
+              {rightIcon}
+            </span>
           ))}
       </button>
     );

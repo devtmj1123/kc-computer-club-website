@@ -116,7 +116,7 @@ export function AdminLayout({
     <div className={cn('admin-layout flex min-h-screen bg-transparent', className)}>
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] lg:hidden"
+          className="animate-fade-in fixed inset-0 z-30 bg-black/40 backdrop-blur-[1px] lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
