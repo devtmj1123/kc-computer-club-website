@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyResetToken } from '@/lib/reset-token';
+import { resolveResetAccount } from '@/lib/reset-account';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import {
   getClientIp,
@@ -36,43 +37,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const { userId, email, type } = tokenResult.data;
+    const { type } = tokenResult.data;
+    const account = await resolveResetAccount(tokenResult.data);
+    if (!account.ok) {
+      return NextResponse.json(
+        { error: account.error, code: account.code },
+        { status: account.status }
+      );
+    }
+
+    const profile = account.profile;
     const admin = getSupabaseAdminClient();
-    const { data: profile, error: profileError } = await admin
-      .from('profiles')
-      .select('id, email, recovery_email, role, is_active')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error('查询重置密码用户失败:', profileError.message);
-      return NextResponse.json(
-        { error: '无效的重置请求' },
-        { status: 400 }
-      );
-    }
-
     const isAdminReset = type === 'admin';
-    const expectedEmail =
-      isAdminReset && profile
-        ? profile.recovery_email
-        : profile?.email;
-    const roleMatches =
-      Boolean(profile) &&
-      (isAdminReset ? profile?.role === 'admin' : profile?.role === 'student');
-
-    if (
-      !profile ||
-      !roleMatches ||
-      profile.is_active === false ||
-      !expectedEmail ||
-      String(expectedEmail).toLowerCase() !== String(email).toLowerCase()
-    ) {
-      return NextResponse.json(
-        { error: '无效的重置请求' },
-        { status: 400 }
-      );
-    }
 
     const passwordErrors: string[] = [];
     if (newPassword.length < 6) {

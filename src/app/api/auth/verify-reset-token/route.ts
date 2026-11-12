@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyResetToken } from '@/lib/reset-token';
+import { resolveResetAccount } from '@/lib/reset-account';
 import {
   getClientIp,
   rateLimit,
@@ -32,10 +33,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const account = await resolveResetAccount(result.data);
+    if (!account.ok) {
+      return NextResponse.json(
+        { error: account.error, code: account.code },
+        { status: account.status }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       type: result.data.type,
-      email: result.data.email,
+      email: account.email,
       remainingTime:
         24 * 60 * 60 * 1000 - (Date.now() - result.data.timestamp),
     });

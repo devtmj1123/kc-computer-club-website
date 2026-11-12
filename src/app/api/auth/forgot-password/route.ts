@@ -65,10 +65,13 @@ export async function POST(request: Request) {
 
     if (profileError) {
       console.error('查询密码重置用户失败:', profileError.message);
+      return NextResponse.json(
+        { error: '服务暂时不可用，请稍后重试' },
+        { status: 500 }
+      );
     }
 
     if (
-      profileError ||
       !profile ||
       profile.role !== 'student' ||
       profile.is_active === false
@@ -92,16 +95,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const resetLink = `${getAppUrl()}/auth/reset-password?token=${encodeURIComponent(resetToken)}`;
+    const appUrl = getAppUrl(request);
+    const resetLink = `${appUrl}/auth/reset-password?token=${encodeURIComponent(resetToken)}`;
     const sent = await sendPasswordResetEmail({
       to: email,
       displayName: profile.chinese_name || profile.english_name,
       resetLink,
       audience: 'student',
+      appUrl,
     });
 
     if (sent.ok) {
       console.log(`密码重置邮件已发送: ${email} (用户ID: ${profile.id})`);
+    } else {
+      console.error(
+        `密码重置邮件发送失败: ${email} (用户ID: ${profile.id})，请检查 RESEND_API_KEY / RESEND_FROM_EMAIL`
+      );
     }
 
     // Always return the same response, whether the account exists or the

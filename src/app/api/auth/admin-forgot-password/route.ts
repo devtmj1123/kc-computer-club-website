@@ -42,7 +42,11 @@ export async function POST(request: Request) {
     }
     if (!isResetEmailConfigured()) {
       return NextResponse.json(
-        { error: '邮件服务暂未配置，请联系管理员重置密码' },
+        {
+          error:
+            '邮件服务暂未配置。请在服务器环境设置 RESEND_API_KEY 和 RESEND_FROM_EMAIL 后重试。',
+          code: 'EMAIL_NOT_CONFIGURED',
+        },
         { status: 503 }
       );
     }
@@ -89,13 +93,20 @@ export async function POST(request: Request) {
           console.error(
             '管理员找回密码失败：请先应用 0005_admin_recovery_email.sql'
           );
-        } else {
-          console.error('查询管理员 recovery email 失败:', error.message);
+          return NextResponse.json(
+            {
+              error:
+                '管理员密码找回尚未完成数据库配置。请先在 Supabase SQL Editor 执行 0005_admin_recovery_email.sql。',
+              code: 'RECOVERY_EMAIL_MIGRATION_REQUIRED',
+            },
+            { status: 503 }
+          );
         }
-        return NextResponse.json({
-          success: true,
-          message: GENERIC_MESSAGE,
-        });
+        console.error('查询管理员 recovery email 失败:', error.message);
+        return NextResponse.json(
+          { error: '服务暂时不可用，请稍后重试' },
+          { status: 500 }
+        );
       }
       profile = data as AdminRecoveryProfile | null;
     } else {
@@ -113,13 +124,20 @@ export async function POST(request: Request) {
           console.error(
             '管理员找回密码失败：请先应用 0005_admin_recovery_email.sql'
           );
-        } else {
-          console.error('查询管理员账户失败:', error.message);
+          return NextResponse.json(
+            {
+              error:
+                '管理员密码找回尚未完成数据库配置。请先在 Supabase SQL Editor 执行 0005_admin_recovery_email.sql。',
+              code: 'RECOVERY_EMAIL_MIGRATION_REQUIRED',
+            },
+            { status: 503 }
+          );
         }
-        return NextResponse.json({
-          success: true,
-          message: GENERIC_MESSAGE,
-        });
+        console.error('查询管理员账户失败:', error.message);
+        return NextResponse.json(
+          { error: '服务暂时不可用，请稍后重试' },
+          { status: 500 }
+        );
       }
       profile = data as AdminRecoveryProfile | null;
     }
@@ -159,19 +177,25 @@ export async function POST(request: Request) {
       );
     }
 
+    const appUrl = getAppUrl(request);
     const resetLink =
-      `${getAppUrl()}/auth/reset-password?token=` +
+      `${appUrl}/auth/reset-password?token=` +
       `${encodeURIComponent(resetToken)}&type=admin`;
     const sent = await sendPasswordResetEmail({
       to: recoveryEmail,
       displayName: profile.chinese_name,
       resetLink,
       audience: 'admin',
+      appUrl,
     });
 
     if (sent.ok) {
       console.log(
         `管理员密码重置邮件已发送至 ${recoveryEmail} (管理员ID: ${profile.id})`
+      );
+    } else {
+      console.error(
+        `管理员密码重置邮件发送失败: ${recoveryEmail} (管理员ID: ${profile.id})，请检查 RESEND_API_KEY / RESEND_FROM_EMAIL`
       );
     }
 

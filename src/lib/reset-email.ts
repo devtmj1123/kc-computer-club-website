@@ -1,20 +1,55 @@
 import { Resend } from 'resend';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const RESEND_FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL || 'noreply@computerclub.school.my';
-const APP_URL = (
-  process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-).replace(/\/+$/, '');
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || '';
+
+function stripTrailingSlashes(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
+/**
+ * Resolve the public site URL used in reset emails.
+ *
+ * Priority:
+ * 1. NEXT_PUBLIC_APP_URL (explicit, recommended)
+ * 2. Vercel's production / deployment hostname
+ * 3. The incoming request's forwarded host
+ * 4. localhost for local development
+ */
+export function getAppUrl(request?: Request): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured) return stripTrailingSlashes(configured);
+
+  const vercelHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (vercelHost) {
+    return `https://${stripTrailingSlashes(vercelHost.trim())}`;
+  }
+
+  if (request) {
+    const forwardedHost = request.headers
+      .get('x-forwarded-host')
+      ?.split(',')[0]
+      ?.trim();
+    const host = forwardedHost || request.headers.get('host')?.trim();
+    if (host) {
+      const forwardedProto = request.headers
+        .get('x-forwarded-proto')
+        ?.split(',')[0]
+        ?.trim();
+      const protocol =
+        forwardedProto || (host.startsWith('localhost') ? 'http' : 'https');
+      return `${protocol}://${host}`;
+    }
+  }
+
+  return 'http://localhost:3000';
+}
 
 export type ResetAudience = 'student' | 'admin';
 
-export function getAppUrl(): string {
-  return APP_URL;
-}
-
 export function isResetEmailConfigured(): boolean {
-  return Boolean(RESEND_API_KEY);
+  return Boolean(RESEND_API_KEY && RESEND_FROM_EMAIL);
 }
 
 function escapeHtml(value: string): string {
@@ -31,6 +66,7 @@ interface SendPasswordResetEmailOptions {
   displayName?: string | null;
   resetLink: string;
   audience?: ResetAudience;
+  appUrl?: string;
 }
 
 /**
@@ -43,14 +79,16 @@ export async function sendPasswordResetEmail({
   displayName,
   resetLink,
   audience = 'student',
+  appUrl,
 }: SendPasswordResetEmailOptions): Promise<{ ok: boolean }> {
-  if (!RESEND_API_KEY) {
+  if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
     return { ok: false };
   }
 
   const resend = new Resend(RESEND_API_KEY);
   const isAdmin = audience === 'admin';
   const loginPath = isAdmin ? '/admin/login' : '/auth/login';
+  const baseUrl = stripTrailingSlashes(appUrl?.trim() || getAppUrl());
   const safeName = escapeHtml(
     displayName?.trim() || (isAdmin ? '管理员' : '同学')
   );
@@ -155,8 +193,8 @@ export async function sendPasswordResetEmail({
           <div class="footer">
             <p>
               这是一封自动生成的邮件，请勿直接回复。<br>
-              登录入口：<a href="${APP_URL}${loginPath}" style="color: #13ec80; text-decoration: none;">${APP_URL}${loginPath}</a><br>
-              如有问题，请通过官网联系我们：<a href="${APP_URL}/about" style="color: #13ec80; text-decoration: none;">联系我们</a>
+              登录入口：<a href="${baseUrl}${loginPath}" style="color: #13ec80; text-decoration: none;">${baseUrl}${loginPath}</a><br>
+              如有问题，请通过官网联系我们：<a href="${baseUrl}/about" style="color: #13ec80; text-decoration: none;">联系我们</a>
             </p>
           </div>
         </div>
