@@ -28,7 +28,10 @@ export async function POST(request: Request) {
     }
     if (!isResetEmailConfigured()) {
       return NextResponse.json(
-        { error: '邮件服务暂未配置，请联系管理员重置密码' },
+        {
+          error: '邮件服务暂未配置，请联系管理员重置密码',
+          code: 'EMAIL_NOT_CONFIGURED',
+        },
         { status: 503 }
       );
     }
