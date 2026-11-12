@@ -250,6 +250,21 @@ export async function POST(request: NextRequest) {
           ? body.clubName.trim()
           : 'KC Computer Club';
 
+    // When migration 0006 has not been applied yet, keep saving the columns the
+    // table already has instead of rejecting the whole form. New copy fields
+    // are skipped and reported through `migrationRequired`.
+    let migrationRequired = false;
+    if (existing && typeof existing === 'object') {
+      const existingColumns = new Set(Object.keys(existing));
+      for (const column of Object.keys(update)) {
+        if (column === 'id') continue;
+        if (!existingColumns.has(column)) {
+          delete update[column];
+          migrationRequired = true;
+        }
+      }
+    }
+
     const { data, error } = await admin
       .from('club_settings')
       .upsert(update, { onConflict: 'id' })
@@ -275,7 +290,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ...mapSettings(data as ClubSettingsRow), migrationRequired: false });
+    return NextResponse.json({
+      ...mapSettings(data as ClubSettingsRow),
+      migrationRequired,
+      ...(migrationRequired
+        ? {
+            message:
+              '现有资料已保存，但新的社团文案字段需要先应用 supabase/migrations/0006_club_information.sql。',
+          }
+        : {}),
+    });
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('Failed to save club settings:', err);

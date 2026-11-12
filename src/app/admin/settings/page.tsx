@@ -302,9 +302,10 @@ export default function AdminSettings() {
         }
         throw new Error(data.message || 'Failed to save settings');
       }
+      const data = await response.json();
       clearPublicCache();
       await refetchClubInfo();
-      setMigrationRequired(false);
+      setMigrationRequired(Boolean(data.migrationRequired));
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error: unknown) {
@@ -392,11 +393,12 @@ export default function AdminSettings() {
                 Database migration needed
               </p>
               <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-                新的社团文案字段尚未写入数据库。请在 Supabase SQL Editor 执行{' '}
+                现有资料仍可保存，但新的社团文案字段尚未写入数据库。请在 Supabase
+                SQL Editor 执行{' '}
                 <code className="text-[var(--foreground)]">
                   supabase/migrations/0006_club_information.sql
                 </code>
-                ，然后刷新此页面再保存。
+                ，然后刷新此页面即可编辑并保存全部字段。
               </p>
             </div>
           )}
