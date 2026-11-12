@@ -7,6 +7,13 @@ import React, {
   useEffect,
   useState,
 } from 'react';
+import {
+  ACCENT_PRESETS,
+  DEFAULT_ACCENT,
+  isAccentId,
+  type AccentId,
+  type AccentPreset,
+} from '@/lib/theme-accents';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -15,12 +22,16 @@ interface ThemeContextType {
   setMode: (mode: ThemeMode) => void;
   toggleMode: () => void;
   resolvedMode: ThemeMode;
+  accent: AccentId;
+  setAccent: (accent: AccentId) => void;
+  accents: readonly AccentPreset[];
   resetTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const STORAGE_KEY_MODE = 'theme-mode';
+const STORAGE_KEY_ACCENT = 'theme-accent';
 
 function getPreferredMode(): ThemeMode {
   if (typeof window === 'undefined') return 'dark';
@@ -31,6 +42,7 @@ function getPreferredMode(): ThemeMode {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>('dark');
+  const [accent, setAccentState] = useState<AccentId>(DEFAULT_ACCENT);
   const [resolvedMode, setResolvedMode] = useState<ThemeMode>('dark');
   const [mounted, setMounted] = useState(false);
 
@@ -41,11 +53,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setResolvedMode(themeMode);
   }, []);
 
+  const applyAccent = useCallback((nextAccent: AccentId) => {
+    const root = document.documentElement;
+    if (nextAccent === DEFAULT_ACCENT) {
+      root.removeAttribute('data-accent');
+    } else {
+      root.setAttribute('data-accent', nextAccent);
+    }
+  }, []);
+
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY_MODE);
     const initial =
       stored === 'light' || stored === 'dark' ? stored : getPreferredMode();
+    const storedAccent = localStorage.getItem(STORAGE_KEY_ACCENT);
+    const initialAccent = isAccentId(storedAccent)
+      ? storedAccent
+      : DEFAULT_ACCENT;
+
     setModeState(initial);
+    setAccentState(initialAccent);
     setMounted(true);
   }, []);
 
@@ -53,6 +80,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (!mounted) return;
     applyTheme(mode);
   }, [mode, mounted, applyTheme]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    applyAccent(accent);
+  }, [accent, mounted, applyAccent]);
 
   const setMode = useCallback((newMode: ThemeMode) => {
     setModeState(newMode);
@@ -67,15 +99,31 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const setAccent = useCallback((nextAccent: AccentId) => {
+    setAccentState(nextAccent);
+    localStorage.setItem(STORAGE_KEY_ACCENT, nextAccent);
+  }, []);
+
   const resetTheme = useCallback(() => {
     const preferred = getPreferredMode();
     setModeState(preferred);
+    setAccentState(DEFAULT_ACCENT);
     localStorage.removeItem(STORAGE_KEY_MODE);
+    localStorage.removeItem(STORAGE_KEY_ACCENT);
   }, []);
 
   return (
     <ThemeContext.Provider
-      value={{ mode, setMode, toggleMode, resolvedMode, resetTheme }}
+      value={{
+        mode,
+        setMode,
+        toggleMode,
+        resolvedMode,
+        accent,
+        setAccent,
+        accents: ACCENT_PRESETS,
+        resetTheme,
+      }}
     >
       {children}
     </ThemeContext.Provider>
@@ -90,6 +138,9 @@ export function useTheme() {
       setMode: () => {},
       toggleMode: () => {},
       resolvedMode: 'dark' as ThemeMode,
+      accent: DEFAULT_ACCENT,
+      setAccent: () => {},
+      accents: ACCENT_PRESETS,
       resetTheme: () => {},
     };
   }

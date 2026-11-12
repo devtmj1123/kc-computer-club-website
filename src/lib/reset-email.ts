@@ -1,7 +1,28 @@
+import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || '';
+
+const SMTP_HOST = process.env.SMTP_HOST?.trim() || '';
+const SMTP_PORT = Number.parseInt(process.env.SMTP_PORT || '', 10) || 587;
+const SMTP_SECURE =
+  process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1' ||
+  SMTP_PORT === 465;
+const SMTP_USER = process.env.SMTP_USER?.trim() || '';
+const SMTP_PASS = process.env.SMTP_PASS || '';
+const SMTP_FROM_EMAIL =
+  process.env.SMTP_FROM_EMAIL?.trim() || SMTP_USER;
+const SMTP_FROM_NAME =
+  process.env.SMTP_FROM_NAME?.trim() || 'KC Computer Club';
+
+const SMTP_CONFIGURED = Boolean(SMTP_HOST && SMTP_FROM_EMAIL);
+const RESEND_CONFIGURED = Boolean(RESEND_API_KEY && RESEND_FROM_EMAIL);
+
+export type ResetEmailProvider = 'smtp' | 'resend';
+
+export const EMAIL_CONFIG_HINT =
+  'SMTP_HOST / SMTP_FROM_EMAIL（或 RESEND_API_KEY / RESEND_FROM_EMAIL）';
 
 function stripTrailingSlashes(value: string): string {
   return value.replace(/\/+$/, '');
@@ -48,8 +69,19 @@ export function getAppUrl(request?: Request): string {
 
 export type ResetAudience = 'student' | 'admin';
 
+/**
+ * SMTP takes priority because it works with any mail host and needs no
+ * third-party account. Resend stays available for deployments that already
+ * use it, but it is entirely optional.
+ */
+export function getResetEmailProvider(): ResetEmailProvider | null {
+  if (SMTP_CONFIGURED) return 'smtp';
+  if (RESEND_CONFIGURED) return 'resend';
+  return null;
+}
+
 export function isResetEmailConfigured(): boolean {
-  return Boolean(RESEND_API_KEY && RESEND_FROM_EMAIL);
+  return getResetEmailProvider() !== null;
 }
 
 function escapeHtml(value: string): string {
@@ -81,11 +113,11 @@ export async function sendPasswordResetEmail({
   audience = 'student',
   appUrl,
 }: SendPasswordResetEmailOptions): Promise<{ ok: boolean }> {
-  if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
+  const provider = getResetEmailProvider();
+  if (!provider) {
     return { ok: false };
   }
 
-  const resend = new Resend(RESEND_API_KEY);
   const isAdmin = audience === 'admin';
   const loginPath = isAdmin ? '/admin/login' : '/auth/login';
   const baseUrl = stripTrailingSlashes(appUrl?.trim() || getAppUrl());
@@ -202,20 +234,58 @@ export async function sendPasswordResetEmail({
     </html>
   `;
 
+  const plainName =
+    displayName?.trim() || (isAdmin ? '管理员' : '同学');
+  const text = [
+    `嗨，${plainName}！`,
+    '',
+    `我们收到了您的${isAdmin ? '管理员账户' : ''}密码重置请求。请打开下面的链接重置密码。此链接将在 24 小时后过期。`,
+    '',
+    resetLink,
+    '',
+    '如果您没有请求重置密码，请忽略此邮件，您的账户是安全的。',
+    '',
+    `登录入口：${baseUrl}${loginPath}`,
+    `联系我们：${baseUrl}/about`,
+    '',
+    '这是一封自动生成的邮件，请勿直接回复。',
+  ].join('\n');
+
   try {
+    if (provider === 'smtp') {
+      const transporter = nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT,
+        secure: SMTP_SECURE,
+        auth: SMTP_USER
+          ? { user: SMTP_USER, pass: SMTP_PASS }
+          : undefined,
+      });
+      await transporter.sendMail({
+        from: { name: SMTP_FROM_NAME, address: SMTP_FROM_EMAIL },
+        to,
+        subject,
+        text,
+        html,
+      });
+      return { ok: true };
+    }
+
+    const resend = new Resend(RESEND_API_KEY);
     const result = await resend.emails.send({
       from: RESEND_FROM_EMAIL,
       to,
       subject,
       html,
+      text,
     });
     if (result.error) {
-      console.error('邮件发送失败:', result.error);
+      console.error('邮件发送失败 (resend):', result.error);
       return { ok: false };
     }
     return { ok: true };
   } catch (error) {
-    console.error('邮件发送异常:', error);
+    console.error(`邮件发送异常 (${provider}):`, error);
     return { ok: false };
   }
 }

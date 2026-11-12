@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
 import { ClubMark } from '@/components/ui/ClubMark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AccentPicker } from '@/components/ui/AccentPicker';
 import { AdminShellSkeleton } from '@/components/ui/PageSkeletons';
 import { useState, useEffect } from 'react';
 
@@ -251,6 +252,7 @@ export function AdminLayout({
             <span className="hidden font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-tertiary)] sm:block">
               {today}
             </span>
+            <AccentPicker compact />
             <ThemeToggle compact />
           </div>
         </header>

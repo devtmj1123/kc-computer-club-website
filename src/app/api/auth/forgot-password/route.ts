@@ -5,6 +5,7 @@ import {
   isResetTokenConfigured,
 } from '@/lib/reset-token';
 import {
+  EMAIL_CONFIG_HINT,
   getAppUrl,
   isResetEmailConfigured,
   sendPasswordResetEmail,
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
       console.log(`密码重置邮件已发送: ${email} (用户ID: ${profile.id})`);
     } else {
       console.error(
-        `密码重置邮件发送失败: ${email} (用户ID: ${profile.id})，请检查 RESEND_API_KEY / RESEND_FROM_EMAIL`
+        `密码重置邮件发送失败: ${email} (用户ID: ${profile.id})，请检查 ${EMAIL_CONFIG_HINT}`
       );
     }
 

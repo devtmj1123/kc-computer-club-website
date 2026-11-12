@@ -197,6 +197,133 @@
   --admin-surface: var(--surface);
 }
 
+/* ─────────────────────────────────────────────────────────────
+   User-selectable accent palettes
+   `data-accent` is set on <html> by the pre-paint script and by
+   ThemeContext. Emerald (the default) lives in :root / .light.
+   Status colors stay semantic and do not follow the accent.
+   ───────────────────────────────────────────────────────────── */
+
+html[data-accent='cyan'] {
+  --primary: #6ee7ff;
+  --primary-hover: #b7f4ff;
+  --primary-light: rgba(110, 231, 255, 0.1);
+  --primary-glow: rgba(110, 231, 255, 0.18);
+  --primary-rgb: 110, 231, 255;
+  --primary-contrast: #041318;
+  --grid-line: rgba(110, 231, 255, 0.028);
+  --grid-hot: rgba(110, 231, 255, 0.18);
+  --grid-glow: rgba(110, 231, 255, 0.045);
+}
+
+html[data-accent='azure'] {
+  --primary: #8bb8ff;
+  --primary-hover: #bdd6ff;
+  --primary-light: rgba(139, 184, 255, 0.1);
+  --primary-glow: rgba(139, 184, 255, 0.18);
+  --primary-rgb: 139, 184, 255;
+  --primary-contrast: #06111f;
+  --grid-line: rgba(139, 184, 255, 0.028);
+  --grid-hot: rgba(139, 184, 255, 0.18);
+  --grid-glow: rgba(139, 184, 255, 0.045);
+}
+
+html[data-accent='violet'] {
+  --primary: #c9a7ff;
+  --primary-hover: #e3d0ff;
+  --primary-light: rgba(201, 167, 255, 0.1);
+  --primary-glow: rgba(201, 167, 255, 0.18);
+  --primary-rgb: 201, 167, 255;
+  --primary-contrast: #12061f;
+  --grid-line: rgba(201, 167, 255, 0.028);
+  --grid-hot: rgba(201, 167, 255, 0.18);
+  --grid-glow: rgba(201, 167, 255, 0.045);
+}
+
+html[data-accent='amber'] {
+  --primary: #ffd166;
+  --primary-hover: #ffe4a8;
+  --primary-light: rgba(255, 209, 102, 0.1);
+  --primary-glow: rgba(255, 209, 102, 0.18);
+  --primary-rgb: 255, 209, 102;
+  --primary-contrast: #1a1203;
+  --grid-line: rgba(255, 209, 102, 0.028);
+  --grid-hot: rgba(255, 209, 102, 0.18);
+  --grid-glow: rgba(255, 209, 102, 0.045);
+}
+
+html[data-accent='rose'] {
+  --primary: #ff9eb1;
+  --primary-hover: #ffc5d1;
+  --primary-light: rgba(255, 158, 177, 0.1);
+  --primary-glow: rgba(255, 158, 177, 0.18);
+  --primary-rgb: 255, 158, 177;
+  --primary-contrast: #1f060d;
+  --grid-line: rgba(255, 158, 177, 0.028);
+  --grid-hot: rgba(255, 158, 177, 0.18);
+  --grid-glow: rgba(255, 158, 177, 0.045);
+}
+
+html[data-accent='cyan'].light {
+  --primary: #086c80;
+  --primary-hover: #05505f;
+  --primary-light: rgba(8, 108, 128, 0.08);
+  --primary-glow: rgba(8, 108, 128, 0.14);
+  --primary-rgb: 8, 108, 128;
+  --primary-contrast: #f7faf2;
+  --grid-line: rgba(8, 108, 128, 0.05);
+  --grid-hot: rgba(8, 108, 128, 0.16);
+  --grid-glow: rgba(8, 108, 128, 0.04);
+}
+
+html[data-accent='azure'].light {
+  --primary: #1f4e8c;
+  --primary-hover: #173b6b;
+  --primary-light: rgba(31, 78, 140, 0.08);
+  --primary-glow: rgba(31, 78, 140, 0.14);
+  --primary-rgb: 31, 78, 140;
+  --primary-contrast: #f7faf2;
+  --grid-line: rgba(31, 78, 140, 0.05);
+  --grid-hot: rgba(31, 78, 140, 0.16);
+  --grid-glow: rgba(31, 78, 140, 0.04);
+}
+
+html[data-accent='violet'].light {
+  --primary: #5b2a9c;
+  --primary-hover: #47207c;
+  --primary-light: rgba(91, 42, 156, 0.08);
+  --primary-glow: rgba(91, 42, 156, 0.14);
+  --primary-rgb: 91, 42, 156;
+  --primary-contrast: #f7faf2;
+  --grid-line: rgba(91, 42, 156, 0.05);
+  --grid-hot: rgba(91, 42, 156, 0.16);
+  --grid-glow: rgba(91, 42, 156, 0.04);
+}
+
+html[data-accent='amber'].light {
+  --primary: #7a4f00;
+  --primary-hover: #5d3c00;
+  --primary-light: rgba(122, 79, 0, 0.08);
+  --primary-glow: rgba(122, 79, 0, 0.14);
+  --primary-rgb: 122, 79, 0;
+  --primary-contrast: #f7faf2;
+  --grid-line: rgba(122, 79, 0, 0.05);
+  --grid-hot: rgba(122, 79, 0, 0.16);
+  --grid-glow: rgba(122, 79, 0, 0.04);
+}
+
+html[data-accent='rose'].light {
+  --primary: #a11d3c;
+  --primary-hover: #7f1530;
+  --primary-light: rgba(161, 29, 60, 0.08);
+  --primary-glow: rgba(161, 29, 60, 0.14);
+  --primary-rgb: 161, 29, 60;
+  --primary-contrast: #f7faf2;
+  --grid-line: rgba(161, 29, 60, 0.05);
+  --grid-hot: rgba(161, 29, 60, 0.16);
+  --grid-glow: rgba(161, 29, 60, 0.04);
+}
+
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

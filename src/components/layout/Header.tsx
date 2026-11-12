@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
 import { ClubMark } from '@/components/ui/ClubMark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AccentPicker } from '@/components/ui/AccentPicker';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -124,6 +125,7 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
             {currentYear} / 学年
           </span>
           <ThemeToggle compact className="hidden sm:inline-flex" />
+          <AccentPicker compact className="hidden sm:block" />
 
           {isStudent && user ? (
             <div className="hidden items-center gap-2 md:flex">
@@ -226,7 +228,10 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
             ))}
 
             <div className="mt-4 flex items-center justify-between">
-              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <AccentPicker compact align="left" />
+              </div>
               {user ? (
                 <div className="flex items-center gap-2">
                   {isAdmin && (

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
 import { StudentLayout } from '@/components/layout/StudentLayout';
+import { HomeScrollBackdrop } from '@/components/layout/HomeScrollBackdrop';
 import { HeroSection } from '@/components/sections/HeroSection';
 import { NoticesSection, EventsSection } from '@/components/sections/NoticesSection';
 import { ProjectsSection } from '@/components/sections/ProjectsSection';
@@ -310,6 +311,7 @@ export default function HomePage() {
 
   return (
     <StudentLayout>
+      <HomeScrollBackdrop />
       <div className="mx-auto w-full max-w-[1360px]">
         <HeroSection
           eyebrow={clubInfo.heroEyebrow}

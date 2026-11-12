@@ -78,6 +78,17 @@ export default function RootLayout({
                     : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
                   document.documentElement.classList.toggle('light', mode === 'light');
                   document.documentElement.classList.toggle('dark', mode === 'dark');
+
+                  // Accent palette: emerald is the default, other presets are
+                  // selected by data-accent so the first paint is already correct.
+                  var accents = ['emerald', 'cyan', 'azure', 'violet', 'amber', 'rose'];
+                  var accent = localStorage.getItem('theme-accent');
+                  if (accents.indexOf(accent) === -1) accent = 'emerald';
+                  if (accent === 'emerald') {
+                    document.documentElement.removeAttribute('data-accent');
+                  } else {
+                    document.documentElement.setAttribute('data-accent', accent);
+                  }
                 } catch (e) {}
               })();
             `,

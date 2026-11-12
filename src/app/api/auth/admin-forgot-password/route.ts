@@ -6,6 +6,7 @@ import {
   isResetTokenConfigured,
 } from '@/lib/reset-token';
 import {
+  EMAIL_CONFIG_HINT,
   getAppUrl,
   isResetEmailConfigured,
   sendPasswordResetEmail,
@@ -43,8 +44,7 @@ export async function POST(request: Request) {
     if (!isResetEmailConfigured()) {
       return NextResponse.json(
         {
-          error:
-            '邮件服务暂未配置。请在服务器环境设置 RESEND_API_KEY 和 RESEND_FROM_EMAIL 后重试。',
+          error: `邮件服务暂未配置。请在服务器环境设置 ${EMAIL_CONFIG_HINT} 后重试。`,
           code: 'EMAIL_NOT_CONFIGURED',
         },
         { status: 503 }
@@ -195,7 +195,7 @@ export async function POST(request: Request) {
       );
     } else {
       console.error(
-        `管理员密码重置邮件发送失败: ${recoveryEmail} (管理员ID: ${profile.id})，请检查 RESEND_API_KEY / RESEND_FROM_EMAIL`
+        `管理员密码重置邮件发送失败: ${recoveryEmail} (管理员ID: ${profile.id})，请检查 ${EMAIL_CONFIG_HINT}`
       );
     }
 

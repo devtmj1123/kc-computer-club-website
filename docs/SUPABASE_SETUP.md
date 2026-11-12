@@ -206,7 +206,7 @@ RECAPTCHA_SECRET_KEY="..."
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY="..."
 ```
 
-如果继续使用自定义邮件（非 Supabase 内置邮件），再配置 `RESEND_API_KEY` / `RESEND_FROM_EMAIL`。
+密码重置邮件默认使用 SMTP（推荐），配置 `SMTP_HOST`、`SMTP_PORT`、`SMTP_USER`、`SMTP_PASS`、`SMTP_FROM_EMAIL` 即可；如继续使用 Resend，也可配置可选的 `RESEND_API_KEY` / `RESEND_FROM_EMAIL`（SMTP 配置优先）。
 
 管理员账号的登录邮箱是内部地址 `@admin.kcc.internal`，无法收信。忘记密码必须使用 `profiles.recovery_email`：
 

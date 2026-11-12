@@ -241,14 +241,18 @@ export async function POST(request: NextRequest) {
 
     // `club_name` is NOT NULL without a database default. Always include it in
     // the upsert candidate, otherwise Postgres rejects the INSERT half of
-    // `ON CONFLICT DO UPDATE` even when the row already exists.
+    // `ON CONFLICT DO UPDATE` even when the row already exists. Prefer the
+    // submitted name, then the stored name, then a safe fallback.
+    const submittedClubName =
+      typeof body.clubName === 'string' ? body.clubName.trim() : '';
+    const storedClubName =
+      existing && typeof existing.club_name === 'string'
+        ? existing.club_name.trim()
+        : '';
+
     update.id = 1;
     update.club_name =
-      existing && typeof existing.club_name === 'string' && existing.club_name.trim()
-        ? existing.club_name
-        : typeof body.clubName === 'string' && body.clubName.trim()
-          ? body.clubName.trim()
-          : 'KC Computer Club';
+      submittedClubName || storedClubName || 'KC Computer Club';
 
     // When migration 0006 has not been applied yet, keep saving the columns the
     // table already has instead of rejecting the whole form. New copy fields

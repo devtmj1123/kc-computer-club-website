@@ -101,7 +101,7 @@ Copy `.env.example` to `.env.local` and fill in the values you need.
 - Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
 - Set `ADMIN_SESSION_SECRET`, `STUDENT_SESSION_SECRET`, and `RESET_TOKEN_SECRET` to long random strings.
 - Set `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` and `RECAPTCHA_SECRET_KEY` from the same reCAPTCHA v3 key pair. The site key is public; the secret must stay server-side. If the secret is missing, verification is skipped (a warning is logged in production).
-- Set `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to enable password reset emails.
+- Set `SMTP_HOST` and `SMTP_FROM_EMAIL` (plus `SMTP_USER` / `SMTP_PASS` if your mail server needs authentication) to enable password reset emails. Resend remains optional via `RESEND_API_KEY` / `RESEND_FROM_EMAIL`.
 
 The full fresh-database checklist is in [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md).
 
