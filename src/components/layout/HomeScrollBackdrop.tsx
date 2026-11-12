@@ -17,6 +17,16 @@ import { useEffect, useRef } from 'react';
  * - an inclined orbit ring is drawn in two passes, so it visibly passes
  *   behind and in front of the planet.
  *
+ * Performance notes:
+ * - sphere, meridian and orbit geometry is precomputed once into typed
+ *   arrays, so the frame loop never calls trigonometry per point;
+ * - projected coordinates are written into reusable buffers, so drawing
+ *   allocates no per-point objects and creates no garbage;
+ * - all square nodes are batched into alpha buckets and filled with a small
+ *   number of paths instead of one state change per dot;
+ * - halo and satellite glows are cached sprites, rebuilt only when the
+ *   accent changes.
+ *
  * It is decorative only:
  * - `prefers-reduced-motion` renders a static frame and stops the idle loop.
  * - the canvas pauses while the tab is hidden.
@@ -25,9 +35,11 @@ import { useEffect, useRef } from 'react';
 
 const SEGMENTS = 72;
 const MERIDIANS = 7;
+const MERIDIAN_STEPS = 40;
 const LATITUDE_RINGS = [-67.5, -45, -22.5, 0, 22.5, 45, 67.5];
 const ORBIT_SEGMENTS = 144;
 const ORBIT_TILT = 0.62;
+const ORBIT_RADIUS = 1.45;
 const DRIFT_COUNT = 46;
 const SURFACE_COUNT = 52;
 const TAU = Math.PI * 2;
@@ -37,24 +49,42 @@ const DEPTH_ALPHA = [0.06, 0.22, 0.55, 0.95];
 const DEPTH_WIDTH_DESKTOP = [0.9, 1.15, 1.5, 2];
 const DEPTH_WIDTH_MOBILE = [0.6, 0.8, 1, 1.35];
 
+/**
+ * Node brightness is quantized into this many steps. The largest possible
+ * error is well under 1% opacity, invisible on 1–3px squares, and it lets a
+ * few hundred nodes render with a few dozen fills.
+ */
+const NODE_BUCKETS = 48;
+const NODE_MAX_ALPHA = 0.85;
+
 interface Vec3 {
   x: number;
   y: number;
   z: number;
 }
 
-interface ProjectedPoint {
+interface NodeGeometry {
   x: number;
   y: number;
   z: number;
-}
-
-interface SurfacePoint extends Vec3 {
   size: number;
 }
 
-interface DriftParticle extends Vec3 {
-  size: number;
+interface RingField {
+  /** Unit-sphere xyz triplets, precomputed once. */
+  vectors: Float32Array;
+  /** Reused screen-space xyz buffer, rewritten every frame. */
+  projected: Float32Array;
+  count: number;
+  closed: boolean;
+  alpha: number;
+}
+
+interface NodeField {
+  vectors: Float32Array;
+  projected: Float32Array;
+  sizes: Float32Array;
+  count: number;
 }
 
 function makeRandom(seed: number) {
@@ -81,9 +111,9 @@ function randomDirection(random: () => number): Vec3 {
  * landmasses; the sparse rest gives the surface texture. Because these are
  * not rotationally symmetric, the scroll spin is immediately visible.
  */
-function buildSurfacePoints(): SurfacePoint[] {
+function buildSurfaceNodes(): NodeGeometry[] {
   const random = makeRandom(90210);
-  const points: SurfacePoint[] = [];
+  const points: NodeGeometry[] = [];
 
   for (let cluster = 0; cluster < 6; cluster += 1) {
     const center = randomDirection(random);
@@ -113,7 +143,7 @@ function buildSurfacePoints(): SurfacePoint[] {
   return points;
 }
 
-function buildDriftParticles(): DriftParticle[] {
+function buildDriftNodes(): NodeGeometry[] {
   const random = makeRandom(1337);
   return Array.from({ length: DRIFT_COUNT }, () => {
     const theta = random() * TAU;
@@ -130,8 +160,149 @@ function buildDriftParticles(): DriftParticle[] {
   });
 }
 
-const SURFACE_POINTS = buildSurfacePoints();
-const DRIFT_PARTICLES = buildDriftParticles();
+function toNodeField(nodes: NodeGeometry[]): NodeField {
+  const vectors = new Float32Array(nodes.length * 3);
+  const sizes = new Float32Array(nodes.length);
+
+  nodes.forEach((node, index) => {
+    vectors[index * 3] = node.x;
+    vectors[index * 3 + 1] = node.y;
+    vectors[index * 3 + 2] = node.z;
+    sizes[index] = node.size;
+  });
+
+  return {
+    vectors,
+    projected: new Float32Array(vectors.length),
+    sizes,
+    count: nodes.length,
+  };
+}
+
+function buildLatitudeRings(): RingField[] {
+  return LATITUDE_RINGS.map((latitude) => {
+    const lat = (latitude * Math.PI) / 180;
+    const cosLat = Math.cos(lat);
+    const sinLat = Math.sin(lat);
+    const vectors = new Float32Array(SEGMENTS * 3);
+
+    for (let index = 0; index < SEGMENTS; index += 1) {
+      const lon = (index / SEGMENTS) * TAU;
+      vectors[index * 3] = cosLat * Math.cos(lon);
+      vectors[index * 3 + 1] = sinLat;
+      vectors[index * 3 + 2] = cosLat * Math.sin(lon);
+    }
+
+    return {
+      vectors,
+      projected: new Float32Array(vectors.length),
+      count: SEGMENTS,
+      closed: true,
+      // The equator reads as the horizon and gets slightly more weight.
+      alpha: Math.abs(latitude) < 1 ? 0.78 : 0.52,
+    };
+  });
+}
+
+function buildMeridians(): RingField[] {
+  return Array.from({ length: MERIDIANS }, (_, index) => {
+    const lon = (index / MERIDIANS) * Math.PI;
+    const cosLon = Math.cos(lon);
+    const sinLon = Math.sin(lon);
+    const count = MERIDIAN_STEPS + 1;
+    const vectors = new Float32Array(count * 3);
+
+    for (let step = 0; step < count; step += 1) {
+      const lat = -Math.PI / 2 + (step / MERIDIAN_STEPS) * Math.PI;
+      const cosLat = Math.cos(lat);
+      vectors[step * 3] = cosLat * cosLon;
+      vectors[step * 3 + 1] = Math.sin(lat);
+      vectors[step * 3 + 2] = cosLat * sinLon;
+    }
+
+    return {
+      vectors,
+      projected: new Float32Array(vectors.length),
+      count,
+      closed: false,
+      alpha: 0.44,
+    };
+  });
+}
+
+function buildOrbit(): RingField {
+  const count = ORBIT_SEGMENTS + 1;
+  const cosOrbit = Math.cos(ORBIT_TILT);
+  const sinOrbit = Math.sin(ORBIT_TILT);
+  const vectors = new Float32Array(count * 3);
+
+  for (let index = 0; index < count; index += 1) {
+    const angle = (index / ORBIT_SEGMENTS) * TAU;
+    vectors[index * 3] = Math.cos(angle) * ORBIT_RADIUS;
+    vectors[index * 3 + 1] = Math.sin(angle) * sinOrbit;
+    vectors[index * 3 + 2] = Math.sin(angle) * cosOrbit;
+  }
+
+  return {
+    vectors,
+    projected: new Float32Array(vectors.length),
+    count,
+    closed: false,
+    alpha: 1,
+  };
+}
+
+const LATITUDE_FIELDS = buildLatitudeRings();
+const MERIDIAN_FIELDS = buildMeridians();
+const ORBIT_FIELD = buildOrbit();
+const SURFACE_FIELD = toNodeField(buildSurfaceNodes());
+const DRIFT_FIELD = toNodeField(buildDriftNodes());
+const ORBIT_COS = Math.cos(ORBIT_TILT);
+const ORBIT_SIN = Math.sin(ORBIT_TILT);
+
+function createHaloSprite(accent: string): HTMLCanvasElement {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const spriteCtx = canvas.getContext('2d');
+  if (!spriteCtx) return canvas;
+
+  const half = size / 2;
+  // Same inner/outer radius ratio as the previous per-frame gradient:
+  // inner radius = 0.1 × planet radius, outer = 1.6 × planet radius.
+  const gradient = spriteCtx.createRadialGradient(
+    half,
+    half,
+    half * (0.1 / 1.6),
+    half,
+    half,
+    half
+  );
+  gradient.addColorStop(0, `rgba(${accent}, 0.1)`);
+  gradient.addColorStop(0.55, `rgba(${accent}, 0.035)`);
+  gradient.addColorStop(1, `rgba(${accent}, 0)`);
+  spriteCtx.fillStyle = gradient;
+  spriteCtx.fillRect(0, 0, size, size);
+  return canvas;
+}
+
+function createGlowSprite(accent: string): HTMLCanvasElement {
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const spriteCtx = canvas.getContext('2d');
+  if (!spriteCtx) return canvas;
+
+  const half = size / 2;
+  const gradient = spriteCtx.createRadialGradient(half, half, 0, half, half, half);
+  gradient.addColorStop(0, `rgba(${accent}, 1)`);
+  gradient.addColorStop(1, `rgba(${accent}, 0)`);
+  spriteCtx.fillStyle = gradient;
+  spriteCtx.fillRect(0, 0, size, size);
+  return canvas;
+}
 
 export function HomeScrollBackdrop() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -151,6 +322,10 @@ export function HomeScrollBackdrop() {
     let accent = '125, 255, 171';
     let isLight = document.documentElement.classList.contains('light');
 
+    let haloAccent = '';
+    let haloSprite: HTMLCanvasElement | null = null;
+    let glowSprite: HTMLCanvasElement | null = null;
+
     // Scroll state is eased towards the target every frame. Progress is
     // measured in viewports (not the whole page) so one or two swipes of the
     // wheel produce a full, clearly visible transformation.
@@ -168,6 +343,15 @@ export function HomeScrollBackdrop() {
     let running = false;
     let lastPaint = 0;
     let initialized = false;
+    let disposed = false;
+
+    // Reading scrollHeight forces layout, so the page range is cached and
+    // refreshed on resize / content changes instead of on every scroll event.
+    let viewportRange = 1;
+    let metricsFrame = 0;
+    let metricsQueued = false;
+
+    let resizeFrame = 0;
 
     const readTheme = () => {
       const styles = getComputedStyle(document.documentElement);
@@ -176,21 +360,39 @@ export function HomeScrollBackdrop() {
       isLight = document.documentElement.classList.contains('light');
     };
 
-    const readScroll = () => {
+    const ensureSprites = () => {
+      // The halo is tinted per accent, but its brightness is applied with
+      // globalAlpha, so light / dark mode can reuse the same bitmap.
+      if (haloSprite && glowSprite && haloAccent === accent) return;
+      haloAccent = accent;
+      haloSprite = createHaloSprite(accent);
+      glowSprite = createGlowSprite(accent);
+    };
+
+    const updateScrollMetrics = () => {
+      metricsFrame = 0;
+      metricsQueued = false;
       const maxScroll = Math.max(
         1,
         document.documentElement.scrollHeight - window.innerHeight
       );
       // Two viewports is the full transformation, but short pages reach the
       // end of the range at their own bottom instead of only halfway.
-      const viewportRange = Math.min(
+      viewportRange = Math.min(
         Math.max(1, window.innerHeight * 2.2),
         maxScroll
       );
-      targetProgress = Math.min(
-        1,
-        Math.max(0, window.scrollY / viewportRange)
-      );
+      readScroll();
+    };
+
+    const queueScrollMetrics = () => {
+      if (metricsQueued) return;
+      metricsQueued = true;
+      metricsFrame = window.requestAnimationFrame(updateScrollMetrics);
+    };
+
+    const readScroll = () => {
+      targetProgress = Math.min(1, Math.max(0, window.scrollY / viewportRange));
       targetSpin = window.scrollY * 0.0012;
 
       if (reduceMotion || !initialized) {
@@ -211,7 +413,16 @@ export function HomeScrollBackdrop() {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      readScroll();
+      updateScrollMetrics();
+      if (reduceMotion) draw(0);
+    };
+
+    const queueResize = () => {
+      if (resizeFrame) return;
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = 0;
+        if (!disposed) resize();
+      });
     };
 
     const draw = (time: number) => {
@@ -245,11 +456,7 @@ export function HomeScrollBackdrop() {
       const cosTilt = Math.cos(tilt);
       const sinTilt = Math.sin(tilt);
 
-      const project = (
-        x: number,
-        y: number,
-        z: number
-      ): ProjectedPoint => {
+      const projectPoint = (x: number, y: number, z: number) => {
         const rotatedX = x * cosY + z * sinY;
         const rotatedZ = -x * sinY + z * cosY;
         const tiltedY = y * cosTilt - rotatedZ * sinTilt;
@@ -264,86 +471,99 @@ export function HomeScrollBackdrop() {
         };
       };
 
-      // A soft halo gives the wireframe some depth without heavy shadows.
-      const halo = ctx.createRadialGradient(
-        centerX,
-        centerY,
-        radius * 0.1,
-        centerX,
-        centerY,
-        radius * 1.6
-      );
-      halo.addColorStop(0, `rgba(${accent}, ${0.1 * lightFactor})`);
-      halo.addColorStop(0.55, `rgba(${accent}, ${0.035 * lightFactor})`);
-      halo.addColorStop(1, `rgba(${accent}, 0)`);
-      ctx.fillStyle = halo;
-      ctx.fillRect(0, 0, width, height);
+      const projectField = (field: RingField | NodeField) => {
+        const src = field.vectors;
+        const dst = field.projected;
 
-      const strokeSegments = (
-        points: ProjectedPoint[],
-        closed: boolean,
-        baseAlpha: number
-      ) => {
-        const buckets = [
-          new Path2D(),
-          new Path2D(),
-          new Path2D(),
-          new Path2D(),
-        ];
-        const count = points.length;
-        const segmentCount = closed ? count : count - 1;
+        for (let index = 0; index < src.length; index += 3) {
+          const x = src[index];
+          const y = src[index + 1];
+          const z = src[index + 2];
+          const rotatedX = x * cosY + z * sinY;
+          const rotatedZ = -x * sinY + z * cosY;
+          const tiltedY = y * cosTilt - rotatedZ * sinTilt;
+          const tiltedZ = y * sinTilt + rotatedZ * cosTilt;
+          const perspective = 1 + tiltedZ * 0.3;
+
+          dst[index] = centerX + rotatedX * radius * perspective;
+          dst[index + 1] = centerY + tiltedY * radius * perspective;
+          dst[index + 2] = tiltedZ;
+        }
+      };
+
+      projectField(ORBIT_FIELD);
+      LATITUDE_FIELDS.forEach(projectField);
+      MERIDIAN_FIELDS.forEach(projectField);
+      projectField(SURFACE_FIELD);
+      projectField(DRIFT_FIELD);
+
+      // A soft halo gives the wireframe some depth without heavy shadows.
+      // It is a cached sprite now, drawn at the planet's bounds.
+      if (haloSprite) {
+        const haloRadius = radius * 1.6;
+        ctx.globalAlpha = lightFactor;
+        ctx.drawImage(
+          haloSprite,
+          centerX - haloRadius,
+          centerY - haloRadius,
+          haloRadius * 2,
+          haloRadius * 2
+        );
+        ctx.globalAlpha = 1;
+      }
+
+      const newBuckets = () => [
+        new Path2D(),
+        new Path2D(),
+        new Path2D(),
+        new Path2D(),
+      ];
+
+      const addRingSegments = (field: RingField, buckets: Path2D[]) => {
+        const points = field.projected;
+        const count = field.count;
+        const segmentCount = field.closed ? count : count - 1;
 
         for (let index = 0; index < segmentCount; index += 1) {
-          const start = points[index];
-          const end = points[(index + 1) % count];
-          const depth = (start.z + end.z) / 2;
+          const start = index * 3;
+          const end = ((index + 1) % count) * 3;
+          const depth = (points[start + 2] + points[end + 2]) / 2;
           const bucket = Math.max(
             0,
             Math.min(3, Math.floor(((depth + 1) / 2) * 4))
           );
           const path = buckets[bucket];
-          path.moveTo(start.x, start.y);
-          path.lineTo(end.x, end.y);
+          path.moveTo(points[start], points[start + 1]);
+          path.lineTo(points[end], points[end + 1]);
         }
+      };
 
-        buckets.forEach((path, index) => {
+      const strokeBuckets = (buckets: Path2D[], baseAlpha: number) => {
+        for (let index = 0; index < buckets.length; index += 1) {
           const alpha = baseAlpha * DEPTH_ALPHA[index] * lightFactor;
-          if (alpha <= 0.002) return;
+          if (alpha <= 0.002) continue;
           ctx.lineWidth = isCompact
             ? DEPTH_WIDTH_MOBILE[index]
             : DEPTH_WIDTH_DESKTOP[index];
           ctx.strokeStyle = `rgba(${accent}, ${alpha})`;
-          ctx.stroke(path);
-        });
+          ctx.stroke(buckets[index]);
+        }
       };
 
       // ── Orbit ring, split into behind/in-front passes ──────────────
-      const orbitPoints: ProjectedPoint[] = [];
-      const cosOrbit = Math.cos(ORBIT_TILT);
-      const sinOrbit = Math.sin(ORBIT_TILT);
-      const orbitRadius = 1.45;
-
-      for (let index = 0; index <= ORBIT_SEGMENTS; index += 1) {
-        const angle = (index / ORBIT_SEGMENTS) * TAU;
-        orbitPoints.push(
-          project(
-            Math.cos(angle) * orbitRadius,
-            Math.sin(angle) * sinOrbit,
-            Math.sin(angle) * cosOrbit
-          )
-        );
-      }
-
       const drawOrbitSide = (front: boolean) => {
         const path = new Path2D();
+        const points = ORBIT_FIELD.projected;
+
         for (let index = 0; index < ORBIT_SEGMENTS; index += 1) {
-          const start = orbitPoints[index];
-          const end = orbitPoints[index + 1];
-          const depth = (start.z + end.z) / 2;
+          const start = index * 3;
+          const end = (index + 1) * 3;
+          const depth = (points[start + 2] + points[end + 2]) / 2;
           if (front ? depth < 0 : depth >= 0) continue;
-          path.moveTo(start.x, start.y);
-          path.lineTo(end.x, end.y);
+          path.moveTo(points[start], points[start + 1]);
+          path.lineTo(points[end], points[end + 1]);
         }
+
         ctx.lineWidth = front ? 1.4 : 0.9;
         ctx.strokeStyle = `rgba(${accent}, ${
           (front ? 0.5 : 0.16) * lightFactor
@@ -354,133 +574,144 @@ export function HomeScrollBackdrop() {
       drawOrbitSide(false);
 
       // ── Planet wireframe ──────────────────────────────────────────
-      LATITUDE_RINGS.forEach((latitude) => {
-        const lat = (latitude * Math.PI) / 180;
-        const cosLat = Math.cos(lat);
-        const sinLat = Math.sin(lat);
-        const points: ProjectedPoint[] = [];
+      // Rings never overlap each other, so one stroke per depth bucket is
+      // visually identical to stroking every ring separately.
+      const latitudeBuckets = newBuckets();
+      const equatorBuckets = newBuckets();
 
-        for (let index = 0; index < SEGMENTS; index += 1) {
-          const lon = (index / SEGMENTS) * TAU;
-          points.push(
-            project(
-              cosLat * Math.cos(lon),
-              sinLat,
-              cosLat * Math.sin(lon)
-            )
-          );
+      LATITUDE_FIELDS.forEach((field) => {
+        addRingSegments(
+          field,
+          field.alpha > 0.6 ? equatorBuckets : latitudeBuckets
+        );
+      });
+
+      strokeBuckets(latitudeBuckets, 0.52);
+      strokeBuckets(equatorBuckets, 0.78);
+
+      // Meridians stay as individual strokes: they all meet at the poles,
+      // and separate strokes preserve the brighter convergence there.
+      MERIDIAN_FIELDS.forEach((field) => {
+        const buckets = newBuckets();
+        addRingSegments(field, buckets);
+        strokeBuckets(buckets, 0.44);
+      });
+
+      // Square nodes echo the site's pixel-grid style. They are collected
+      // into alpha buckets, then filled with one path per bucket.
+      const nodePaths = new Array<Path2D | null>(NODE_BUCKETS).fill(null);
+
+      const addNode = (
+        x: number,
+        y: number,
+        size: number,
+        alphaBase: number
+      ) => {
+        const bucket = Math.max(
+          0,
+          Math.min(
+            NODE_BUCKETS - 1,
+            Math.round((alphaBase / NODE_MAX_ALPHA) * (NODE_BUCKETS - 1))
+          )
+        );
+        let path = nodePaths[bucket];
+        if (!path) {
+          path = new Path2D();
+          nodePaths[bucket] = path;
         }
+        path.rect(x - size / 2, y - size / 2, size, size);
+      };
 
-        // The equator reads as the horizon and gets slightly more weight.
-        strokeSegments(points, true, Math.abs(latitude) < 1 ? 0.78 : 0.52);
+      LATITUDE_FIELDS.forEach((field) => {
+        const points = field.projected;
 
-        // Square nodes echo the site's pixel-grid style.
-        for (let index = 0; index < SEGMENTS; index += 6) {
-          const point = points[index];
-          const depthMix = (point.z + 1) / 2;
+        for (let index = 0; index < field.count; index += 6) {
+          const offset = index * 3;
+          const depthMix = (points[offset + 2] + 1) / 2;
           const size =
             (0.9 + Math.pow(depthMix, 1.6) * 1.5) *
             (isCompact ? 0.8 : 1);
-          ctx.fillStyle = `rgba(${accent}, ${
-            (0.04 + Math.pow(depthMix, 2) * 0.72) * lightFactor
-          })`;
-          ctx.fillRect(
-            point.x - size / 2,
-            point.y - size / 2,
+
+          addNode(
+            points[offset],
+            points[offset + 1],
             size,
-            size
+            0.04 + Math.pow(depthMix, 2) * 0.72
           );
         }
       });
-
-      // Meridian lines (half great circles from pole to pole).
-      for (let index = 0; index < MERIDIANS; index += 1) {
-        const lon = (index / MERIDIANS) * Math.PI;
-        const cosLon = Math.cos(lon);
-        const sinLon = Math.sin(lon);
-        const points: ProjectedPoint[] = [];
-
-        for (let step = 0; step <= 40; step += 1) {
-          const lat = -Math.PI / 2 + (step / 40) * Math.PI;
-          const cosLat = Math.cos(lat);
-          points.push(
-            project(
-              cosLat * cosLon,
-              Math.sin(lat),
-              cosLat * sinLon
-            )
-          );
-        }
-
-        strokeSegments(points, false, 0.44);
-      }
 
       // Irregular surface dots: the main cue that the planet is turning.
-      SURFACE_POINTS.forEach((point) => {
-        const projected = project(point.x, point.y, point.z);
-        const depthMix = (projected.z + 1) / 2;
+      const surfacePoints = SURFACE_FIELD.projected;
+      const surfaceSizes = SURFACE_FIELD.sizes;
+
+      for (let index = 0; index < SURFACE_FIELD.count; index += 1) {
+        const offset = index * 3;
+        const depthMix = (surfacePoints[offset + 2] + 1) / 2;
         const size =
-          point.size *
+          surfaceSizes[index] *
           (0.55 + depthMix * 1.2) *
           (isCompact ? 0.85 : 1);
-        ctx.fillStyle = `rgba(${accent}, ${
-          (0.05 + Math.pow(depthMix, 1.9) * 0.8) * lightFactor
-        })`;
-        ctx.fillRect(
-          projected.x - size / 2,
-          projected.y - size / 2,
+
+        addNode(
+          surfacePoints[offset],
+          surfacePoints[offset + 1],
           size,
-          size
+          0.05 + Math.pow(depthMix, 1.9) * 0.8
         );
-      });
+      }
 
       // Free-floating particles around the planet add depth layers.
-      DRIFT_PARTICLES.forEach((particle) => {
-        const point = project(particle.x, particle.y, particle.z);
-        const depthMix = (point.z + 1) / 2;
+      const driftPoints = DRIFT_FIELD.projected;
+      const driftSizes = DRIFT_FIELD.sizes;
+
+      for (let index = 0; index < DRIFT_FIELD.count; index += 1) {
+        const offset = index * 3;
+        const depthMix = (driftPoints[offset + 2] + 1) / 2;
         const size =
-          particle.size * (0.8 + depthMix * 0.9) * (isCompact ? 0.85 : 1);
-        ctx.fillStyle = `rgba(${accent}, ${
-          (0.05 + Math.pow(depthMix, 1.7) * 0.5) * lightFactor
-        })`;
-        ctx.fillRect(
-          point.x - size / 2,
-          point.y - size / 2,
+          driftSizes[index] *
+          (0.8 + depthMix * 0.9) *
+          (isCompact ? 0.85 : 1);
+
+        addNode(
+          driftPoints[offset],
+          driftPoints[offset + 1],
           size,
-          size
+          0.05 + Math.pow(depthMix, 1.7) * 0.5
         );
-      });
+      }
+
+      for (let bucket = 0; bucket < NODE_BUCKETS; bucket += 1) {
+        const path = nodePaths[bucket];
+        if (!path) continue;
+        const alpha =
+          (bucket / (NODE_BUCKETS - 1)) * NODE_MAX_ALPHA * lightFactor;
+        if (alpha <= 0.002) continue;
+        ctx.fillStyle = `rgba(${accent}, ${alpha})`;
+        ctx.fill(path);
+      }
 
       // ── In-front orbit pass and satellite ─────────────────────────
       const satelliteAngle = now * 0.0005 + progress * TAU * 1.1;
-      const satellite = project(
-        Math.cos(satelliteAngle) * orbitRadius,
-        Math.sin(satelliteAngle) * sinOrbit,
-        Math.sin(satelliteAngle) * cosOrbit
+      const satellite = projectPoint(
+        Math.cos(satelliteAngle) * ORBIT_RADIUS,
+        Math.sin(satelliteAngle) * ORBIT_SIN,
+        Math.sin(satelliteAngle) * ORBIT_COS
       );
 
       const drawSatellite = (front: boolean) => {
         const glowRadius = front ? 20 : 12;
-        const glow = ctx.createRadialGradient(
-          satellite.x,
-          satellite.y,
-          0,
-          satellite.x,
-          satellite.y,
-          glowRadius
-        );
-        glow.addColorStop(
-          0,
-          `rgba(${accent}, ${(front ? 0.55 : 0.18) * lightFactor})`
-        );
-        glow.addColorStop(1, `rgba(${accent}, 0)`);
-        ctx.fillStyle = glow;
-        ctx.fillRect(
-          satellite.x - glowRadius,
-          satellite.y - glowRadius,
-          glowRadius * 2,
-          glowRadius * 2
-        );
+        if (glowSprite) {
+          ctx.globalAlpha = (front ? 0.55 : 0.18) * lightFactor;
+          ctx.drawImage(
+            glowSprite,
+            satellite.x - glowRadius,
+            satellite.y - glowRadius,
+            glowRadius * 2,
+            glowRadius * 2
+          );
+          ctx.globalAlpha = 1;
+        }
 
         const size = front ? 3.4 : 2.2;
         ctx.fillStyle = `rgba(${accent}, ${
@@ -566,15 +797,25 @@ export function HomeScrollBackdrop() {
 
     const themeObserver = new MutationObserver(() => {
       readTheme();
+      ensureSprites();
       if (reduceMotion) draw(0);
     });
 
+    // Async content (fonts, images, lists) can change the page height; keep
+    // the cached scroll range in sync without reading it on every scroll.
+    const bodyObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => queueScrollMetrics())
+        : null;
+
     readTheme();
+    ensureSprites();
     resize();
     draw(0);
     start();
 
-    window.addEventListener('resize', resize);
+    bodyObserver?.observe(document.body);
+    window.addEventListener('resize', queueResize);
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('pointermove', handlePointerMove, {
       passive: true,
@@ -587,9 +828,13 @@ export function HomeScrollBackdrop() {
     });
 
     return () => {
+      disposed = true;
       stop();
+      bodyObserver?.disconnect();
       themeObserver.disconnect();
-      window.removeEventListener('resize', resize);
+      window.cancelAnimationFrame(metricsFrame);
+      window.cancelAnimationFrame(resizeFrame);
+      window.removeEventListener('resize', queueResize);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('visibilitychange', handleVisibility);
