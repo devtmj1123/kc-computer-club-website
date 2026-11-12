@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminPageSkeleton } from '@/components/ui/PageSkeletons';
 interface TeamMember {
   userId: string;
   name: string;
@@ -30,6 +31,15 @@ interface ProjectStats {
   pending: number;
   approved: number;
   rejected: number;
+}
+
+function computeStats(projects: Project[]): ProjectStats {
+  return {
+    total: projects.length,
+    pending: projects.filter((project) => project.status === 'pending').length,
+    approved: projects.filter((project) => project.status === 'approved').length,
+    rejected: projects.filter((project) => project.status === 'rejected').length,
+  };
 }
 export default function AdminProjectsPage() {
   const [stats, setStats] = useState<ProjectStats>({ total: 0, pending: 0, approved: 0, rejected: 0 });
@@ -105,8 +115,31 @@ export default function AdminProjectsPage() {
     tech_lead: '技术负责',
     design_lead: '设计负责',
   };
+  const updateProjectStatus = (
+    projectId: string,
+    status: Project['status'],
+    feedback?: string
+  ) => {
+    const next = projects.map((project) =>
+      project.projectId === projectId
+        ? {
+            ...project,
+            status,
+            adminFeedback: feedback,
+            updatedAt: new Date().toISOString(),
+          }
+        : project
+    );
+    setProjects(next);
+    setStats(computeStats(next));
+  };
+
   const handleApprove = async (projectId: string) => {
+    const snapshot = projects;
     setActionLoading(true);
+    setShowModal(false);
+    setSelectedProject(null);
+    updateProjectStatus(projectId, 'approved', undefined);
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
@@ -117,37 +150,40 @@ export default function AdminProjectsPage() {
         const data = await response.json();
         throw new Error(data.error || '操作失败');
       }
-      await fetchProjects();
-      setShowModal(false);
-      setSelectedProject(null);
     } catch (err) {
       const error = err as Error;
+      setProjects(snapshot);
+      setStats(computeStats(snapshot));
       alert(error.message);
     } finally {
       setActionLoading(false);
     }
   };
   const handleReject = async (projectId: string) => {
+    const snapshot = projects;
+    const feedback = feedbackText || undefined;
     setActionLoading(true);
+    setShowModal(false);
+    setSelectedProject(null);
+    setFeedbackText('');
+    updateProjectStatus(projectId, 'rejected', feedback);
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           action: 'reject',
-          feedback: feedbackText || undefined,
+          feedback,
         }),
       });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '操作失败');
       }
-      await fetchProjects();
-      setShowModal(false);
-      setSelectedProject(null);
-      setFeedbackText('');
     } catch (err) {
       const error = err as Error;
+      setProjects(snapshot);
+      setStats(computeStats(snapshot));
       alert(error.message);
     } finally {
       setActionLoading(false);
@@ -158,33 +194,41 @@ export default function AdminProjectsPage() {
       alert('请填写修改意见');
       return;
     }
+    const snapshot = projects;
     setActionLoading(true);
+    setShowModal(false);
+    setSelectedProject(null);
+    const feedback = feedbackText;
+    setFeedbackText('');
+    updateProjectStatus(projectId, 'revision', feedback);
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           action: 'revision',
-          feedback: feedbackText,
+          feedback,
         }),
       });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || '操作失败');
       }
-      await fetchProjects();
-      setShowModal(false);
-      setSelectedProject(null);
-      setFeedbackText('');
     } catch (err) {
       const error = err as Error;
+      setProjects(snapshot);
+      setStats(computeStats(snapshot));
       alert(error.message);
     } finally {
       setActionLoading(false);
     }
   };
   const handleRevertToPending = async (projectId: string) => {
+    const snapshot = projects;
     setActionLoading(true);
+    setShowModal(false);
+    setSelectedProject(null);
+    updateProjectStatus(projectId, 'pending', undefined);
     try {
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
@@ -195,11 +239,10 @@ export default function AdminProjectsPage() {
         const data = await response.json();
         throw new Error(data.error || '操作失败');
       }
-      await fetchProjects();
-      setShowModal(false);
-      setSelectedProject(null);
     } catch (err) {
       const error = err as Error;
+      setProjects(snapshot);
+      setStats(computeStats(snapshot));
       alert(error.message);
     } finally {
       setActionLoading(false);
@@ -208,12 +251,7 @@ export default function AdminProjectsPage() {
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="p-6 lg:p-8 flex items-center justify-center" style={{ minHeight: '400px' }}>
-          <div className="flex flex-col items-center gap-4">
-            <span className="material-symbols-outlined text-4xl text-[var(--primary)] animate-spin">hourglass_empty</span>
-            <p className="text-[var(--text-secondary)]">加载中...</p>
-          </div>
-        </div>
+        <AdminPageSkeleton title="Loading projects" rows={5} columns={4} />
       </AdminLayout>
     );
   }

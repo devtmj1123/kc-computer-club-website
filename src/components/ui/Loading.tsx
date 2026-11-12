@@ -64,7 +64,7 @@ export function Skeleton({
   return (
     <div
       className={cn(
-        'animate-pulse bg-[var(--surface-hover)] dark:bg-[var(--border)]',
+        'skeleton',
         circle ? 'rounded-full' : 'rounded-[3px]',
         className
       )}

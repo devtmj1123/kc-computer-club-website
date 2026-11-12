@@ -3,6 +3,7 @@
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { AdminTableSkeleton } from '@/components/ui/PageSkeletons';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -289,12 +290,7 @@ export default function AdminActivities() {
         </div>
 
         {isLoading ? (
-          <div className="px-5 py-14 text-center">
-            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
-            <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-              Loading activities
-            </p>
-          </div>
+          <AdminTableSkeleton rows={6} columns={5} className="border-0" />
         ) : filteredActivities.length > 0 ? (
           <div>
             {filteredActivities.map((activity) => {

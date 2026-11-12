@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { StudentLayout } from '@/components/layout/StudentLayout';
+import { useClub } from '@/contexts/ClubContext';
 import { ClubMark } from '@/components/ui/ClubMark';
 import { Loading } from '@/components/ui/Loading';
 import { Input } from '@/components/ui/Input';
@@ -24,6 +25,9 @@ function RecoveryLayout({
   isAdmin: boolean;
   children: React.ReactNode;
 }) {
+  const { clubInfo } = useClub();
+  const clubName = clubInfo.aboutTitle || clubInfo.clubName;
+
   if (!isAdmin) {
     return <StudentLayout>{children}</StudentLayout>;
   }
@@ -33,10 +37,10 @@ function RecoveryLayout({
       <header className="border-b border-[var(--rule-strong)] bg-[var(--surface)]">
         <div className="mx-auto flex h-16 w-full max-w-[1100px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <ClubMark size={30} />
+            <ClubMark size={30} src={clubInfo.logoUrl} alt={clubName} />
             <span className="flex flex-col gap-1">
               <span className="font-display text-[14px] font-bold leading-none text-[var(--foreground)]">
-                电脑学会
+                {clubName}
               </span>
               <span className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-tertiary)]">
                 ADMIN RECOVERY

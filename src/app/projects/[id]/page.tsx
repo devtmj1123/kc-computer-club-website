@@ -2,7 +2,7 @@
 
 import { StudentLayout } from '@/components/layout/StudentLayout';
 import { ProjectChecklistComponent } from '@/components/projects/ProjectChecklist';
-import { Loading } from '@/components/ui/Loading';
+import { DetailPageSkeleton } from '@/components/ui/PageSkeletons';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -137,9 +137,7 @@ export default function ProjectDetailPage() {
   if (isLoading) {
     return (
       <StudentLayout>
-        <main className="flex items-center justify-center py-32">
-          <Loading size="lg" text="加载项目…" />
-        </main>
+        <DetailPageSkeleton />
       </StudentLayout>
     );
   }

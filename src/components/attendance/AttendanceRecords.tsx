@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './AttendanceRecords.module.css';
+import { AttendanceSkeleton } from '@/components/ui/PageSkeletons';
 
 interface AttendanceRecord {
   $id: string;
@@ -57,6 +58,7 @@ export default function AttendanceRecords() {
   const [summary, setSummary] = useState<AttendanceSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [weekNumber, setWeekNumber] = useState<number>(0);
+  const weekNumberRef = useRef(0);
   const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -78,6 +80,10 @@ export default function AttendanceRecords() {
   }>({ isInitialized: false });
 
   const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'late' | 'absent' | 'pending'>('all');
+
+  useEffect(() => {
+    weekNumberRef.current = weekNumber;
+  }, [weekNumber]);
 
   const [attendanceConfig, setAttendanceConfig] = useState<{
     session1Start: { hour: number; minute: number };
@@ -175,8 +181,10 @@ export default function AttendanceRecords() {
     setSelectedStudent(null);
   };
 
-  const fetchRecords = async (week: number) => {
-    setIsLoading(true);
+  const fetchRecords = async (week: number, options: { silent?: boolean } = {}) => {
+    if (!options.silent) {
+      setIsLoading(true);
+    }
     setError('');
     try {
       const response = await fetch(`/api/attendance/records?weekNumber=${week}`);
@@ -190,7 +198,9 @@ export default function AttendanceRecords() {
       const error = err as Error & { message?: string };
       setError('获取记录失败：' + (error.message || '未知错误'));
     } finally {
-      setIsLoading(false);
+      if (!options.silent) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -302,15 +312,15 @@ export default function AttendanceRecords() {
 
     const statusInterval = setInterval(async () => {
       await checkAttendanceStatus();
-      if (weekNumber > 0) {
-        await autoInitializeSession(1, weekNumber);
-        await autoInitializeSession(2, weekNumber);
+      if (weekNumberRef.current > 0) {
+        await autoInitializeSession(1, weekNumberRef.current);
+        await autoInitializeSession(2, weekNumberRef.current);
       }
     }, 30000);
 
     const recordsInterval = setInterval(() => {
-      if (weekNumber > 0) {
-        fetchRecords(weekNumber);
+      if (weekNumberRef.current > 0) {
+        fetchRecords(weekNumberRef.current, { silent: true });
       }
     }, 10000);
 
@@ -424,6 +434,27 @@ export default function AttendanceRecords() {
     }
 
     setIsMarkingLate(true);
+    const snapshot = summary;
+
+    // Optimistically mark pending students absent in the matching session.
+    setSummary((prev) => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev)) as AttendanceSummary;
+      const session =
+        sessionTimeStr === getSessionTimeString(1) ? next.session1 : next.session2;
+      let pendingCount = 0;
+      session.students = session.students.map((student) => {
+        if (student.status !== 'pending') return student;
+        pendingCount += 1;
+        return { ...student, status: 'absent' as const };
+      });
+      if (pendingCount > 0) {
+        session.pending = Math.max(0, (session.pending || 0) - pendingCount);
+        session.absent = (session.absent || 0) + pendingCount;
+      }
+      return next;
+    });
+
     try {
       const response = await fetch('/api/attendance/mark-absent', {
         method: 'POST',
@@ -437,12 +468,13 @@ export default function AttendanceRecords() {
       const data = await response.json();
       if (data.success) {
         alert(`标记完成！${data.summary?.createdRecordsCount || 0} 名学生被标记为缺席`);
-        fetchRecords(weekNumber);
       } else {
+        setSummary(snapshot);
         alert('标记失败：' + (data.error || '未知错误'));
       }
     } catch (err) {
       const error = err as Error & { message?: string };
+      setSummary(snapshot);
       alert('标记失败：' + (error.message || '未知错误'));
     } finally {
       setIsMarkingLate(false);
@@ -467,86 +499,74 @@ export default function AttendanceRecords() {
     return date.toLocaleDateString('zh-CN');
   };
 
+  const applyStatusLocally = (
+    recordId: string,
+    newStatus: 'present' | 'absent' | 'late',
+    record?: AttendanceRecord
+  ) => {
+    if (!record) return;
+    setSummary((prev) => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev)) as AttendanceSummary;
+      const session =
+        record.sessionTime === getSessionTimeString(1) ? next.session1 : next.session2;
+      const idx = session.students.findIndex(
+        (student) => (student.uniqueKey || student.$id) === recordId
+      );
+      if (idx === -1) return prev;
+
+      const oldStatus = session.students[idx].status;
+      session.students[idx].status = newStatus;
+      if (oldStatus === 'pending') {
+        session.pending = Math.max(0, (session.pending || 0) - 1);
+      } else {
+        session[oldStatus] = Math.max(0, (session[oldStatus] || 0) - 1);
+      }
+      session[newStatus] = (session[newStatus] || 0) + 1;
+      return next;
+    });
+  };
+
   const handleChangeStatus = async (
     recordId: string,
     newStatus: 'present' | 'absent' | 'late',
     record?: AttendanceRecord
   ) => {
+    const snapshot = summary;
     setUpdatingId(recordId);
+    applyStatusLocally(recordId, newStatus, record);
 
     try {
       const isPendingRecord = record?.isPending || record?.status === 'pending';
-
-      if (isPendingRecord && record) {
-        const response = await fetch('/api/attendance/record', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recordId,
-            status: newStatus,
-            studentName: record.studentName,
-            studentEmail: record.studentEmail,
-            notes: newStatus === 'late' ? 'Admin 标记为迟到' : undefined,
-          }),
-        });
-
-        if (response.ok) {
-          if (summary) {
-            setSummary(prev => {
-              const newSummary = JSON.parse(JSON.stringify(prev));
-              const sessionTime = record.sessionTime;
-              const session = sessionTime === getSessionTimeString(1) ? newSummary.session1 : newSummary.session2;
-
-              const idx = session.students.findIndex((s: AttendanceRecord) => s.uniqueKey === recordId);
-              if (idx !== -1) {
-                session.students[idx].status = newStatus;
-                session.pending = (session.pending || 0) - 1;
-                session[newStatus] = (session[newStatus] || 0) + 1;
+      const response = await fetch('/api/attendance/record', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          isPendingRecord && record
+            ? {
+                recordId,
+                status: newStatus,
+                studentName: record.studentName,
+                studentEmail: record.studentEmail,
+                notes: newStatus === 'late' ? 'Admin 标记为迟到' : undefined,
               }
-              return newSummary;
-            });
-          }
-        } else {
-          const data = await response.json();
-          alert('创建失败：' + (data.error || '未知错误'));
-        }
-      } else {
-        const response = await fetch('/api/attendance/record', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            recordId,
-            status: newStatus,
-            notes: newStatus === 'late' ? 'Admin 标记为迟到' : undefined,
-          }),
-        });
-
-        if (response.ok) {
-          if (summary && record) {
-            setSummary(prev => {
-              const newSummary = JSON.parse(JSON.stringify(prev));
-              const sessionTime = record.sessionTime;
-              const session = sessionTime === getSessionTimeString(1) ? newSummary.session1 : newSummary.session2;
-
-              const idx = session.students.findIndex((s: AttendanceRecord) => (s.uniqueKey || s.$id) === recordId);
-              if (idx !== -1) {
-                const oldStatus = session.students[idx].status;
-                session.students[idx].status = newStatus;
-
-                if (oldStatus !== 'pending') {
-                  session[oldStatus] = Math.max(0, (session[oldStatus] || 0) - 1);
-                }
-                session[newStatus] = (session[newStatus] || 0) + 1;
+            : {
+                recordId,
+                status: newStatus,
+                notes: newStatus === 'late' ? 'Admin 标记为迟到' : undefined,
               }
-              return newSummary;
-            });
-          }
-        } else {
-          const data = await response.json();
-          alert('修改失败：' + (data.error || '未知错误'));
-        }
+        ),
+      });
+
+      if (!response.ok) {
+        setSummary(snapshot);
+        const data = await response.json();
+        alert(
+          (isPendingRecord ? '创建失败：' : '修改失败：') + (data.error || '未知错误')
+        );
       }
     } catch (err) {
+      setSummary(snapshot);
       const error = err as Error & { message?: string };
       alert('修改失败：' + (error.message || '未知错误'));
     } finally {
@@ -620,7 +640,7 @@ export default function AttendanceRecords() {
   };
 
   if (isLoading) {
-    return <div className={styles.loading}>加载中...</div>;
+    return <AttendanceSkeleton rows={8} />;
   }
 
   if (error) {

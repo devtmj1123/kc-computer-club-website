@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClub } from '@/contexts/ClubContext';
 import { Button } from '@/components/ui/Button';
 import { ClubMark } from '@/components/ui/ClubMark';
 import { Input } from '@/components/ui/Input';
@@ -11,6 +12,8 @@ import { Input } from '@/components/ui/Input';
 export default function AdminLoginPage() {
   const router = useRouter();
   const { adminLogin } = useAuth();
+  const { clubInfo } = useClub();
+  const clubName = clubInfo.aboutTitle || clubInfo.clubName;
   const [adminUsername, setAdminUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,10 +38,10 @@ export default function AdminLoginPage() {
     <div className="flex min-h-screen bg-transparent">
       <aside className="hidden w-[38%] max-w-[520px] flex-col justify-between border-r border-[var(--rule-strong)] bg-[var(--surface-hover)] p-10 lg:flex xl:p-14">
         <div className="flex items-center gap-3">
-          <ClubMark size={34} />
+          <ClubMark size={34} src={clubInfo.logoUrl} alt={clubName} />
           <span className="flex flex-col gap-1">
             <span className="font-display text-[15px] font-bold leading-none text-[var(--foreground)]">
-              电脑学会
+              {clubName}
             </span>
             <span className="font-mono text-[10px] leading-none tracking-[0.16em] text-[var(--text-tertiary)]">
               ADMIN CONSOLE
@@ -47,7 +50,7 @@ export default function AdminLoginPage() {
         </div>
 
         <div>
-          <div className="eyebrow">Kuen Cheng Computer Club</div>
+          <div className="eyebrow">{clubInfo.clubNameEn}</div>
           <p className="mt-6 font-display text-[38px] font-bold leading-[1.25] tracking-[-0.03em] text-[var(--foreground)]">
             管理内容，
             <br />
@@ -67,10 +70,10 @@ export default function AdminLoginPage() {
       <main className="flex flex-1 items-center justify-center px-4 py-12 sm:px-8">
         <div className="w-full max-w-[420px]">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <ClubMark size={30} />
+            <ClubMark size={30} src={clubInfo.logoUrl} alt={clubName} />
             <span className="flex flex-col gap-1">
               <span className="font-display text-[14px] font-bold leading-none text-[var(--foreground)]">
-                电脑学会
+                {clubName}
               </span>
               <span className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-tertiary)]">
                 ADMIN CONSOLE
@@ -85,7 +88,7 @@ export default function AdminLoginPage() {
                 管理员登录
               </h1>
               <p className="mt-2 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-                电脑学会官网管理后台，请使用管理员账户继续。
+                {clubName}官网管理后台，请使用管理员账户继续。
               </p>
             </div>
 

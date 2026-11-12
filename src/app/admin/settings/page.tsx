@@ -6,28 +6,15 @@ import { Input } from '@/components/ui/Input';
 import { useState, useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClub } from '@/contexts/ClubContext';
 import { changeAdminPassword } from '@/services/auth.service';
-
-interface ClubSettings {
-  aboutTitle?: string;
-  aboutDescription?: string;
-  aboutEmail?: string;
-  aboutLocation?: string;
-  aboutMeetingTime?: string;
-  website?: string;
-  logoUrl?: string;
-  heroImage?: string;
-  heroImageAlt?: string;
-  recruitmentStatus?: string;
-  activeMembers?: number;
-  yearlyActivities?: number;
-  awardProjects?: number;
-  partners?: number;
-  githubUrl?: string;
-  discordUrl?: string;
-  instagramUrl?: string;
-  youtubeUrl?: string;
-}
+import { clearPublicCache } from '@/lib/client-cache';
+import {
+  normalizeClubSettings,
+  type ClubActivityItem,
+  type ClubFaqItem,
+  type ClubSettings,
+} from '@/lib/club-settings';
 
 interface AttendanceConfig {
   dayOfWeek: number;
@@ -38,7 +25,6 @@ interface AttendanceConfig {
   weekStartDate: string;
 }
 
-const DEFAULT_SETTINGS: ClubSettings = {};
 const DEFAULT_ATTENDANCE_CONFIG: AttendanceConfig = {
   dayOfWeek: 2,
   session1Start: { hour: 15, minute: 20 },
@@ -69,10 +55,52 @@ function Panel({
   );
 }
 
+function TextArea({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows = 4,
+  hint,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="mb-1.5 block font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]"
+      >
+        {label}
+      </label>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full resize-y rounded-[3px] border border-[var(--input-border)] bg-[var(--input-bg)] px-3.5 py-2.5 text-[13px] leading-relaxed text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--input-placeholder)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-light)]"
+      />
+      {hint && <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">{hint}</p>}
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   const { user, isAdmin, isLoading } = useAuth();
+  const { refetch: refetchClubInfo } = useClub();
   const router = useRouter();
-  const [settings, setSettings] = useState<ClubSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<ClubSettings>(() =>
+    normalizeClubSettings(undefined)
+  );
+  const [migrationRequired, setMigrationRequired] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'about' | 'security' | 'attendance'>('about');
@@ -126,26 +154,8 @@ export default function AdminSettings() {
       const response = await fetch('/api/club-settings');
       if (response.ok) {
         const data = await response.json();
-        const clubSettings: ClubSettings = {};
-        if (data.aboutTitle) clubSettings.aboutTitle = data.aboutTitle;
-        if (data.aboutDescription) clubSettings.aboutDescription = data.aboutDescription;
-        if (data.aboutEmail) clubSettings.aboutEmail = data.aboutEmail;
-        if (data.aboutLocation) clubSettings.aboutLocation = data.aboutLocation;
-        if (data.aboutMeetingTime) clubSettings.aboutMeetingTime = data.aboutMeetingTime;
-        if (data.website) clubSettings.website = data.website;
-        if (data.logoUrl) clubSettings.logoUrl = data.logoUrl;
-        if (data.heroImage) clubSettings.heroImage = data.heroImage;
-        if (data.heroImageAlt) clubSettings.heroImageAlt = data.heroImageAlt;
-        if (data.recruitmentStatus) clubSettings.recruitmentStatus = data.recruitmentStatus;
-        if (data.activeMembers) clubSettings.activeMembers = data.activeMembers;
-        if (data.yearlyActivities) clubSettings.yearlyActivities = data.yearlyActivities;
-        if (data.awardProjects) clubSettings.awardProjects = data.awardProjects;
-        if (data.partners) clubSettings.partners = data.partners;
-        if (data.githubUrl) clubSettings.githubUrl = data.githubUrl;
-        if (data.discordUrl) clubSettings.discordUrl = data.discordUrl;
-        if (data.instagramUrl) clubSettings.instagramUrl = data.instagramUrl;
-        if (data.youtubeUrl) clubSettings.youtubeUrl = data.youtubeUrl;
-        setSettings(clubSettings);
+        setMigrationRequired(Boolean(data.migrationRequired));
+        setSettings(normalizeClubSettings(data));
       }
     } catch (error) {
       console.error('加载社团设置失败:', error);
@@ -169,12 +179,58 @@ export default function AdminSettings() {
     return null;
   }
 
-  const handleSettingChange = (field: keyof ClubSettings, value: string | number) => {
+  function handleSettingChange<K extends keyof ClubSettings>(field: K, value: ClubSettings[K]) {
     setSettings((prev) => ({
       ...prev,
       [field]: value,
     }));
-  };
+  }
+
+  function updateActivity(index: number, patch: Partial<ClubActivityItem>) {
+    setSettings((prev) => ({
+      ...prev,
+      aboutActivities: prev.aboutActivities.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item
+      ),
+    }));
+  }
+
+  function addActivity() {
+    setSettings((prev) => ({
+      ...prev,
+      aboutActivities: [...prev.aboutActivities, { title: '', description: '' }],
+    }));
+  }
+
+  function removeActivity(index: number) {
+    setSettings((prev) => ({
+      ...prev,
+      aboutActivities: prev.aboutActivities.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  }
+
+  function updateFaq(index: number, patch: Partial<ClubFaqItem>) {
+    setSettings((prev) => ({
+      ...prev,
+      faqs: prev.faqs.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...patch } : item
+      ),
+    }));
+  }
+
+  function addFaq() {
+    setSettings((prev) => ({
+      ...prev,
+      faqs: [...prev.faqs, { question: '', answer: '' }],
+    }));
+  }
+
+  function removeFaq(index: number) {
+    setSettings((prev) => ({
+      ...prev,
+      faqs: prev.faqs.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  }
 
   const handlePasswordChange = async () => {
     setPasswordError('');
@@ -246,6 +302,9 @@ export default function AdminSettings() {
         }
         throw new Error(data.message || 'Failed to save settings');
       }
+      clearPublicCache();
+      await refetchClubInfo();
+      setMigrationRequired(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error: unknown) {
@@ -327,34 +386,115 @@ export default function AdminSettings() {
 
       {activeTab === 'about' && (
         <div className="max-w-3xl space-y-5">
+          {migrationRequired && (
+            <div className="border border-[var(--warning)]/40 bg-[var(--surface)] px-4 py-3.5">
+              <p className="font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--warning)]">
+                Database migration needed
+              </p>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                新的社团文案字段尚未写入数据库。请在 Supabase SQL Editor 执行{' '}
+                <code className="text-[var(--foreground)]">
+                  supabase/migrations/0006_club_information.sql
+                </code>
+                ，然后刷新此页面再保存。
+              </p>
+            </div>
+          )}
+
           <Panel title="基本信息" note="01 / Identity">
             <div className="space-y-5">
               <Input
-                label="社团标题"
-                value={settings.aboutTitle || ''}
+                label="社团名称（中文）"
+                value={settings.aboutTitle}
                 onChange={(e) => handleSettingChange('aboutTitle', e.target.value)}
-                placeholder="例如: 康中电脑学会"
+                placeholder="例如: 坤成中学电脑学会"
+                hint="显示在导航栏、页脚和关于页面。"
               />
-              <div>
-                <label
-                  htmlFor="aboutDescription"
-                  className="mb-1.5 block font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-secondary)]"
-                >
-                  社团介绍
-                </label>
-                <textarea
-                  id="aboutDescription"
-                  value={settings.aboutDescription || ''}
-                  onChange={(e) => handleSettingChange('aboutDescription', e.target.value)}
-                  placeholder="介绍社团的内容、使命和愿景…"
-                  rows={4}
-                  className="w-full resize-none rounded-[3px] border border-[var(--input-border)] bg-[var(--input-bg)] px-3.5 py-2.5 text-[13px] text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--input-placeholder)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-light)]"
+              <Input
+                label="社团英文名称"
+                value={settings.clubNameEn}
+                onChange={(e) => handleSettingChange('clubNameEn', e.target.value)}
+                placeholder="例如: KUEN CHENG COMPUTER CLUB"
+              />
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <Input
+                  label="成立年份"
+                  type="number"
+                  value={settings.foundedYear}
+                  onChange={(e) =>
+                    handleSettingChange('foundedYear', parseInt(e.target.value) || 1983)
+                  }
+                  hint="用于首页 EST. 与社团历史计算。"
+                />
+                <Input
+                  label="分组数量"
+                  type="number"
+                  value={settings.groupCount}
+                  onChange={(e) =>
+                    handleSettingChange('groupCount', parseInt(e.target.value) || 1)
+                  }
+                  hint="显示在首页统计栏。"
                 />
               </div>
+              <TextArea
+                id="aboutDescription"
+                label="社团介绍"
+                value={settings.aboutDescription}
+                onChange={(value) => handleSettingChange('aboutDescription', value)}
+                placeholder="介绍社团的内容、使命和愿景…"
+                rows={4}
+                hint="显示在关于页面与页脚。"
+              />
             </div>
           </Panel>
 
-          <Panel title="联系信息" note="02 / Contact">
+          <Panel title="首页 Hero 文案" note="02 / Hero">
+            <div className="space-y-5">
+              <Input
+                label="顶部小标题"
+                value={settings.heroEyebrow}
+                onChange={(e) => handleSettingChange('heroEyebrow', e.target.value)}
+                placeholder="例如: EST. 1983 — 四十余年 · 坤成中学"
+              />
+              <Input
+                label="主标题"
+                value={settings.heroTitle}
+                onChange={(e) => handleSettingChange('heroTitle', e.target.value)}
+                placeholder="例如: 让好奇心，成为作品。"
+                hint="使用中文逗号分隔时，后半句会自动以强调色换行显示。"
+              />
+              <TextArea
+                id="heroSubtitle"
+                label="副标题 / 简介"
+                value={settings.heroSubtitle}
+                onChange={(value) => handleSettingChange('heroSubtitle', value)}
+                rows={5}
+                hint="显示在首页主标题下方。"
+              />
+              <TextArea
+                id="heroHighlights"
+                label="标签（每行一个）"
+                value={settings.heroHighlights.join('\n')}
+                onChange={(value) =>
+                  handleSettingChange(
+                    'heroHighlights',
+                    value.split('\n').map((line) => line.trim())
+                  )
+                }
+                rows={4}
+                hint="显示在主标题下方。留空时会使用默认标签。"
+              />
+              <Input
+                label="招生 / 运行状态"
+                value={settings.recruitmentStatus}
+                onChange={(e) => handleSettingChange('recruitmentStatus', e.target.value)}
+                placeholder="例如: 社团运行中 / 2026 招新中"
+                hint="显示在主页 Hero 标签与 INDEX 面板底部。"
+              />
+            </div>
+          </Panel>
+
+          <Panel title="联系信息" note="03 / Contact">
             <div className="space-y-5">
               <Input
                 label="邮箱"
@@ -378,7 +518,7 @@ export default function AdminSettings() {
             </div>
           </Panel>
 
-          <Panel title="网站外观" note="03 / Appearance">
+          <Panel title="网站外观" note="04 / Appearance">
             <div className="space-y-5">
               <Input
                 label="官方网站 URL"
@@ -457,7 +597,7 @@ export default function AdminSettings() {
             </div>
           </Panel>
 
-          <Panel title="社团统计数据" note="04 / Numbers">
+          <Panel title="社团统计数据" note="05 / Numbers">
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <Input
                 label="活跃社员数"
@@ -488,7 +628,133 @@ export default function AdminSettings() {
             </div>
           </Panel>
 
-          <Panel title="社交媒体链接" note="05 / Social">
+          <Panel title="关于页面内容" note="06 / About page">
+            <div className="space-y-6">
+              <Input
+                label="关于页面大标题"
+                value={settings.aboutHeading}
+                onChange={(e) => handleSettingChange('aboutHeading', e.target.value)}
+                placeholder="例如: 一起学习，一起创造。"
+                hint="使用中文逗号分隔时，后半句会自动以强调色换行显示。"
+              />
+
+              <div>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-display text-[14px] font-bold text-[var(--foreground)]">
+                    我们做什么
+                  </h3>
+                  <Button type="button" variant="secondary" size="sm" onClick={addActivity}>
+                    添加项目
+                  </Button>
+                </div>
+                <div className="space-y-4">
+                  {settings.aboutActivities.map((activity, index) => (
+                    <div key={index} className="border border-[var(--border)] p-4">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <span className="mono-label">
+                          项目 {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeActivity(index)}
+                          className="font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--error)] transition-opacity hover:opacity-70"
+                        >
+                          移除
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        <Input
+                          label="标题"
+                          value={activity.title}
+                          onChange={(e) => updateActivity(index, { title: e.target.value })}
+                          placeholder="例如: 例常课程"
+                        />
+                        <TextArea
+                          id={`activity-description-${index}`}
+                          label="说明"
+                          value={activity.description}
+                          onChange={(value) => updateActivity(index, { description: value })}
+                          rows={2}
+                          placeholder="简单说明这个方向的内容…"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {settings.aboutActivities.length === 0 && (
+                    <p className="text-[12px] text-[var(--text-secondary)]">
+                      暂无项目，保存后会恢复默认内容。
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-display text-[14px] font-bold text-[var(--foreground)]">
+                    常见问题
+                  </h3>
+                  <Button type="button" variant="secondary" size="sm" onClick={addFaq}>
+                    添加问题
+                  </Button>
+                </div>
+                <div className="space-y-4">
+                  {settings.faqs.map((faq, index) => (
+                    <div key={index} className="border border-[var(--border)] p-4">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <span className="mono-label">
+                          问题 {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeFaq(index)}
+                          className="font-mono text-[12px] uppercase tracking-[0.08em] text-[var(--error)] transition-opacity hover:opacity-70"
+                        >
+                          移除
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        <Input
+                          label="问题"
+                          value={faq.question}
+                          onChange={(e) => updateFaq(index, { question: e.target.value })}
+                          placeholder="例如: 如何成为团员？"
+                        />
+                        <TextArea
+                          id={`faq-answer-${index}`}
+                          label="回答（每行一段）"
+                          value={faq.answer}
+                          onChange={(value) => updateFaq(index, { answer: value })}
+                          rows={3}
+                          placeholder="输入回答内容…"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {settings.faqs.length === 0 && (
+                    <p className="text-[12px] text-[var(--text-secondary)]">
+                      暂无问题，保存后会恢复默认内容。
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <Input
+                label="加入我们标题"
+                value={settings.joinTitle}
+                onChange={(e) => handleSettingChange('joinTitle', e.target.value)}
+                placeholder="例如: 对电脑有兴趣，就足够了。"
+              />
+              <TextArea
+                id="joinDescription"
+                label="加入我们说明"
+                value={settings.joinDescription}
+                onChange={(value) => handleSettingChange('joinDescription', value)}
+                rows={2}
+              />
+            </div>
+          </Panel>
+
+          <Panel title="社交媒体链接" note="07 / Social">
             <div className="space-y-5">
               <Input
                 label="GitHub"

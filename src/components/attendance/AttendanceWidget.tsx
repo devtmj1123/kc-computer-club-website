@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/Loading';
 
 interface AttendanceStatus {
   isAttendanceOpen: boolean;
@@ -158,18 +159,24 @@ export default function AttendanceWidget({
         clearInterval(interval);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!status) {
     return (
-      <div className="border border-[var(--rule-strong)] px-5 py-10 text-center">
-        <span className="material-symbols-outlined animate-spin text-[22px] text-[var(--primary)]">
-          hourglass_empty
-        </span>
-        <p className="mt-3 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
-          正在读取点名状态…
-        </p>
+      <div className="border border-[var(--rule-strong)]" aria-hidden="true">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
+          <Skeleton className="h-2.5 w-28" />
+          <Skeleton className="h-2.5 w-16" />
+        </div>
+        <div className="p-5">
+          <Skeleton className="h-2.5 w-40" />
+          <Skeleton className="mt-3 h-6 w-64" />
+          <Skeleton className="mt-4 h-3 w-72" />
+          <div className="mt-5 flex gap-2">
+            <Skeleton className="h-9 w-28" />
+            <Skeleton className="h-9 w-24" />
+          </div>
+        </div>
       </div>
     );
   }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { StudentLayout } from '@/components/layout/StudentLayout';
-import { Loading } from '@/components/ui/Loading';
+import { DetailPageSkeleton, SectionSkeleton } from '@/components/ui/PageSkeletons';
 import { CommentForm } from '@/components/comments/CommentForm';
 import { CommentList } from '@/components/comments/CommentList';
 import { useAuth } from '@/contexts/AuthContext';
@@ -126,9 +126,7 @@ export default function ActivityDetailPage() {
   if (isLoading) {
     return (
       <StudentLayout>
-        <main className="flex items-center justify-center py-32">
-          <Loading size="lg" text="加载活动详情…" />
-        </main>
+        <DetailPageSkeleton />
       </StudentLayout>
     );
   }
@@ -389,8 +387,8 @@ export default function ActivityDetailPage() {
               {showComments && (
                 <div className="pt-6">
                   {isLoadingComments ? (
-                    <div className="py-8 text-center">
-                      <Loading size="md" text="加载评论…" />
+                    <div className="py-4">
+                      <SectionSkeleton rows={3} />
                     </div>
                   ) : (
                     <>

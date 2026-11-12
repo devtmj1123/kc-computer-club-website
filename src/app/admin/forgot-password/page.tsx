@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { useClub } from '@/contexts/ClubContext';
 import { ClubMark } from '@/components/ui/ClubMark';
 import { Input } from '@/components/ui/Input';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export default function AdminForgotPasswordPage() {
+  const { clubInfo } = useClub();
+  const clubName = clubInfo.aboutTitle || clubInfo.clubName;
   const [step, setStep] = useState<'form' | 'sent'>('form');
   const [identifier, setIdentifier] = useState('');
   const [error, setError] = useState('');
@@ -47,10 +50,10 @@ export default function AdminForgotPasswordPage() {
       <header className="border-b border-[var(--rule-strong)] bg-[var(--surface)]">
         <div className="mx-auto flex h-16 w-full max-w-[1100px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <ClubMark size={30} />
+            <ClubMark size={30} src={clubInfo.logoUrl} alt={clubName} />
             <span className="flex flex-col gap-1">
               <span className="font-display text-[14px] font-bold leading-none text-[var(--foreground)]">
-                电脑学会
+                {clubName}
               </span>
               <span className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-tertiary)]">
                 ADMIN RECOVERY

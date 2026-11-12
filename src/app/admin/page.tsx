@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
+import { AdminDashboardSkeleton } from '@/components/ui/PageSkeletons';
 import Link from 'next/link';
 
 interface ActivityRow {
@@ -160,14 +161,17 @@ export default function AdminDashboard() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
-        <div className="border border-[var(--border)] bg-[var(--surface)] px-10 py-8 text-center">
-          <div className="mx-auto mb-4 size-7 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
-          <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-            Loading dashboard
-          </p>
-        </div>
-      </div>
+      <AdminLayout adminName={user?.name || '管理员'}>
+        <AdminDashboardSkeleton />
+      </AdminLayout>
+    );
+  }
+
+  if (isLoadingData) {
+    return (
+      <AdminLayout adminName={user.name || '管理员'}>
+        <AdminDashboardSkeleton />
+      </AdminLayout>
     );
   }
 

@@ -10,6 +10,7 @@ import {
   checkSession,
   changeStudentPassword,
 } from '@/services/auth.service';
+import { clearPublicCache } from '@/lib/client-cache';
 
 export interface StudentUser {
   id: string;
@@ -106,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoggedOut(false);
     try {
       const studentUser = await studentLogin(email, password);
+      clearPublicCache();
       setUser(studentUser);
       setRequirePasswordChange(studentUser.requirePasswordChange === true);
       localStorage.setItem('studentSession', JSON.stringify(studentUser));
@@ -123,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoggedOut(false);
     try {
       const adminUser = await adminLogin(adminUsername, password);
+      clearPublicCache();
       setUser(adminUser);
       setRequirePasswordChange(false);
     } catch (err: unknown) {
@@ -165,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
+      clearPublicCache();
       setUser(null);
       setRequirePasswordChange(false);
     }

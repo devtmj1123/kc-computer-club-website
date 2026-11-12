@@ -8,6 +8,8 @@ import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/contexts/AuthContext';
 import { decodeHtmlEntities } from '@/lib/utils';
+import { fetchCachedJson, publicDataUrls, readCachedJson } from '@/lib/client-cache';
+import { ActivityRowsSkeleton } from '@/components/ui/PageSkeletons';
 
 interface Activity {
   id: string;
@@ -40,7 +42,9 @@ function formatDate(value: string): { day: string; month: string; full: string; 
 
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(
+    () => !readCachedJson(publicDataUrls.activities)
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -48,15 +52,27 @@ export default function ActivitiesPage() {
 
   useEffect(() => {
     if (authLoading) return;
+    let cancelled = false;
+    const url = user
+      ? '/api/activities?onlyPublished=true&visibility=all'
+      : publicDataUrls.activities;
+
     const loadActivities = async () => {
-      try {
+      if (!readCachedJson(url)) {
         setIsLoading(true);
-        const visibility = user ? 'all' : 'public';
-        const response = await fetch(`/api/activities?onlyPublished=true&visibility=${visibility}`);
-        const data = await response.json();
+      }
+
+      try {
+        const data = await fetchCachedJson<{
+          success?: boolean;
+          activities?: Array<Record<string, unknown>>;
+        }>(url);
+
+        if (cancelled) return;
+
         if (data.success && data.activities) {
           const formattedActivities = data.activities
-            .map((activity: Record<string, unknown>) => {
+            .map((activity) => {
               const signupDeadline = String(activity.signupDeadline || '');
               const rawStatus = String(activity.status || '');
               const deadlinePassed = signupDeadline
@@ -85,19 +101,27 @@ export default function ActivitiesPage() {
                         : 'open',
               } as Activity;
             })
-            .filter((activity: Activity) => activity.id);
+            .filter((activity) => activity.id);
           setActivities(formattedActivities);
         } else {
           setActivities([]);
         }
       } catch (err) {
+        if (cancelled) return;
         console.error('加载活动失败:', err);
         setActivities([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
-    loadActivities();
+
+    void loadActivities();
+
+    return () => {
+      cancelled = true;
+    };
   }, [user, authLoading]);
 
   const categoryOptions = [
@@ -185,11 +209,7 @@ export default function ActivitiesPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-24">
-            <span className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
-              Loading events…
-            </span>
-          </div>
+          <ActivityRowsSkeleton rows={4} />
         ) : filteredActivities.length === 0 ? (
           <EmptyState
             icon="event"

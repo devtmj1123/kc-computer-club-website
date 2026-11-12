@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { AdminPageSkeleton, AdminTableSkeleton } from '@/components/ui/PageSkeletons';
 
 interface Admin {
   id: string;
@@ -58,19 +59,21 @@ export default function AdminManagePage() {
   };
 
   const handleDelete = async (adminId: string) => {
+    const snapshot = admins;
+    setDeleteId(null);
     setIsDeleting(true);
+    setAdmins((current) => current.filter((admin) => admin.id !== adminId));
     try {
       const response = await fetch(`/api/admin/manage?id=${adminId}`, {
         method: 'DELETE',
       });
       const data = await response.json();
-      if (data.success) {
-        setAdmins(admins.filter((a) => a.id !== adminId));
-        setDeleteId(null);
-      } else {
+      if (!data.success) {
+        setAdmins(snapshot);
         setError(data.error || '删除失败');
       }
     } catch (err) {
+      setAdmins(snapshot);
       setError(err instanceof Error ? err.message : '删除失败');
     } finally {
       setIsDeleting(false);
@@ -80,12 +83,7 @@ export default function AdminManagePage() {
   if (isLoading || !user) {
     return (
       <AdminLayout adminName={user?.name || '管理员'}>
-        <div className="flex items-center gap-3 border border-[var(--rule-strong)] px-5 py-10">
-          <span className="size-4 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
-          <span className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-            Loading administrators
-          </span>
-        </div>
+        <AdminPageSkeleton title="Loading administrators" rows={6} columns={5} />
       </AdminLayout>
     );
   }
@@ -160,12 +158,7 @@ export default function AdminManagePage() {
 
       <section className="border border-[var(--rule-strong)]">
         {isLoadingAdmins ? (
-          <div className="flex items-center gap-3 px-5 py-12">
-            <span className="size-4 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
-            <span className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-              Loading records
-            </span>
-          </div>
+          <AdminTableSkeleton rows={6} columns={5} className="border-0" />
         ) : admins.length === 0 ? (
           <div className="p-5">
             <EmptyState

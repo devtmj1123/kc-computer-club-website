@@ -1,7 +1,7 @@
 'use client';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Input } from '@/components/ui/Input';
-import { Loading } from '@/components/ui/Loading';
+import { AdminPageSkeleton, AdminTableSkeleton } from '@/components/ui/PageSkeletons';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -98,25 +98,33 @@ export default function AdminComments() {
     }
   };
   const handleDelete = async (id: string) => {
+    const snapshot = comments;
+    setDeleteId(null);
+    setIsDeleting(true);
+    setComments((prev) => prev.filter((c) => c.$id !== id));
     try {
-      setIsDeleting(true);
       const response = await fetch(`/api/comments/${id}`, {
         method: 'DELETE',
       });
       const data = await response.json();
-      if (data.success) {
-        setComments(comments.filter((c) => c.$id !== id));
-        setDeleteId(null);
-      } else {
+      if (!data.success) {
+        setComments(snapshot);
         alert(data.error || '删除失败');
       }
     } catch (err) {
+      setComments(snapshot);
       alert(err instanceof Error ? err.message : '删除失败');
     } finally {
       setIsDeleting(false);
     }
   };
   const handleStatusChange = async (id: string, status: Comment['status']) => {
+    const previousStatus = comments.find((comment) => comment.$id === id)?.status;
+    setComments((prev) =>
+      prev.map((comment) =>
+        comment.$id === id ? { ...comment, status } : comment
+      )
+    );
     try {
       const response = await fetch(`/api/comments/${id}`, {
         method: 'PUT',
@@ -127,15 +135,24 @@ export default function AdminComments() {
       if (!response.ok || !data.success) {
         throw new Error(data.error || '更新评论状态失败');
       }
-      setComments((prev) =>
-        prev.map((comment) =>
-          comment.$id === id ? { ...comment, status } : comment
-        )
-      );
     } catch (err) {
+      if (previousStatus) {
+        setComments((prev) =>
+          prev.map((comment) =>
+            comment.$id === id ? { ...comment, status: previousStatus } : comment
+          )
+        );
+      }
       alert(err instanceof Error ? err.message : '更新评论状态失败');
     }
   };
+  if (authLoading || !user) {
+    return (
+      <AdminLayout adminName="管理员">
+        <AdminPageSkeleton title="Loading comments" rows={5} columns={3} />
+      </AdminLayout>
+    );
+  }
   const filteredComments = comments.filter((comment) => {
     const matchSearch =
       comment.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -177,9 +194,7 @@ export default function AdminComments() {
       </div>
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden">
         {isLoading ? (
-          <div className="px-6 py-12 flex justify-center">
-            <Loading size="sm" text="加载评论中..." />
-          </div>
+          <AdminTableSkeleton rows={4} columns={3} className="border-0" />
         ) : filteredComments.length > 0 ? (
           <div className="divide-y divide-[var(--border)]">
             {filteredComments.map((comment) => (

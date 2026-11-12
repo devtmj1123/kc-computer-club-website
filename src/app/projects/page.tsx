@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { fetchCachedJson, publicDataUrls, readCachedJson } from '@/lib/client-cache';
+import { ProjectCardsSkeleton } from '@/components/ui/PageSkeletons';
 
 interface ProjectMember {
   userId: string;
@@ -51,28 +53,50 @@ function formatDate(value: string): string {
 export default function ProjectsPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(
+    () => !readCachedJson(publicDataUrls.projects)
+  );
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchProjects = async () => {
+      if (!readCachedJson(publicDataUrls.projects)) {
+        setIsLoading(true);
+      }
+
       try {
-        const response = await fetch('/api/projects');
-        const data = await response.json();
+        const data = await fetchCachedJson<{
+          success?: boolean;
+          projects?: Project[];
+          error?: string;
+        }>(publicDataUrls.projects);
+
+        if (cancelled) return;
+
         if (data.success) {
           setProjects(data.projects || []);
         } else {
           setError(data.error || '加载项目失败');
         }
       } catch (err) {
+        if (cancelled) return;
         console.error('加载项目失败:', err);
         setError('加载项目失败，请稍后重试');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
-    fetchProjects();
+
+    void fetchProjects();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredProjects = projects.filter((project) => {
@@ -153,11 +177,7 @@ export default function ProjectsPage() {
         )}
 
         {isLoading || authLoading ? (
-          <div className="flex items-center justify-center py-24">
-            <span className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
-              Loading projects…
-            </span>
-          </div>
+          <ProjectCardsSkeleton cards={6} />
         ) : filteredProjects.length === 0 ? (
           <EmptyState
             icon="folder_open"

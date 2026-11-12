@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { SectionHeading } from '@/components/ui/SectionHeading';
+import { Skeleton } from '@/components/ui/Loading';
 
 interface Notice {
   id: string;
@@ -16,6 +17,7 @@ interface Notice {
 
 interface NoticesSectionProps {
   notices: Notice[];
+  isLoading?: boolean;
   className?: string;
 }
 
@@ -28,7 +30,7 @@ function formatDate(value: string | Date): string {
   return `${year}.${month}.${day}`;
 }
 
-export function NoticesSection({ notices, className }: NoticesSectionProps) {
+export function NoticesSection({ notices, isLoading = false, className }: NoticesSectionProps) {
   const visibleNotices = notices.slice(0, 3);
 
   return (
@@ -40,7 +42,24 @@ export function NoticesSection({ notices, className }: NoticesSectionProps) {
         actionHref="/notices"
       />
 
-      {visibleNotices.length === 0 ? (
+      {isLoading ? (
+        <div aria-hidden="true">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-2 border-b border-[var(--border)] py-5 sm:grid-cols-[88px_minmax(0,1fr)_92px_16px] sm:items-center sm:gap-5 sm:px-3"
+            >
+              <Skeleton className="h-2.5 w-14" />
+              <div className="col-span-2 min-w-0 sm:col-span-1">
+                <Skeleton className="h-4 w-[82%]" />
+                <Skeleton className="mt-2 h-2.5 w-[60%]" />
+              </div>
+              <Skeleton className="hidden h-2.5 w-14 sm:block" />
+              <Skeleton className="hidden h-3 w-3 sm:block" />
+            </div>
+          ))}
+        </div>
+      ) : visibleNotices.length === 0 ? (
         <div className="flex items-center justify-between border-b border-[var(--border)] py-8">
           <p className="text-[13px] text-[var(--text-secondary)]">暂无公告</p>
           <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
@@ -108,10 +127,11 @@ interface Activity {
 
 interface EventsSectionProps {
   activities: Activity[];
+  isLoading?: boolean;
   className?: string;
 }
 
-export function EventsSection({ activities, className }: EventsSectionProps) {
+export function EventsSection({ activities, isLoading = false, className }: EventsSectionProps) {
   const visibleActivities = activities.slice(0, 3);
 
   return (
@@ -123,7 +143,24 @@ export function EventsSection({ activities, className }: EventsSectionProps) {
         actionHref="/activities"
       />
 
-      {visibleActivities.length === 0 ? (
+      {isLoading ? (
+        <div aria-hidden="true">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-start gap-5 border-b border-[var(--border)] py-5 sm:px-3"
+            >
+              <Skeleton className="h-14 w-12 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <Skeleton className="h-2.5 w-28" />
+                <Skeleton className="mt-3 h-4 w-[78%]" />
+                <Skeleton className="mt-2 h-2.5 w-24" />
+              </div>
+              <Skeleton className="mt-1 h-3 w-3" />
+            </div>
+          ))}
+        </div>
+      ) : visibleActivities.length === 0 ? (
         <div className="flex items-center justify-between border-b border-[var(--border)] py-8">
           <p className="text-[13px] text-[var(--text-secondary)]">暂无活动</p>
           <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">

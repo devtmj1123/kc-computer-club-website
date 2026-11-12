@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClub } from '@/contexts/ClubContext';
 import { StudentLayout } from '@/components/layout/StudentLayout';
 import { HeroSection } from '@/components/sections/HeroSection';
 import { NoticesSection, EventsSection } from '@/components/sections/NoticesSection';
 import { ProjectsSection } from '@/components/sections/ProjectsSection';
 import AttendanceWidget from '@/components/attendance/AttendanceWidget';
 import { decodeHtmlEntities } from '@/lib/utils';
+import { fetchCachedJson, publicDataUrls, readCachedJson } from '@/lib/client-cache';
+import { Skeleton } from '@/components/ui/Loading';
 
 interface Notice {
   id: string;
@@ -37,6 +40,18 @@ interface Project {
   repoUrl?: string;
 }
 
+interface NoticesResponse {
+  notices?: Array<Record<string, unknown>>;
+}
+
+interface ActivitiesResponse {
+  activities?: Array<Record<string, unknown>>;
+}
+
+interface ProjectsResponse {
+  projects?: Array<Record<string, unknown>>;
+}
+
 interface IndexItem {
   label: string;
   title: string;
@@ -55,11 +70,13 @@ function IndexPanel({
   statusText,
   heroImage,
   heroImageAlt,
+  isLoading = false,
 }: {
   items: IndexItem[];
   statusText: string;
   heroImage?: string;
   heroImageAlt?: string;
+  isLoading?: boolean;
 }) {
   return (
     <aside className="panel-corners self-start border border-[var(--rule-strong)] bg-[var(--surface)]">
@@ -71,7 +88,23 @@ function IndexPanel({
         </span>
       </div>
 
-      {items.length === 0 ? (
+      {isLoading ? (
+        <div aria-hidden="true">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-[22px_minmax(0,1fr)_40px] items-start gap-3 border-b border-[var(--border)] px-4 py-[18px]"
+            >
+              <Skeleton className="h-2.5 w-4" />
+              <div>
+                <Skeleton className="h-2.5 w-16" />
+                <Skeleton className="mt-2 h-3.5 w-[85%]" />
+              </div>
+              <Skeleton className="h-2.5 w-8" />
+            </div>
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <div className="px-4 py-10 text-center">
           <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
             近期内容将在这里更新。
@@ -133,122 +166,99 @@ function IndexPanel({
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { clubInfo } = useClub();
   const [notices, setNotices] = useState<Notice[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [clubStatus, setClubStatus] = useState<string>('社团运行中');
-  const [clubSettings, setClubSettings] = useState<{ heroImage?: string; heroImageAlt?: string } | null>(null);
+  const [isLoadingContent, setIsLoadingContent] = useState(
+    () => !readCachedJson(publicDataUrls.notices)
+  );
 
   useEffect(() => {
-    const fetchClubSettings = async () => {
-      try {
-        const response = await fetch('/api/club-settings');
-        if (response.ok) {
-          const data = await response.json();
-          setClubSettings({
-            heroImage: data.heroImage,
-            heroImageAlt: data.heroImageAlt,
-          });
-          if (data.recruitmentStatus) {
-            setClubStatus(data.recruitmentStatus);
-          }
+    let cancelled = false;
+
+    const loadHomepageData = async () => {
+      const [noticesResult, activitiesResult, projectsResult] = await Promise.allSettled([
+        fetchCachedJson<NoticesResponse>(publicDataUrls.notices),
+        fetchCachedJson<ActivitiesResponse>(publicDataUrls.activities),
+        fetchCachedJson<ProjectsResponse>(publicDataUrls.projects),
+      ]);
+
+      if (cancelled) return;
+
+      if (noticesResult.status === 'fulfilled') {
+        const noticesData = noticesResult.value.notices;
+        if (Array.isArray(noticesData)) {
+          setNotices(
+            noticesData.slice(0, 3).map((notice) => ({
+              id: (notice.id || notice.$id) as string,
+              title: decodeHtmlEntities(notice.title as string),
+              summary: decodeHtmlEntities(
+                ((notice.content as string)?.substring(0, 100) || '') as string
+              ),
+              category: (notice.category || '其他') as string,
+              icon: mapCategoryToIcon((notice.category || '其他') as string),
+              iconColor: mapCategoryToColor((notice.category || '其他') as string),
+              publishedAt: (notice.publishedAt ||
+                notice.createdAt ||
+                notice.$createdAt) as string,
+            }))
+          );
         }
-      } catch (error) {
-        console.error('Failed to fetch club settings:', error);
+      } else {
+        console.error('Failed to fetch notices:', noticesResult.reason);
       }
-    };
-    fetchClubSettings();
-  }, []);
 
-  useEffect(() => {
-    const fetchNotices = async () => {
-      try {
-        const response = await fetch('/api/notices?onlyPublished=true');
-        if (response.ok) {
-          const data = await response.json();
-          const noticesData = data.notices || data;
-          if (Array.isArray(noticesData) && noticesData.length > 0) {
-            const formattedNotices = noticesData
-              .slice(0, 3)
-              .map((notice: Record<string, unknown>) => ({
-                id: (notice.id || notice.$id) as string,
-                title: decodeHtmlEntities(notice.title as string),
-                summary: decodeHtmlEntities(
-                  ((notice.content as string)?.substring(0, 100) || '') as string
-                ),
-                category: (notice.category || '其他') as string,
-                icon: mapCategoryToIcon((notice.category || '其他') as string),
-                iconColor: mapCategoryToColor((notice.category || '其他') as string),
-                publishedAt: (notice.publishedAt ||
-                  notice.createdAt ||
-                  notice.$createdAt) as string,
-              }));
-            setNotices(formattedNotices);
-          }
+      if (activitiesResult.status === 'fulfilled') {
+        const activitiesData = activitiesResult.value.activities;
+        if (Array.isArray(activitiesData)) {
+          setActivities(
+            activitiesData.slice(0, 3).map((activity) => ({
+              id: (activity.id || activity.$id) as string,
+              title: activity.title as string,
+              category: (activity.category || '活动') as string,
+              date: (activity.startTime || new Date()) as string | Date,
+              time: activity.startTime
+                ? new Date(activity.startTime as string).toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : '待定',
+              location: (activity.location || '待定') as string,
+            }))
+          );
         }
-      } catch (error) {
-        console.error('Failed to fetch notices:', error);
+      } else {
+        console.error('Failed to fetch activities:', activitiesResult.reason);
       }
-    };
-    fetchNotices();
-  }, []);
 
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const response = await fetch('/api/activities?onlyPublished=true');
-        if (response.ok) {
-          const data = await response.json();
-          const activitiesData = data.activities || data;
-          if (Array.isArray(activitiesData) && activitiesData.length > 0) {
-            const formattedActivities = activitiesData
-              .slice(0, 3)
-              .map((activity: Record<string, unknown>) => ({
-                id: (activity.id || activity.$id) as string,
-                title: activity.title as string,
-                category: (activity.category || '活动') as string,
-                date: (activity.startTime || new Date()) as string | Date,
-                time: activity.startTime
-                  ? new Date(activity.startTime as string).toLocaleTimeString('zh-CN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  : '待定',
-                location: (activity.location || '待定') as string,
-              }));
-            setActivities(formattedActivities);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch activities:', error);
-      }
-    };
-    fetchActivities();
-  }, []);
-
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const response = await fetch('/api/projects');
-        if (response.ok) {
-          const data = await response.json();
-          const projectsArray = data.projects || data;
-          if (Array.isArray(projectsArray) && projectsArray.length > 0) {
-            const formattedProjects = projectsArray.slice(0, 3).map((project: Record<string, unknown>) => ({
+      if (projectsResult.status === 'fulfilled') {
+        const projectsArray = projectsResult.value.projects;
+        if (Array.isArray(projectsArray)) {
+          setProjects(
+            projectsArray.slice(0, 3).map((project) => ({
               id: (project.projectId || project.id || project.$id) as string,
               title: project.title as string,
               description: project.description as string,
               contributors: ((project.members as unknown[])?.length || 0) + 1,
               repoUrl: project.projectLink as string | undefined,
-            }));
-            setProjects(formattedProjects);
-          }
+            }))
+          );
         }
-      } catch (error) {
-        console.error('Failed to fetch projects:', error);
+      } else {
+        console.error('Failed to fetch projects:', projectsResult.reason);
+      }
+
+      if (!cancelled) {
+        setIsLoadingContent(false);
       }
     };
-    fetchProjects();
+
+    void loadHomepageData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const indexCandidates: Array<IndexItem | null> = [
@@ -296,19 +306,24 @@ export default function HomePage() {
   const indexItems = indexCandidates.filter((item): item is IndexItem => item !== null).slice(0, 4);
 
   const currentYear = new Date().getFullYear();
-  const clubYears = currentYear - 1983;
+  const clubYears = Math.max(0, currentYear - clubInfo.foundedYear);
 
   return (
     <StudentLayout>
       <div className="mx-auto w-full max-w-[1360px]">
         <HeroSection
-          statusText={clubStatus}
+          eyebrow={clubInfo.heroEyebrow}
+          headline={clubInfo.heroTitle}
+          subheadline={clubInfo.heroSubtitle}
+          highlights={clubInfo.heroHighlights}
+          statusText={clubInfo.recruitmentStatus}
           aside={
             <IndexPanel
               items={indexItems}
-              statusText={clubStatus}
-              heroImage={clubSettings?.heroImage}
-              heroImageAlt={clubSettings?.heroImageAlt}
+              statusText={clubInfo.recruitmentStatus}
+              heroImage={clubInfo.heroImage}
+              heroImageAlt={clubInfo.heroImageAlt}
+              isLoading={isLoadingContent}
             />
           }
         />
@@ -316,9 +331,19 @@ export default function HomePage() {
         <section className="px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 border-b border-[var(--rule-strong)] sm:grid-cols-3">
             {[
-              { value: '1983', unit: '', label: '成立年份', note: 'ESTABLISHED' },
+              {
+                value: String(clubInfo.foundedYear),
+                unit: '',
+                label: '成立年份',
+                note: 'ESTABLISHED',
+              },
               { value: String(clubYears), unit: '年', label: '社团历史', note: 'YEARS' },
-              { value: '05', unit: '组', label: '分组方向', note: 'GROUPS' },
+              {
+                value: String(clubInfo.groupCount).padStart(2, '0'),
+                unit: '组',
+                label: '分组方向',
+                note: 'GROUPS',
+              },
             ].map((stat, index) => (
               <div
                 key={stat.label}
@@ -352,12 +377,12 @@ export default function HomePage() {
         </section>
 
         <div className="grid grid-cols-1 gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.74fr)] lg:gap-16 lg:px-8 lg:py-14">
-          <NoticesSection notices={notices} />
-          <EventsSection activities={activities} />
+          <NoticesSection notices={notices} isLoading={isLoadingContent} />
+          <EventsSection activities={activities} isLoading={isLoadingContent} />
         </div>
 
         <div className="px-4 pb-14 sm:px-6 lg:px-8">
-          <ProjectsSection projects={projects} />
+          <ProjectsSection projects={projects} isLoading={isLoadingContent} />
         </div>
 
         {user && !('role' in user) && (

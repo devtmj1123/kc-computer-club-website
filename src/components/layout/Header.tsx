@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClub } from '@/contexts/ClubContext';
 import { ClubMark } from '@/components/ui/ClubMark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { cn } from '@/lib/utils';
@@ -42,7 +43,9 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isStudent, isAdmin, logout } = useAuth();
+  const { clubInfo } = useClub();
   const currentYear = new Date().getFullYear();
+  const clubName = clubInfo.aboutTitle || clubInfo.clubName;
 
   const handleLogout = async () => {
     await logout();
@@ -58,13 +61,13 @@ export function Header({ navItems = defaultNavItems, className }: HeaderProps) {
     >
       <div className="mx-auto flex h-16 w-full max-w-[1360px] items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-3">
-          <ClubMark size={36} priority />
+          <ClubMark size={36} priority src={clubInfo.logoUrl} alt={clubName} />
           <span className="hidden flex-col gap-1 sm:flex">
             <span className="font-display text-[15px] font-bold leading-none tracking-[0.02em] text-[var(--foreground)]">
-              坤成中学电脑学会
+              {clubName}
             </span>
             <span className="font-mono text-[12px] leading-none tracking-[0.18em] text-[var(--text-tertiary)]">
-              KUEN CHENG COMPUTER CLUB
+              {clubInfo.clubNameEn}
             </span>
           </span>
         </Link>

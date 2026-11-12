@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ClubMark } from '@/components/ui/ClubMark';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClub } from '@/contexts/ClubContext';
 
 interface FooterLink {
   label: string;
@@ -15,18 +15,6 @@ interface SocialLink {
   platform: 'github' | 'discord' | 'instagram' | 'youtube' | 'email';
   href: string;
   label?: string;
-}
-
-interface ClubSettings {
-  aboutTitle?: string;
-  aboutDescription?: string;
-  aboutEmail?: string;
-  aboutLocation?: string;
-  aboutMeetingTime?: string;
-  githubUrl?: string;
-  discordUrl?: string;
-  instagramUrl?: string;
-  youtubeUrl?: string;
 }
 
 interface FooterProps {
@@ -96,8 +84,8 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
 }
 
 export function Footer({ className }: FooterProps) {
-  const [settings, setSettings] = useState<ClubSettings | null>(null);
   const { isStudent, isAdmin } = useAuth();
+  const { clubInfo } = useClub();
   const currentYear = new Date().getFullYear();
 
   const accountLink: FooterLink = isAdmin
@@ -109,43 +97,28 @@ export function Footer({ className }: FooterProps) {
     link.href === '/auth/login' ? accountLink : link
   );
 
-  useEffect(() => {
-    async function fetchSettings() {
-      try {
-        const response = await fetch('/api/club-settings');
-        if (response.ok) {
-          const data = await response.json();
-          if (!data.error) {
-            setSettings(data);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch club settings for footer:', error);
-      }
-    }
-    fetchSettings();
-  }, []);
-
-  const clubName = settings?.aboutTitle || '坤成中学电脑学会';
-  const description =
-    settings?.aboutDescription ||
-    '培养学生编程能力与创新思维，推动校园信息技术教育。加入我们，一起探索技术的无限可能。';
-  const email = settings?.aboutEmail || 'computerclub@kuencheng.edu.my';
-  const address = settings?.aboutLocation || '电脑室 A304，科学楼三楼';
-  const meetingTime = settings?.aboutMeetingTime || '每周五 16:00 - 18:00';
+  const clubName = clubInfo.aboutTitle || clubInfo.clubName;
+  const description = clubInfo.aboutDescription;
+  const email = clubInfo.aboutEmail;
+  const address = clubInfo.aboutLocation;
+  const meetingTime = clubInfo.aboutMeetingTime;
 
   const socialLinks: SocialLink[] = [];
-  if (settings?.githubUrl) {
-    socialLinks.push({ platform: 'github', href: settings.githubUrl, label: 'GitHub' });
+  if (clubInfo.githubUrl) {
+    socialLinks.push({ platform: 'github', href: clubInfo.githubUrl, label: 'GitHub' });
   }
-  if (settings?.discordUrl) {
-    socialLinks.push({ platform: 'discord', href: settings.discordUrl, label: 'Discord' });
+  if (clubInfo.discordUrl) {
+    socialLinks.push({ platform: 'discord', href: clubInfo.discordUrl, label: 'Discord' });
   }
-  if (settings?.instagramUrl) {
-    socialLinks.push({ platform: 'instagram', href: settings.instagramUrl, label: 'Instagram' });
+  if (clubInfo.instagramUrl) {
+    socialLinks.push({
+      platform: 'instagram',
+      href: clubInfo.instagramUrl,
+      label: 'Instagram',
+    });
   }
-  if (settings?.youtubeUrl) {
-    socialLinks.push({ platform: 'youtube', href: settings.youtubeUrl, label: 'YouTube' });
+  if (clubInfo.youtubeUrl) {
+    socialLinks.push({ platform: 'youtube', href: clubInfo.youtubeUrl, label: 'YouTube' });
   }
 
   return (
@@ -154,13 +127,13 @@ export function Footer({ className }: FooterProps) {
         <div className="grid grid-cols-1 gap-10 py-14 md:grid-cols-2 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-5 lg:pr-12">
             <Link href="/" className="inline-flex items-center gap-3">
-              <ClubMark size={40} />
+              <ClubMark size={40} src={clubInfo.logoUrl} alt={clubName} />
               <span className="flex flex-col gap-1">
                 <span className="font-display text-[17px] font-bold leading-none tracking-[0.01em] text-[var(--foreground)]">
                   {clubName}
                 </span>
                 <span className="font-mono text-[12px] leading-none tracking-[0.18em] text-[var(--text-tertiary)]">
-                  KUEN CHENG COMPUTER CLUB · EST. 1983
+                  {clubInfo.clubNameEn} · EST. {clubInfo.foundedYear}
                 </span>
               </span>
             </Link>
@@ -249,7 +222,7 @@ export function Footer({ className }: FooterProps) {
           <span className="text-[var(--text-secondary)]">
             公告 / 活动 / 项目 / 关于 / 教程
           </span>
-          <span>MADE BY KC COMPUTER CLUB</span>
+          <span>MADE BY {clubInfo.clubNameEn}</span>
         </div>
       </div>
     </footer>

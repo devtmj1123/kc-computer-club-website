@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import { useAuth } from '@/contexts/AuthContext';
 import { Notice } from '@/services/notice.service';
+import { AdminPageSkeleton, AdminTableSkeleton } from '@/components/ui/PageSkeletons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -119,14 +120,7 @@ export default function AdminNoticesPage() {
   if (isLoading || !user) {
     return (
       <AdminLayout adminName={user?.name || '管理员'}>
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <div className="border border-[var(--border)] bg-[var(--surface)] px-8 py-6 text-center">
-            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
-            <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-              Loading notices
-            </p>
-          </div>
-        </div>
+        <AdminPageSkeleton title="Loading notices" rows={6} columns={5} />
       </AdminLayout>
     );
   }
@@ -213,12 +207,7 @@ export default function AdminNoticesPage() {
         </div>
 
         {isLoadingNotices ? (
-          <div className="px-5 py-14 text-center">
-            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
-            <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-              Loading records
-            </p>
-          </div>
+          <AdminTableSkeleton rows={6} columns={5} className="border-0" />
         ) : filteredNotices.length === 0 ? (
           <div className="px-5 py-14 text-center">
             <span className="material-symbols-outlined text-[28px] text-[var(--text-tertiary)]">

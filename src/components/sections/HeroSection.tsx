@@ -2,21 +2,23 @@
 
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { DEFAULT_CLUB_SETTINGS } from '@/lib/club-settings';
 
 interface HeroSectionProps {
+  eyebrow?: string;
   headline?: string;
   subheadline?: string;
+  highlights?: string[];
   statusText?: string;
   className?: string;
   aside?: React.ReactNode;
 }
 
-const defaultSubheadline =
-  '电脑学会成立于 1983 年，至今已有四十余年历史。我们陪伴每一位团员从第一行代码走到第一个上线项目，在持续学习、动手实践与展示成果中，把好奇心变成真正的作品。';
-
 export function HeroSection({
-  headline = '让好奇心，成为作品。',
-  subheadline = defaultSubheadline,
+  eyebrow = DEFAULT_CLUB_SETTINGS.heroEyebrow,
+  headline = DEFAULT_CLUB_SETTINGS.heroTitle,
+  subheadline = DEFAULT_CLUB_SETTINGS.heroSubtitle,
+  highlights = DEFAULT_CLUB_SETTINGS.heroHighlights,
   statusText,
   className,
   aside,
@@ -33,9 +35,7 @@ export function HeroSection({
       )}
     >
       <div className="min-w-0">
-        <div className="eyebrow">
-          EST. 1983 <span className="text-[var(--text-tertiary)]">—</span> 四十余年 · 坤成中学
-        </div>
+        <div className="eyebrow">{eyebrow}</div>
 
         <h1 className="mt-7 max-w-[780px] font-display text-[clamp(2.9rem,7vw,5.4rem)] leading-[1.02] tracking-[-0.02em] text-[var(--foreground)]">
           {firstLine}
@@ -63,18 +63,12 @@ export function HeroSection({
         </div>
 
         <div className="mt-11 flex flex-wrap items-center gap-x-7 gap-y-3 font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
-          <span className="inline-flex items-center gap-2">
-            <span className="size-1 rounded-full bg-[var(--primary)]" />
-            电脑室 · 例常活动
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="size-1 rounded-full bg-[var(--primary)]" />
-            项目制学习
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="size-1 rounded-full bg-[var(--primary)]" />
-            开放给全校
-          </span>
+          {highlights.map((highlight) => (
+            <span key={highlight} className="inline-flex items-center gap-2">
+              <span className="size-1 rounded-full bg-[var(--primary)]" />
+              {highlight}
+            </span>
+          ))}
           {statusText && (
             <span className="inline-flex items-center gap-2 text-[var(--primary)]">
               <span className="size-1 rounded-full bg-[var(--primary)]" />

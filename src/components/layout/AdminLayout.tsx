@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClub } from '@/contexts/ClubContext';
 import { ClubMark } from '@/components/ui/ClubMark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { AdminShellSkeleton } from '@/components/ui/PageSkeletons';
 import { useState, useEffect } from 'react';
 
 interface NavItem {
@@ -69,6 +71,7 @@ export function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user, isLoading, isAdmin } = useAuth();
+  const { clubInfo } = useClub();
 
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
@@ -86,20 +89,7 @@ export function AdminLayout({
   });
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-transparent">
-        <div className="border border-[var(--border)] bg-[var(--surface)] px-10 py-8 text-center">
-          <span className="mx-auto mb-4 flex items-end justify-center gap-1" aria-hidden="true">
-            <span className="loader-block h-3 w-1.5 bg-[var(--primary)]" />
-            <span className="loader-block h-3 w-1.5 bg-[var(--primary)]" />
-            <span className="loader-block h-3 w-1.5 bg-[var(--primary)]" />
-          </span>
-          <p className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-            Verifying session
-          </p>
-        </div>
-      </div>
-    );
+    return <AdminShellSkeleton />;
   }
 
   if (!user || !isAdmin) {
@@ -139,10 +129,14 @@ export function AdminLayout({
       >
         <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-[var(--border)] px-[22px]">
           <Link href="/admin" className="flex items-center gap-3">
-            <ClubMark size={30} />
+            <ClubMark
+              size={30}
+              src={clubInfo.logoUrl}
+              alt={clubInfo.aboutTitle || clubInfo.clubName}
+            />
             <span className="flex flex-col gap-1">
               <span className="font-display text-[14px] font-bold leading-none text-[var(--foreground)]">
-                电脑学会
+                {clubInfo.aboutTitle || clubInfo.clubName}
               </span>
               <span className="font-mono text-[10px] leading-none tracking-[0.16em] text-[var(--text-tertiary)]">
                 ADMIN CONSOLE

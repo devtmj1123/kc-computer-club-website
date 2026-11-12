@@ -8,6 +8,8 @@ import { NeumorphicSelect } from '@/components/ui/NeumorphicSelect';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/contexts/AuthContext';
 import { decodeHtmlEntities } from '@/lib/utils';
+import { fetchCachedJson, publicDataUrls, readCachedJson } from '@/lib/client-cache';
+import { NoticeRowsSkeleton } from '@/components/ui/PageSkeletons';
 
 interface NormalizedNotice {
   id: string;
@@ -38,20 +40,34 @@ function formatDate(value?: string): string {
 
 export default function NoticesPage() {
   const [notices, setNotices] = useState<NormalizedNotice[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(
+    () => !readCachedJson(publicDataUrls.notices)
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const { user } = useAuth();
 
   useEffect(() => {
+    let cancelled = false;
+    const url = user
+      ? '/api/notices?onlyPublished=true&visibility=all'
+      : publicDataUrls.notices;
+
     const loadNotices = async () => {
-      try {
+      if (!readCachedJson(url)) {
         setIsLoading(true);
-        const visibility = user ? 'all' : 'public';
-        const response = await fetch(`/api/notices?onlyPublished=true&visibility=${visibility}`);
-        const data = await response.json();
+      }
+
+      try {
+        const data = await fetchCachedJson<{
+          success?: boolean;
+          notices?: Array<Record<string, unknown>>;
+        }>(url);
+
+        if (cancelled) return;
+
         if (data.success && data.notices) {
-          const normalizedNotices = data.notices.map((notice: Record<string, unknown>) => {
+          const normalizedNotices = data.notices.map((notice) => {
             const rawContent = typeof notice.content === 'string' ? notice.content : '';
             return {
               id: String(notice.$id || notice.id || ''),
@@ -65,16 +81,26 @@ export default function NoticesPage() {
               isPinned: Boolean(notice.pinned),
             };
           });
-          setNotices(normalizedNotices.filter((notice: NormalizedNotice) => notice.id));
+          setNotices(normalizedNotices.filter((notice) => notice.id));
+        } else {
+          setNotices([]);
         }
       } catch (err) {
+        if (cancelled) return;
         console.error('加载公告失败:', err);
         setNotices([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
-    loadNotices();
+
+    void loadNotices();
+
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   const categoryOptions = [
@@ -143,10 +169,8 @@ export default function NoticesPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-24">
-            <span className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
-              Loading notices…
-            </span>
+          <div className="mt-10">
+            <NoticeRowsSkeleton rows={5} />
           </div>
         ) : filteredNotices.length === 0 ? (
           <EmptyState

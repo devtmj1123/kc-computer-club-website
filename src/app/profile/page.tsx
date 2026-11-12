@@ -5,8 +5,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { StudentLayout } from '@/components/layout/StudentLayout';
-import { Loading } from '@/components/ui/Loading';
 import { Input } from '@/components/ui/Input';
+import { ProfilePageSkeleton } from '@/components/ui/PageSkeletons';
 
 interface StudentInfo {
   studentId?: string;
@@ -82,9 +82,7 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <StudentLayout>
-        <main className="flex items-center justify-center py-32">
-          <Loading size="lg" text="加载个人资料…" />
-        </main>
+        <ProfilePageSkeleton />
       </StudentLayout>
     );
   }

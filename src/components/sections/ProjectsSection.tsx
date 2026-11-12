@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { SectionHeading } from '@/components/ui/SectionHeading';
+import { Skeleton } from '@/components/ui/Loading';
 
 interface Project {
   id: string;
@@ -15,10 +16,11 @@ interface Project {
 
 interface ProjectsSectionProps {
   projects: Project[];
+  isLoading?: boolean;
   className?: string;
 }
 
-export function ProjectsSection({ projects, className }: ProjectsSectionProps) {
+export function ProjectsSection({ projects, isLoading = false, className }: ProjectsSectionProps) {
   return (
     <section className={cn('min-w-0', className)}>
       <SectionHeading
@@ -28,7 +30,31 @@ export function ProjectsSection({ projects, className }: ProjectsSectionProps) {
         actionHref="/projects"
       />
 
-      {projects.length === 0 ? (
+      {isLoading ? (
+        <div
+          aria-hidden="true"
+          className="grid grid-cols-1 border-l border-[var(--border)] sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex min-h-[220px] flex-col border-b border-r border-[var(--border)] p-5 sm:p-6"
+            >
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-2.5 w-6" />
+                <Skeleton className="h-2.5 w-16" />
+              </div>
+              <Skeleton className="mt-5 h-4 w-[72%]" />
+              <Skeleton className="mt-3 h-2.5 w-full" />
+              <Skeleton className="mt-2 h-2.5 w-[85%]" />
+              <div className="mt-auto flex items-center justify-between border-t border-[var(--border)] pt-3">
+                <Skeleton className="h-2.5 w-20" />
+                <Skeleton className="h-2.5 w-12" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : projects.length === 0 ? (
         <div className="flex items-center justify-between border-b border-[var(--border)] py-8">
           <p className="text-[13px] text-[var(--text-secondary)]">暂无公开项目</p>
           <span className="font-mono text-[12px] uppercase tracking-[0.1em] text-[var(--text-tertiary)]">

@@ -7,6 +7,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
+import { AdminTableSkeleton } from '@/components/ui/PageSkeletons';
 import { SecureCache } from '@/lib/cache';
 
 interface StudentFullInfo {
@@ -510,12 +511,7 @@ export default function StudentsPage() {
 
       <section className="border border-[var(--rule-strong)]">
         {loading ? (
-          <div className="flex items-center gap-3 px-5 py-12">
-            <span className="size-4 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]" />
-            <span className="font-mono text-[12px] uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-              Loading roster
-            </span>
-          </div>
+          <AdminTableSkeleton rows={8} columns={6} className="border-0" />
         ) : filteredStudents.length === 0 ? (
           <div className="p-5">
             <EmptyState

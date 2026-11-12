@@ -1,33 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin';
 import { getAdminSession, requireAdminSession } from '@/lib/admin-session';
-
-interface ClubSettings {
-  id: string;
-  clubName: string;
-  aboutTitle: string;
-  aboutDescription: string;
-  aboutEmail: string;
-  aboutLocation: string;
-  aboutMeetingTime: string;
-  website: string;
-  logoUrl: string;
-  heroImage: string;
-  heroImageAlt: string;
-  recruitmentStatus: string;
-  activeMembers: number;
-  yearlyActivities: number;
-  awardProjects: number;
-  partners: number;
-  githubUrl: string;
-  discordUrl: string;
-  instagramUrl: string;
-  youtubeUrl: string;
-}
+import type { ClubActivityItem, ClubFaqItem, ClubSettings } from '@/lib/club-settings';
 
 interface ClubSettingsRow {
   id: number;
   club_name: string;
+  club_name_en: string | null;
   about_title: string | null;
   about_description: string | null;
   description: string | null;
@@ -39,6 +18,17 @@ interface ClubSettingsRow {
   hero_image_url: string | null;
   hero_image_alt: string | null;
   recruitment_status: string | null;
+  founded_year: number | null;
+  group_count: number | null;
+  hero_eyebrow: string | null;
+  hero_title: string | null;
+  hero_subtitle: string | null;
+  hero_highlights: unknown;
+  about_heading: string | null;
+  about_activities: unknown;
+  faqs: unknown;
+  join_title: string | null;
+  join_description: string | null;
   active_members: number;
   yearly_activities: number;
   award_projects: number;
@@ -50,8 +40,8 @@ interface ClubSettingsRow {
 }
 
 const FIELD_MAP: Record<keyof ClubSettings, string> = {
-  id: 'id',
   clubName: 'club_name',
+  clubNameEn: 'club_name_en',
   aboutTitle: 'about_title',
   aboutDescription: 'about_description',
   aboutEmail: 'email',
@@ -62,6 +52,17 @@ const FIELD_MAP: Record<keyof ClubSettings, string> = {
   heroImage: 'hero_image_url',
   heroImageAlt: 'hero_image_alt',
   recruitmentStatus: 'recruitment_status',
+  foundedYear: 'founded_year',
+  groupCount: 'group_count',
+  heroEyebrow: 'hero_eyebrow',
+  heroTitle: 'hero_title',
+  heroSubtitle: 'hero_subtitle',
+  heroHighlights: 'hero_highlights',
+  aboutHeading: 'about_heading',
+  aboutActivities: 'about_activities',
+  faqs: 'faqs',
+  joinTitle: 'join_title',
+  joinDescription: 'join_description',
   activeMembers: 'active_members',
   yearlyActivities: 'yearly_activities',
   awardProjects: 'award_projects',
@@ -77,13 +78,47 @@ const NUMERIC_FIELDS = new Set([
   'yearlyActivities',
   'awardProjects',
   'partners',
+  'foundedYear',
+  'groupCount',
 ]);
+
+function sanitizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+function sanitizeActivities(value: unknown): ClubActivityItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, 20)
+    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+    .map((item) => ({
+      title: typeof item.title === 'string' ? item.title.trim() : '',
+      description: typeof item.description === 'string' ? item.description.trim() : '',
+    }))
+    .filter((item) => item.title || item.description);
+}
+
+function sanitizeFaqs(value: unknown): ClubFaqItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, 30)
+    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+    .map((item) => ({
+      question: typeof item.question === 'string' ? item.question.trim() : '',
+      answer: typeof item.answer === 'string' ? item.answer.trim() : '',
+    }))
+    .filter((item) => item.question || item.answer);
+}
 
 function mapSettings(row: ClubSettingsRow): ClubSettings {
   return {
-    id: String(row.id),
-    clubName: row.club_name,
-    aboutTitle: row.about_title || row.club_name,
+    clubName: row.club_name || '',
+    clubNameEn: row.club_name_en || '',
+    aboutTitle: row.about_title || row.club_name || '',
     aboutDescription: row.about_description || row.description || '',
     aboutEmail: row.email || '',
     aboutLocation: row.location || '',
@@ -93,6 +128,17 @@ function mapSettings(row: ClubSettingsRow): ClubSettings {
     heroImage: row.hero_image_url || '',
     heroImageAlt: row.hero_image_alt || '',
     recruitmentStatus: row.recruitment_status || '',
+    foundedYear: row.founded_year ?? 1983,
+    groupCount: row.group_count ?? 5,
+    heroEyebrow: row.hero_eyebrow || '',
+    heroTitle: row.hero_title || '',
+    heroSubtitle: row.hero_subtitle || '',
+    heroHighlights: sanitizeStringList(row.hero_highlights),
+    aboutHeading: row.about_heading || '',
+    aboutActivities: sanitizeActivities(row.about_activities),
+    faqs: sanitizeFaqs(row.faqs),
+    joinTitle: row.join_title || '',
+    joinDescription: row.join_description || '',
     activeMembers: row.active_members ?? 0,
     yearlyActivities: row.yearly_activities ?? 0,
     awardProjects: row.award_projects ?? 0,
@@ -102,6 +148,14 @@ function mapSettings(row: ClubSettingsRow): ClubSettings {
     instagramUrl: row.instagram || '',
     youtubeUrl: row.youtube || '',
   };
+}
+
+function isMissingColumnError(error: { code?: string; message?: string }): boolean {
+  return (
+    error.code === '42703' ||
+    error.code === 'PGRST204' ||
+    /column .* does not exist|could not find the .* column/i.test(error.message || '')
+  );
 }
 
 export async function GET() {
@@ -128,7 +182,11 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(mapSettings(data as ClubSettingsRow));
+    const row = data as ClubSettingsRow;
+    return NextResponse.json({
+      ...mapSettings(row),
+      migrationRequired: !('club_name_en' in data),
+    });
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('Failed to fetch club settings:', err);
@@ -163,10 +221,17 @@ export async function POST(request: NextRequest) {
     };
 
     for (const [field, column] of Object.entries(FIELD_MAP)) {
-      if (field === 'id' || field === 'clubName') continue;
+      if (field === 'clubName') continue;
       const value = body[field as keyof ClubSettings];
       if (value === undefined) continue;
-      if (NUMERIC_FIELDS.has(field)) {
+
+      if (field === 'heroHighlights') {
+        update[column] = sanitizeStringList(value);
+      } else if (field === 'aboutActivities') {
+        update[column] = sanitizeActivities(value);
+      } else if (field === 'faqs') {
+        update[column] = sanitizeFaqs(value);
+      } else if (NUMERIC_FIELDS.has(field)) {
         const parsed = Number(value);
         if (Number.isFinite(parsed)) update[column] = parsed;
       } else {
@@ -174,13 +239,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!existing) {
-      update.id = 1;
-      update.club_name =
-        typeof body.clubName === 'string' && body.clubName.trim()
+    // `club_name` is NOT NULL without a database default. Always include it in
+    // the upsert candidate, otherwise Postgres rejects the INSERT half of
+    // `ON CONFLICT DO UPDATE` even when the row already exists.
+    update.id = 1;
+    update.club_name =
+      existing && typeof existing.club_name === 'string' && existing.club_name.trim()
+        ? existing.club_name
+        : typeof body.clubName === 'string' && body.clubName.trim()
           ? body.clubName.trim()
           : 'KC Computer Club';
-    }
 
     const { data, error } = await admin
       .from('club_settings')
@@ -189,6 +257,17 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      if (isMissingColumnError(error)) {
+        return NextResponse.json(
+          {
+            error: 'Migration required',
+            message:
+              '新字段尚未写入数据库。请先在 Supabase SQL Editor 执行 supabase/migrations/0006_club_information.sql，然后重新保存。',
+          },
+          { status: 503 }
+        );
+      }
+
       console.error('保存社团设置失败:', error.message);
       return NextResponse.json(
         { error: 'Failed to save club settings', message: error.message },
@@ -196,7 +275,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(mapSettings(data as ClubSettingsRow));
+    return NextResponse.json({ ...mapSettings(data as ClubSettingsRow), migrationRequired: false });
   } catch (error: unknown) {
     const err = error as Error & { message?: string };
     console.error('Failed to save club settings:', err);

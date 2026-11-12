@@ -1,87 +1,101 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import {
+  DEFAULT_CLUB_SETTINGS,
+  normalizeClubSettings,
+  type ClubSettings,
+} from '@/lib/club-settings';
+import { fetchCachedJson, publicDataUrls } from '@/lib/client-cache';
 
-interface ClubInfo {
-  logoUrl: string;
-  clubName: string;
+const STORAGE_KEY = 'club-settings-v2';
+const STORAGE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+interface StoredSettings {
+  data: unknown;
+  savedAt?: number;
 }
 
 interface ClubContextType {
-  clubInfo: ClubInfo;
-  updateClubInfo: (info: Partial<ClubInfo>) => void;
+  clubInfo: ClubSettings;
+  settings: ClubSettings;
+  updateClubInfo: (info: Partial<ClubSettings>) => void;
   isLoading: boolean;
   refetch: () => Promise<void>;
 }
 
 const ClubContext = createContext<ClubContextType | undefined>(undefined);
 
+function persistSettings(settings: ClubSettings) {
+  try {
+    const payload: StoredSettings = { data: settings, savedAt: Date.now() };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // Storage can be unavailable in private browsing; the API remains the source of truth.
+  }
+}
+
 export function ClubProvider({ children }: { children: React.ReactNode }) {
-  const [clubInfo, setClubInfo] = useState<ClubInfo>({
-    logoUrl: '',
-    clubName: '电脑学会',
-  });
+  const [clubInfo, setClubInfo] = useState<ClubSettings>(DEFAULT_CLUB_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchClubInfo = async () => {
+  const fetchClubInfo = useCallback(async (force = false) => {
     try {
-      const response = await fetch('/api/club-settings');
-      if (response.ok) {
-        const data = await response.json();
-        if (data && !data.error) {
-          const updatedInfo = {
-            logoUrl: data.logoUrl || data.logo || '',
-            clubName: data.aboutTitle || data.clubName || '电脑学会',
-          };
-          setClubInfo(updatedInfo);
-          localStorage.setItem('clubInfo', JSON.stringify(updatedInfo));
-        }
-      }
+      const data = await fetchCachedJson<unknown>(publicDataUrls.clubSettings, { force });
+      const normalized = normalizeClubSettings(data);
+      setClubInfo(normalized);
+      persistSettings(normalized);
     } catch (error) {
       console.error('Failed to fetch club info from API:', error);
     }
-  };
-
-  useEffect(() => {
-    const loadClubInfo = async () => {
-      try {
-        const stored = localStorage.getItem('clubInfo');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          setClubInfo(prev => ({ ...prev, ...parsed }));
-        }
-
-        await fetchClubInfo();
-      } catch (error) {
-        console.error('Failed to load club info:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadClubInfo();
   }, []);
 
-  const updateClubInfo = (info: Partial<ClubInfo>) => {
-    setClubInfo(prev => {
-      const updated = { ...prev, ...info };
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadClubInfo = async () => {
       try {
-        localStorage.setItem('clubInfo', JSON.stringify(updated));
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as StoredSettings;
+          const savedAt = typeof parsed.savedAt === 'number' ? parsed.savedAt : 0;
+          if (Date.now() - savedAt < STORAGE_MAX_AGE_MS && !cancelled) {
+            setClubInfo(normalizeClubSettings(parsed.data));
+          }
+        }
+        // Remove the legacy two-field cache so old values do not linger.
+        localStorage.removeItem('clubInfo');
       } catch (error) {
-        console.error('Failed to save club info:', error);
+        console.error('Failed to load cached club info:', error);
       }
+
+      await fetchClubInfo();
+      if (!cancelled) setIsLoading(false);
+    };
+
+    void loadClubInfo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchClubInfo]);
+
+  const updateClubInfo = useCallback((info: Partial<ClubSettings>) => {
+    setClubInfo((prev) => {
+      const updated = normalizeClubSettings({ ...prev, ...info });
+      persistSettings(updated);
       return updated;
     });
-  };
+  }, []);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     setIsLoading(true);
-    await fetchClubInfo();
+    await fetchClubInfo(true);
     setIsLoading(false);
-  };
+  }, [fetchClubInfo]);
 
   return (
-    <ClubContext.Provider value={{ clubInfo, updateClubInfo, isLoading, refetch }}>
+    <ClubContext.Provider value={{ clubInfo, settings: clubInfo, updateClubInfo, isLoading, refetch }}>
       {children}
     </ClubContext.Provider>
   );

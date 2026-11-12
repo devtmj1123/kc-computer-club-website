@@ -9,6 +9,8 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { ReCaptchaProvider } from "@/contexts/ReCaptchaContext";
 import { GridBackdrop } from "@/components/layout/GridBackdrop";
+import { RouteProgress } from "@/components/system/RouteProgress";
+import { FastStart } from "@/components/system/FastStart";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -39,6 +41,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
   return (
     <html
       lang="zh-CN"
@@ -48,6 +52,12 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {supabaseUrl && (
+          <>
+            <link rel="preconnect" href={supabaseUrl} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={supabaseUrl} />
+          </>
+        )}
         <link
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
           rel="stylesheet"
@@ -75,6 +85,8 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
+        <RouteProgress />
+        <FastStart />
         <GridBackdrop />
         <div className="relative z-10">
           <ThemeProvider>
